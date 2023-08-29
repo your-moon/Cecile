@@ -76,3 +76,51 @@ fn cecile_string(lexer: &mut logos::Lexer<Token>) -> String {
 fn cecile_number(lexer: &mut logos::Lexer<Token>) -> Option<f64> {
     lexer.slice().parse::<f64>().ok()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lexer() {
+        let input = r#"
+            and
+            struct
+            identifier123
+            "string"
+            42
+            ( ) { }
+            , . - + ;
+            != == > >= < <=
+        "#;
+
+        let expected_tokens = [
+            Token::And,
+            Token::Struct,
+            Token::Identifier("identifier123".to_string()),
+            Token::String("string".to_string()),
+            Token::Number(42.0),
+            Token::LeftParen,
+            Token::RightParen,
+            Token::LeftBrace,
+            Token::RightBrace,
+            Token::Comma,
+            Token::Dot,
+            Token::Minus,
+            Token::Plus,
+            Token::Semicolon,
+            Token::BangEqual,
+            Token::EqualEqual,
+            Token::Greater,
+            Token::GreaterEqual,
+            Token::Less,
+            Token::LessEqual,
+        ];
+
+        let lexer = Token::lexer(input);
+
+        for (token, expected_token) in lexer.zip(expected_tokens.iter()) {
+            assert_eq!(token.unwrap(), *expected_token);
+        }
+    }
+}
