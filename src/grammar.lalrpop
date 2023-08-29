@@ -1,0 +1,26 @@
+use crate::lexer;
+use crate::lexer::LexicalError;
+use crate::lexer::Token;
+use crate::ast;
+grammar;
+
+pub Term: Box<ast::Expression> = {
+  <val:"number"> => {
+    Box::new(ast::Expression::Number(val))
+  },
+  <name:"identifier"> => {
+    Box::new(ast::Expression::Variable(name))
+  },
+}
+
+extern {
+  type Location = usize;
+  type Error = LexicalError;
+
+  enum Token {
+    "+" => Token::Plus,
+    "-" => Token::Minus,
+    "*" => Token::Star,
+    "/" => Token::Slash,
+  }
+}

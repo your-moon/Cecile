@@ -1,16 +1,21 @@
-use std::num::ParseFloatError;
+use std::{fmt, num::ParseFloatError};
 
-use logos::Logos;
+use logos::{Logos, SpannedIter};
 
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\n\f]+")] // Зай болон мөр алгасах тэмдэгийг алгасанa.
 pub enum Token {
     // Түлхүүр үгс
+    #[token("let")]
+    Let,
     #[token("and")]
     And,
 
     #[token("struct")]
     Struct,
+
+    #[token("print")]
+    Print,
 
     // Үг
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", cecile_identifier)]
@@ -41,6 +46,8 @@ pub enum Token {
     Plus,
     #[token(";")]
     Semicolon,
+    #[token(":")]
+    Colon,
     #[token("/")]
     Slash,
     #[token("*")]
@@ -63,6 +70,8 @@ pub enum Token {
     Less,
     #[token("<=")]
     LessEqual,
+
+    Error,
 }
 
 fn cecile_identifier(lexer: &mut logos::Lexer<Token>) -> String {
@@ -77,12 +86,67 @@ fn cecile_number(lexer: &mut logos::Lexer<Token>) -> Option<f64> {
     lexer.slice().parse::<f64>().ok()
 }
 
+pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
+
+pub enum LexicalError {
+    InvalidToken,
+}
+
+pub struct Lexer<'input> {
+    token_stream: SpannedIter<'input, Token>,
+}
+
+impl<'input> Lexer<'input> {
+    pub fn new(input: &'input str) -> Self {
+        // the Token::lexer() method is provided by the Logos trait
+        Self {
+            token_stream: Token::lexer(input).spanned(),
+        }
+    }
+}
+
+impl<'input> Iterator for Lexer<'input> {
+    type Item = Spanned<Token, usize, LexicalError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.token_stream.next().map(|(token, span)| {
+            match token.as_ref().unwrap() {
+                // an invalid token was met
+                Token::Error => Err(LexicalError::InvalidToken),
+                _ => Ok((span.start, token.unwrap(), span.end)),
+            }
+        })
+    }
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_lexer() {
+        let input = r#"let variable_1: String = "Hello"; "#;
+        let expected_tokens = [
+            Token::Let,
+            Token::Identifier("variable_1".to_string()),
+            Token::Colon,
+            Token::Identifier("String".to_string()),
+            Token::Equal,
+            Token::String("Hello".to_string()),
+            Token::Semicolon,
+        ];
+        let lexer = Token::lexer(input);
+
+        for (token, expected_token) in lexer.zip(expected_tokens.iter()) {
+            assert_eq!(token.unwrap(), *expected_token);
+        }
+
         let input = r#"
             and
             struct
