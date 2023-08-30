@@ -17,6 +17,40 @@ pub enum Token {
     #[token("print")]
     Print,
 
+    #[token("if")]
+    If,
+    #[token("else")]
+    Else,
+
+    #[token("fn")]
+    Fn,
+
+    #[token("return")]
+    Return,
+
+    #[token("true")]
+    True,
+
+    #[token("false")]
+    False,
+
+    #[token("nil")]
+    Nil,
+
+    #[token("or")]
+    Or,
+
+    #[token("for")]
+    For,
+
+    #[token("while")]
+    While,
+
+    #[token("break")]
+    Break,
+
+    
+
     // Үг
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", cecile_identifier)]
     Identifier(String),

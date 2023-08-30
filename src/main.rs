@@ -1,6 +1,4 @@
-use crate::lexer::Token;
 use lalrpop_util::lalrpop_mod;
-use logos::Logos;
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 mod ast;

@@ -1,6 +1,7 @@
 use crate::lexer;
 use crate::lexer::LexicalError;
 use crate::lexer::Token;
+use crate::ast::Expression;
 use crate::ast;
 grammar;
 
@@ -18,9 +19,40 @@ extern {
   type Error = LexicalError;
 
   enum Token {
+    // Keywords
+    "let" => Token::Let,
+    "and" => Token::And,
+    "struct" => Token::Struct,
+    "print" => Token::Print,
+    "if" => Token::If,
+    "else" => Token::Else,
+    "while" => Token::While,
+    "return" => Token::Return,
+    "true" => Token::True,
+    "false" => Token::False,
+    "nil" => Token::Nil,
+    "or" => Token::Or,
+    "fn" => Token::Fn,
+
+    // Literals
+    "string" => Token::String(<String>),
+    "identifier" => Token::Identifier(<String>),
+    "number" => Token::Number(<f64>),
+
+    "(" => Token::LeftParen,
+    ")" => Token::RightParen,
+    "=" => Token::Equal,
+    ";" => Token::Semicolon,
     "+" => Token::Plus,
     "-" => Token::Minus,
     "*" => Token::Star,
     "/" => Token::Slash,
+    "==" => Token::EqualEqual,
+    ">" => Token::Greater,
+    ">=" => Token::GreaterEqual,
+    "<" => Token::Less,
+    "<=" => Token::LessEqual,
+    "!" => Token::Bang,
+    "error" => Token::Error,
   }
 }
