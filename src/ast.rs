@@ -4,7 +4,7 @@ pub type Spanned<T> = (T, Span);
 pub type Span = Range<usize>;
 
 
-pub type ExprSS = Spanned<Expression>;
+pub type ExprS = Spanned<Expression>;
 pub type StatementS = Spanned<Statement>;
 
 #[derive(Debug, Default)]
@@ -15,32 +15,43 @@ pub struct Program {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
-    Expr(StatementExpr),
+    Expression(StatementExpr),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StatementExpr {
-    pub expr: ExprSS,
+    pub expr: ExprS,
 }
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
     Infix(Box<ExprInfix>),
     Prefix(Box<ExprPrefix>),
     Assign(Box<ExprAssign>),
+    Literal(ExprLiteral),
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ExprLiteral {
+    Bool(bool),
+    Nil,
+    Number(f64),
+    String(String),
+}
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExprAssign {
     pub lhs: Var,
-    pub rhs: ExprSS,
+    pub rhs: ExprS,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExprInfix {
-    pub lhs: ExprSS,
+    pub lhs: ExprS,
     pub op: OpInfix,
-    pub rhs: ExprSS,
+    pub rhs: ExprS,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -82,7 +93,7 @@ impl Display for OpInfix {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExprPrefix {
     pub op: OpPrefix,
-    pub rt: ExprSS
+    pub rt: ExprS
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -109,7 +120,12 @@ pub struct ExprVar {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Var {
     pub name: String,
-    pub type_: Type,
+}
+
+impl Var {
+    pub fn new(name: String) -> Self {
+        Self { name }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -118,40 +134,5 @@ pub enum Type {
     Number,
     Bool,
     Struct(Vec<Var>),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Operator {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    Equal,
-    NotEqual,
-    LogicAnd,
-    LogicOr,
-}
-
-impl Display for Operator {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let op = match self {
-            Operator::Add => "+",
-            Operator::Sub => "-",
-            Operator::Mul => "*",
-            Operator::Div => "/",
-            Operator::Less => "<",
-            Operator::LessEqual => "<=",
-            Operator::Greater => ">",
-            Operator::GreaterEqual => ">=",
-            Operator::Equal => "==",
-            Operator::NotEqual => "!=",
-            Operator::LogicAnd => "and",
-            Operator::LogicOr => "or",
-        };
-        write!(f, "{op}")
-    }
+    None
 }

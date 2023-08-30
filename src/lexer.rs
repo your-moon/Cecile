@@ -49,7 +49,7 @@ pub enum Token {
     #[token("break")]
     Break,
 
-    
+
 
     // Үг
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", cecile_identifier)]
@@ -122,6 +122,7 @@ fn cecile_number(lexer: &mut logos::Lexer<Token>) -> Option<f64> {
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
+#[derive(Debug, PartialEq)]
 pub enum LexicalError {
     InvalidToken,
 }
@@ -140,7 +141,7 @@ impl<'input> Lexer<'input> {
 }
 
 impl<'input> Iterator for Lexer<'input> {
-    type Item = Spanned<Token, usize, LexicalError>;
+    type Item = Result<(usize, Token, usize), LexicalError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.token_stream.next().map(|(token, span)| {

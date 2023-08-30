@@ -5,13 +5,103 @@ use crate::ast::Expression;
 use crate::ast;
 grammar;
 
-pub Term: Box<ast::Expression> = {
-  <val:"number"> => {
-    Box::new(ast::Expression::Number(val))
-  },
-  <name:"identifier"> => {
-    Box::new(ast::Expression::Variable(name))
-  },
+Spanned<T>: ast::Spanned<T> = <l:@L> <t:T> <r:@R> => (t, l..r);
+
+pub Program: ast::Program = <statements:DeclS*> => ast::Program { <> };
+
+
+DeclS = Spanned<Decl>;
+Decl = {
+    Stmt,
+}
+
+Stmt: ast::Statement = {
+  StmtSimple
+}
+
+StmtSimple = {
+    StmtExpr,
+}
+
+StmtExpr: ast::Statement = <expr:ExprS> ";" =>
+    ast::Statement::Expression(ast::StatementExpr { <> });
+
+
+ExprS = Spanned<Expression>;
+
+Expression = ExprAssign;
+
+ExprAssign = {
+    <name:identifier> "=" <value:ExprS> =>
+        ast::Expression::Assign(Box::new(ast::ExprAssign {
+            lhs: ast::Var { name },
+            rhs: value,
+        })),
+    ExprLogicOr,
+}
+
+ExprLogicOr = ExprInfix<ExprLogicOr, OpLogicOr, ExprLogicAnd>;
+OpLogicOr: ast::OpInfix = "or" => ast::OpInfix::LogicOr;
+
+
+ExprLogicAnd = ExprInfix<ExprLogicAnd, OpLogicAnd, ExprEquality>;
+OpLogicAnd: ast::OpInfix = "and" => ast::OpInfix::LogicAnd;
+
+ExprEquality = ExprInfix<ExprEquality, OpEquality, ExprComparison>;
+OpEquality: ast::OpInfix = {
+    "==" => ast::OpInfix::Equal,
+    "!=" => ast::OpInfix::NotEqual,
+}
+
+ExprComparison = ExprInfix<ExprComparison, OpComparison, ExprTerm>;
+OpComparison: ast::OpInfix = {
+    ">" => ast::OpInfix::Greater,
+    ">=" => ast::OpInfix::GreaterEqual,
+    "<" => ast::OpInfix::Less,
+    "<=" => ast::OpInfix::LessEqual,
+}
+
+ExprTerm = ExprInfix<ExprTerm, OpTerm, ExprFactor>;
+OpTerm: ast::OpInfix = {
+    "+" => ast::OpInfix::Add,
+    "-" => ast::OpInfix::Sub,
+}
+
+ExprFactor = ExprInfix<ExprFactor, OpFactor, ExprPrefix>;
+OpFactor: ast::OpInfix = {
+    "*" => ast::OpInfix::Mul,
+    "/" => ast::OpInfix::Div,
+}
+
+
+pub OpPrefix: ast::OpPrefix = {
+  "-" => ast::OpPrefix::Negate,
+  "!" => ast::OpPrefix::Not,  
+}
+
+ExprPrimary: ast::Expression = {
+    // Literals
+    "nil" => ast::Expression::Literal(ast::ExprLiteral::Nil),
+    "false" => ast::Expression::Literal(ast::ExprLiteral::Bool(false)),
+    "true" => ast::Expression::Literal(ast::ExprLiteral::Bool(true)),
+    string => ast::Expression::Literal(ast::ExprLiteral::String(<>)),
+    number => ast::Expression::Literal(ast::ExprLiteral::Number(<>)),
+
+    // Grouping
+    "(" <Expression> ")",
+}
+
+ExprPrefix: ast::Expression = {
+    <op:OpPrefix> <rt:Spanned<ExprPrefix>> =>
+        ast::Expression::Prefix(Box::new(ast::ExprPrefix { <> })),
+    ExprPrimary
+//    ExprCall,
+}
+
+ExprInfix<Lhs, Op, Rhs>: ast::Expression =  {
+  <lhs:Spanned<Lhs>> <op:Op> <rhs:Spanned<Rhs>> =>
+  ast::Expression::Infix(Box::new(ast::ExprInfix { <> })),
+  Rhs,
 }
 
 extern {
@@ -35,10 +125,11 @@ extern {
     "fn" => Token::Fn,
 
     // Literals
-    "string" => Token::String(<String>),
-    "identifier" => Token::Identifier(<String>),
-    "number" => Token::Number(<f64>),
+    string => Token::String(<String>),
+    identifier => Token::Identifier(<String>),
+    number => Token::Number(<f64>),
 
+    // Punctuation
     "(" => Token::LeftParen,
     ")" => Token::RightParen,
     "=" => Token::Equal,
@@ -53,6 +144,6 @@ extern {
     "<" => Token::Less,
     "<=" => Token::LessEqual,
     "!" => Token::Bang,
-    "error" => Token::Error,
+    "!=" => Token::BangEqual,
   }
 }
