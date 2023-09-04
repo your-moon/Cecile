@@ -3,7 +3,6 @@ use std::ops::Range;
 pub type Spanned<T> = (T, Span);
 pub type Span = Range<usize>;
 
-
 pub type ExprS = Spanned<Expression>;
 pub type StatementS = Spanned<Statement>;
 
@@ -12,17 +11,21 @@ pub struct Program {
     pub statements: Vec<StatementS>,
 }
 
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     Expression(StatementExpr),
+    Block(StatementBlock),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementBlock {
+    pub statements: Vec<StatementS>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StatementExpr {
     pub expr: ExprS,
 }
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
@@ -39,7 +42,6 @@ pub enum ExprLiteral {
     Number(f64),
     String(String),
 }
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExprAssign {
@@ -93,7 +95,7 @@ impl Display for OpInfix {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExprPrefix {
     pub op: OpPrefix,
-    pub rt: ExprS
+    pub rt: ExprS,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -134,5 +136,5 @@ pub enum Type {
     Number,
     Bool,
     Struct(Vec<Var>),
-    None
+    None,
 }

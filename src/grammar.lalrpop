@@ -21,7 +21,13 @@ Stmt: ast::Statement = {
 
 StmtSimple = {
     StmtExpr,
+    StmtBlock,
 }
+
+StmtBlock: ast::Statement = StatementBlockIn => ast::Statement::Block(<>);
+
+StatementBlockIn: ast::StatementBlock = "{" <statements:DeclS*> "}" =>
+  ast::StatementBlock { <> };
 
 StmtExpr: ast::Statement = <expr:ExprS> ";" =>
     ast::Statement::Expression(ast::StatementExpr { <> });
@@ -132,6 +138,8 @@ extern {
     // Punctuation
     "(" => Token::LeftParen,
     ")" => Token::RightParen,
+    "{" => Token::LeftBrace,
+    "}" => Token::RightBrace,
     "=" => Token::Equal,
     ";" => Token::Semicolon,
     "+" => Token::Plus,
