@@ -9,7 +9,7 @@ mod ast;
 mod lexer;
 fn main() {
     lalrpop_mod!(pub grammar);
-    let input = r#"{ 1; }"#;
+    let input = r#"{ a; }"#;
     let mut lexer = lexer::Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => (l, token, r),
         Err(_) => todo!("Error handling"),
@@ -20,9 +20,9 @@ fn main() {
         println!("{:?}", statement);
     }
 
-    //let program = parser.parse(lexer).unwrap();
+    // let program = parser.parse(lexer).unwrap();
 
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     stdout.set_color(ColorSpec::new().set_fg(Some(Color::Magenta)));
-    writeln!(&mut stdout, "green text!");
+    writeln!(&mut stdout, "magenta text!");
 }

@@ -15,6 +15,12 @@ pub struct Program {
 pub enum Statement {
     Expression(StatementExpr),
     Block(StatementBlock),
+    Print(StatementPrint),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementPrint {
+    pub value: ExprS,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -33,6 +39,7 @@ pub enum Expression {
     Prefix(Box<ExprPrefix>),
     Assign(Box<ExprAssign>),
     Literal(ExprLiteral),
+    Var(ExprVar),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -128,13 +135,4 @@ impl Var {
     pub fn new(name: String) -> Self {
         Self { name }
     }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Type {
-    String,
-    Number,
-    Bool,
-    Struct(Vec<Var>),
-    None,
 }

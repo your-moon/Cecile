@@ -22,7 +22,11 @@ Stmt: ast::Statement = {
 StmtSimple = {
     StmtExpr,
     StmtBlock,
+    StmtPrint,
 }
+
+StmtPrint: ast::Statement = "print" <value:ExprS> ";" =>
+  ast::Statement::Print(ast::StatementPrint { <> });
 
 StmtBlock: ast::Statement = StatementBlockIn => ast::Statement::Block(<>);
 
@@ -92,10 +96,16 @@ ExprPrimary: ast::Expression = {
     "true" => ast::Expression::Literal(ast::ExprLiteral::Bool(true)),
     string => ast::Expression::Literal(ast::ExprLiteral::String(<>)),
     number => ast::Expression::Literal(ast::ExprLiteral::Number(<>)),
+    
+    // Variables
+    ExprVar,
 
     // Grouping
     "(" <Expression> ")",
 }
+
+ExprVar: ast::Expression = <name:identifier> =>
+  ast::Expression::Var(ast::ExprVar { var: ast::Var {name} });
 
 ExprPrefix: ast::Expression = {
     <op:OpPrefix> <rt:Spanned<ExprPrefix>> =>

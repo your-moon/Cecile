@@ -49,8 +49,6 @@ pub enum Token {
     #[token("break")]
     Break,
 
-
-
     // Үг
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*", cecile_identifier)]
     Identifier(String),
