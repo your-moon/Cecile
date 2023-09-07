@@ -48,7 +48,7 @@ Expression = ExprAssign;
 ExprAssign = {
     <name:identifier> "=" <value:ExprS> =>
         ast::Expression::Assign(Box::new(ast::ExprAssign {
-            lhs: ast::Var { name },
+            lhs: ast::Var { name, type_: None },
             rhs: value,
         })),
     ExprLogicOr,
@@ -109,7 +109,7 @@ ExprPrimary: ast::Expression = {
 }
 
 ExprVar: ast::Expression = <name:identifier> =>
-  ast::Expression::Var(ast::ExprVar { var: ast::Var {name} });
+  ast::Expression::Var(ast::ExprVar { var: ast::Var {name, type_: None} });
 
 ExprPrefix: ast::Expression = {
     <op:OpPrefix> <rt:Spanned<ExprPrefix>> =>

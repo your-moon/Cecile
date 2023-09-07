@@ -135,10 +135,13 @@ pub struct ExprVar {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Var {
     pub name: String,
+    pub type_: Option<Type>,
 }
 
-impl Var {
-    pub fn new(name: String) -> Self {
-        Self { name }
-    }
+#[derive(Clone, Debug, PartialEq)]
+pub enum Type {
+    String,
+    Bool,
+    Int,
+    Object,
 }
