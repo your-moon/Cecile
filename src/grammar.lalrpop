@@ -23,7 +23,11 @@ StmtSimple = {
     StmtExpr,
     StmtBlock,
     StmtPrint,
+    StmtReturn,
 }
+
+StmtReturn: ast::Statement = "return" <value:ExprS?> ";" =>
+  ast::Statement::Return(ast::StatementReturn { <> });
 
 StmtPrint: ast::Statement = "print" <value:ExprS> ";" =>
   ast::Statement::Print(ast::StatementPrint { <> });

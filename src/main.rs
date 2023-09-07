@@ -9,9 +9,12 @@ mod ast;
 mod lexer;
 fn main() {
     lalrpop_mod!(pub grammar);
-    let input = r#"{ a; }"#;
+    let input = r#"{ return hello; }"#;
     let mut lexer = lexer::Lexer::new(input).map(|token| match token {
-        Ok((l, token, r)) => (l, token, r),
+        Ok((l, token, r)) => {
+            println!("{:?}", token);
+            return (l, token, r);
+        }
         Err(_) => todo!("Error handling"),
     });
     let parser = grammar::ProgramParser::new();
