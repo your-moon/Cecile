@@ -5,6 +5,10 @@ use logos::{Logos, SpannedIter};
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\n\f]+")] // Зай болон мөр алгасах тэмдэгийг алгасанa.
 pub enum Token {
+    #[token("String")]
+    TypeString,
+    #[token("Int")]
+    TypeInt,
     // Түлхүүр үгс
     #[token("let")]
     Let,

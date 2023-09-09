@@ -9,7 +9,7 @@ mod ast;
 mod lexer;
 fn main() {
     lalrpop_mod!(pub grammar);
-    let input = r#"{ return !hello; }"#;
+    let input = r#" return hello+1; let we = 2+2;"#;
     let mut lexer = lexer::Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {
             println!("{:?}", token);

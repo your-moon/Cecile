@@ -13,6 +13,19 @@ pub Program: ast::Program = <statements:DeclS*> => ast::Program { <> };
 DeclS = Spanned<Decl>;
 Decl = {
     Stmt,
+    DeclVar
+}
+
+
+DeclVar: ast::Statement = "let" <name:identifier> <type_:(":" <Types>)?> <value:("=" <ExprS>)?> ";" =>
+  ast::Statement::Var(ast::StatementVar {
+        var: ast::Var { name, type_: type_},
+        value ,
+      });
+
+Types: ast::Type = {
+  type_string => ast::Type::String,
+  type_int => ast::Type::Int,
 }
 
 Stmt: ast::Statement = {
@@ -25,6 +38,7 @@ StmtSimple = {
     StmtPrint,
     StmtReturn,
 }
+
 
 StmtReturn: ast::Statement = "return" <value:ExprS?> ";" =>
   ast::Statement::Return(ast::StatementReturn { <> });
@@ -148,6 +162,8 @@ extern {
     string => Token::String(<String>),
     identifier => Token::Identifier(<String>),
     number => Token::Number(<f64>),
+    type_string => Token::TypeString,
+    type_int => Token::TypeInt,
 
     // Punctuation
     "(" => Token::LeftParen,
@@ -156,6 +172,7 @@ extern {
     "}" => Token::RightBrace,
     "=" => Token::Equal,
     ";" => Token::Semicolon,
+    ":" => Token::Colon,
     "+" => Token::Plus,
     "-" => Token::Minus,
     "*" => Token::Star,

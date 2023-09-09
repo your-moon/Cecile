@@ -17,6 +17,13 @@ pub enum Statement {
     Block(StatementBlock),
     Print(StatementPrint),
     Return(StatementReturn),
+    Var(StatementVar),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementVar {
+    pub var: Var,
+    pub value: Option<ExprS>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
