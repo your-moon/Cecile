@@ -164,6 +164,8 @@ impl fmt::Display for Token {
 
 #[cfg(test)]
 mod tests {
+    use crate::ast;
+
     use super::*;
 
     #[test]
@@ -173,7 +175,7 @@ mod tests {
             Token::Let,
             Token::Identifier("variable_1".to_string()),
             Token::Colon,
-            Token::Identifier("String".to_string()),
+            Token::TypeString,
             Token::Equal,
             Token::String("Hello".to_string()),
             Token::Semicolon,

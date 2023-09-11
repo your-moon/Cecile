@@ -162,6 +162,7 @@ extern {
     string => Token::String(<String>),
     identifier => Token::Identifier(<String>),
     number => Token::Number(<f64>),
+
     type_string => Token::TypeString,
     type_int => Token::TypeInt,
 
