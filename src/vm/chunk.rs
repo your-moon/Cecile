@@ -76,13 +76,13 @@ impl Chunk {
                 self.emit_constant(Value::Number(value), range);
             }
             ExprLiteral::String(value) => {
-                self.emit_constant(Value::Number(123.0), range);
+                todo!();
             }
             ExprLiteral::Bool(value) => {
-                self.emit_constant(Value::Number(0.0), range);
+                todo!();
             }
             ExprLiteral::Nil => {
-                self.emit_constant(Value::Number(0.0), range);
+                todo!();
             }
             _ => todo!(),
         }
