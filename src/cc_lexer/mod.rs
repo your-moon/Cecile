@@ -164,7 +164,7 @@ impl fmt::Display for Token {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast;
+    use crate::cc_parser::ast;
 
     use super::*;
 

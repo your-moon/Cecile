@@ -1,8 +1,8 @@
-use crate::lexer;
-use crate::lexer::LexicalError;
-use crate::lexer::Token;
-use crate::ast::Expression;
-use crate::ast;
+use crate::cc_lexer;
+use crate::cc_lexer::LexicalError;
+use crate::cc_lexer::Token;
+use crate::cc_parser::ast::Expression;
+use crate::cc_parser::ast;
 grammar;
 
 Spanned<T>: ast::Spanned<T> = <l:@L> <t:T> <r:@R> => (t, l..r);
