@@ -10,7 +10,7 @@ mod cc_lexer;
 mod cc_parser;
 mod vm;
 fn main() {
-    let input = r#"2+3-1*3/2-1;"#;
+    let input = r#"print 2;"#;
     let mut lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {
             println!("{:?}", token);

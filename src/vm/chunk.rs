@@ -1,11 +1,11 @@
 use std::ops::Range;
 
 use crate::cc_parser::ast::{
-    ExprInfix, ExprLiteral, Expression, OpInfix, Program, Span, Statement, StatementExpr,
+    ExprInfix, ExprLiteral, ExprPrefix, Expression, OpInfix, OpPrefix, Program, Span, Statement,
+    StatementExpr, StatementPrint,
 };
+use crate::vm::op;
 use crate::vm::value::Value;
-
-use super::op;
 
 #[derive(Debug, Clone)]
 pub struct Chunk {
@@ -36,16 +36,34 @@ impl Chunk {
         let (statement, range) = statement;
         match statement {
             Statement::Expression(expr) => self.compile_expression(expr.expr),
-            _ => todo!(),
+            Statement::Print(print) => self.print_statement((print, range)),
+            _ => todo!("statement not implemented"),
         }
+    }
+
+    fn print_statement(&mut self, print: (StatementPrint, Range<usize>)) {
+        let (print, range) = print;
+        self.compile_expression(print.value);
+        self.write_byte(op::PRINT, range);
     }
 
     fn compile_expression(&mut self, expr: (Expression, Range<usize>)) {
         let (expr, range) = expr;
         match expr {
+            Expression::Prefix(prefix) => self.compile_prefix((prefix, range)),
             Expression::Infix(infix) => self.compile_infix((infix, range)),
             Expression::Literal(value) => self.compile_literal((value, range)),
-            _ => todo!(),
+            Expression::Var(var) => todo!("var expression not implemented"),
+            _ => todo!("expression not implemented"),
+        }
+    }
+
+    fn compile_prefix(&mut self, prefix: (Box<ExprPrefix>, Range<usize>)) {
+        let (prefix, range) = prefix;
+        self.compile_expression(prefix.rt);
+        match prefix.op {
+            OpPrefix::Negate => self.write_byte(op::NEG, range),
+            OpPrefix::Not => self.write_byte(op::NOT, range),
         }
     }
 
@@ -80,9 +98,10 @@ impl Chunk {
             ExprLiteral::String(value) => {
                 todo!();
             }
-            ExprLiteral::Bool(value) => {
-                todo!();
-            }
+            ExprLiteral::Bool(value) => match value {
+                true => self.write_byte(op::TRUE, range),
+                false => self.write_byte(op::FALSE, range),
+            },
             ExprLiteral::Nil => {
                 todo!();
             }
@@ -126,6 +145,10 @@ impl Chunk {
             op::NOT => self.simple_instruction("NOT", offset),
             op::NEG => self.simple_instruction("NEG", offset),
             op::CECILE_CONSTANT => self.constant_instruction("CECILE_CONSTANT", offset),
+            op::TRUE => self.simple_instruction("TRUE", offset),
+            op::FALSE => self.simple_instruction("FALSE", offset),
+            op::PRINT => self.simple_instruction("PRINT", offset),
+
             _ => {
                 println!("Unknown opcode {}", self.code[offset]);
                 return offset + 1;

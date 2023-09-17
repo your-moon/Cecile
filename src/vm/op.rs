@@ -3,6 +3,7 @@ iota! {
     pub const
     CECILE_CONSTANT: u8 = iota;,
     ADD,
+    PRINT,
     SUB,
     MUL,
     DIV,
@@ -15,7 +16,9 @@ iota! {
     AND,
     OR,
     NOT,
-    NEG
+    NEG,
+    TRUE,
+    FALSE
 
 
 

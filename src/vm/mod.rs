@@ -21,8 +21,12 @@ impl VM {
 
     pub fn run(&mut self) {
         for _ in 0..self.chunk.code.len() {
-            println!("stack {:?}", self.stack);
+            println!("{:?}", self.stack);
             match self.read_byte() {
+                op::PRINT => {
+                    let value: value::Value = self.stack.pop().unwrap();
+                    println!("{}", value);
+                }
                 op::ADD => self.add(),
                 op::SUB => self.sub(),
                 op::MUL => self.mul(),
@@ -35,9 +39,19 @@ impl VM {
                     println!(" pushing constant {:?}", constant);
                     self.stack.push(constant);
                 }
+                op::TRUE => self.op_true(),
+                op::FALSE => self.op_false(),
                 _ => todo!(),
             }
         }
+    }
+
+    fn op_true(&mut self) {
+        self.stack.push(true.into());
+    }
+
+    fn op_false(&mut self) {
+        self.stack.push(false.into());
     }
 
     fn read_constant(&mut self) -> value::Value {
