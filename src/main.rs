@@ -10,7 +10,7 @@ mod cc_lexer;
 mod cc_parser;
 mod vm;
 fn main() {
-    let input = r#"print 2;"#;
+    let input = r#"2;"#;
     let mut lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {
             println!("{:?}", token);
@@ -29,8 +29,8 @@ fn main() {
     chunk.disassemble();
     println!("{:?}", chunk);
     let mut vm = vm::VM::new(chunk);
-    vm.run();
     println!("{:?}", vm);
+    vm.run();
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     stdout.set_color(ColorSpec::new().set_fg(Some(Color::Magenta)));
     writeln!(&mut stdout, "magenta text!");

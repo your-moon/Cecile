@@ -18,7 +18,9 @@ iota! {
     NOT,
     NEG,
     TRUE,
-    FALSE
+    FALSE,
+    NIL,
+    RETURN
 
 
 

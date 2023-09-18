@@ -13,14 +13,14 @@ pub struct VM {
 impl VM {
     pub fn new(chunk: chunk::Chunk) -> VM {
         VM {
-            chunk: chunk.clone(),
+            chunk,
             ip: 0,
             stack: Vec::new(),
         }
     }
 
     pub fn run(&mut self) {
-        for _ in 0..self.chunk.code.len() {
+        loop {
             println!("{:?}", self.stack);
             match self.read_byte() {
                 op::PRINT => {
@@ -41,9 +41,18 @@ impl VM {
                 }
                 op::TRUE => self.op_true(),
                 op::FALSE => self.op_false(),
+                op::NIL => self.op_nil(),
+                op::RETURN => {
+                    self.stack.pop();
+                    return;
+                }
                 _ => todo!(),
             }
         }
+    }
+
+    fn op_nil(&mut self) {
+        self.stack.push(value::Value::Number(0.0));
     }
 
     fn op_true(&mut self) {

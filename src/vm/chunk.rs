@@ -30,6 +30,9 @@ impl Chunk {
                 None => break,
             }
         }
+
+        self.write_byte(op::NIL, 0..0);
+        self.write_byte(op::RETURN, 0..0);
     }
 
     fn compile_statement(&mut self, statement: (Statement, Range<usize>)) {
@@ -148,6 +151,8 @@ impl Chunk {
             op::TRUE => self.simple_instruction("TRUE", offset),
             op::FALSE => self.simple_instruction("FALSE", offset),
             op::PRINT => self.simple_instruction("PRINT", offset),
+            op::NIL => self.simple_instruction("NIL", offset),
+            op::RETURN => self.simple_instruction("RETURN", offset),
 
             _ => {
                 println!("Unknown opcode {}", self.code[offset]);
