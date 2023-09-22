@@ -13,3 +13,4 @@ lalrpop-util = { version = "0.20.0", features = ["lexer"] }
 logos = "0.13.0"
 termcolor = "1.2.0"
 iota = "0.2.3"
+mimalloc = "0.1.39"
