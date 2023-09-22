@@ -2,7 +2,7 @@ use std::{
     alloc::{GlobalAlloc, Layout},
     sync::atomic::{AtomicUsize, Ordering},
 };
-mod allocation;
+pub mod allocation;
 
 #[global_allocator]
 pub static GLOBAL: Allocator<mimalloc::MiMalloc> = Allocator::new(mimalloc::MiMalloc);
