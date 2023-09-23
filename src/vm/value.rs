@@ -1,5 +1,9 @@
 use std::fmt::Display;
 
+use crate::vm::object::ObjectType;
+
+use super::object::{Object, StringObject};
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Value {
     Number(f64),
@@ -17,6 +21,7 @@ impl Into<f64> for Value {
     fn into(self) -> f64 {
         match self {
             Value::Number(n) => n,
+            _ => todo!(),
         }
     }
 }

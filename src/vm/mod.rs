@@ -1,3 +1,5 @@
+use crate::allocator::allocation::{CeAlloc, CeAllocation};
+
 pub mod chunk;
 pub mod compiler;
 pub mod object;
@@ -9,6 +11,7 @@ pub struct VM {
     chunk: chunk::Chunk,
     ip: usize,
     stack: Vec<value::Value>,
+    allocator: CeAllocation,
 }
 
 impl VM {
@@ -17,6 +20,7 @@ impl VM {
             chunk,
             ip: 0,
             stack: Vec::new(),
+            allocator: CeAllocation::new(),
         }
     }
 
@@ -124,5 +128,9 @@ impl VM {
         println!(" negating {}", value);
         // Value to f64
         self.stack.push(value.neg());
+    }
+
+    fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {
+        self.allocator.alloc(object)
     }
 }
