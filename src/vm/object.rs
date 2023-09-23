@@ -63,7 +63,6 @@ pub struct MainObject {
     pub type_: ObjectType,
 }
 
-#[derive(Debug)]
 #[repr(C)]
 pub struct StringObject {
     pub main: MainObject,
@@ -78,5 +77,17 @@ impl StringObject {
             },
             value,
         }
+    }
+}
+
+impl Debug for StringObject {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", "String")
+    }
+}
+
+impl Display for StringObject {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", "string")
     }
 }

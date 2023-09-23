@@ -1,5 +1,8 @@
-use crate::allocator::allocation::{CeAlloc, CeAllocation};
-
+use crate::vm::value::Value;
+use crate::{
+    allocator::allocation::{CeAlloc, CeAllocation},
+    vm::object::StringObject,
+};
 pub mod chunk;
 pub mod compiler;
 pub mod object;
@@ -7,26 +10,26 @@ pub mod op;
 pub mod value;
 
 #[derive(Debug)]
-pub struct VM {
+pub struct VM<'a> {
     chunk: chunk::Chunk,
     ip: usize,
     stack: Vec<value::Value>,
-    allocator: CeAllocation,
+    allocator: &'a mut CeAllocation,
 }
 
-impl VM {
-    pub fn new(chunk: chunk::Chunk) -> VM {
+impl<'a> VM<'a> {
+    pub fn new(chunk: chunk::Chunk, allocator: &'a mut CeAllocation) -> VM {
         VM {
             chunk,
             ip: 0,
             stack: Vec::new(),
-            allocator: CeAllocation::new(),
+            allocator,
         }
     }
 
     pub fn run(&mut self) {
         loop {
-            println!("{:?}", self.stack);
+            self.chunk.disassemble_instruction(self.ip);
             match self.read_byte() {
                 op::PRINT => {
                     let value: value::Value = self.stack.pop().unwrap();
@@ -41,7 +44,6 @@ impl VM {
                 op::NEG => self.negate(),
                 op::CECILE_CONSTANT => {
                     let constant = self.read_constant();
-                    println!(" pushing constant {:?}", constant);
                     self.stack.push(constant);
                 }
                 op::TRUE => self.op_true(),
@@ -53,6 +55,11 @@ impl VM {
                 }
                 _ => todo!(),
             }
+            //print top of stack element
+            for (i, value) in self.stack.iter().enumerate() {
+                print!("[ {:?} ]", value);
+            }
+            println!();
         }
     }
 
@@ -83,49 +90,58 @@ impl VM {
     fn add(&mut self) {
         let rhs = self.stack.pop().unwrap();
         let lhs = self.stack.pop().unwrap();
-        println!(" adding {} + {}", lhs, rhs);
-        self.stack.push(lhs.add(rhs));
+        match (lhs, rhs) {
+            (value::Value::Number(lhs), value::Value::Number(rhs)) => {
+                println!(" adding {} + {}", lhs, rhs);
+                self.stack.push(Value::Number(lhs + rhs));
+            }
+            (value::Value::String(lhs), value::Value::String(rhs)) => {
+                let mut lhs = unsafe { (*lhs).value.clone() };
+                let mut rhs = unsafe { (*rhs).value.clone() };
+                let string = lhs.to_string() + &rhs.to_string();
+                // let static_str: &'static str = Box::leak(string.into_boxed_str());
+                // let string_obj = StringObject::new(static_str);
+                let ptr_string = self.alloc(string);
+                let string = Value::String(ptr_string);
+                self.stack.push(string);
+            }
+            _ => todo!(),
+        }
     }
 
     fn sub(&mut self) {
         let rhs = self.stack.pop().unwrap();
         let lhs = self.stack.pop().unwrap();
-        println!(" subtracting {} - {}", lhs, rhs);
         self.stack.push(lhs.sub(rhs));
     }
 
     fn mul(&mut self) {
         let rhs = self.stack.pop().unwrap();
         let lhs = self.stack.pop().unwrap();
-        println!(" multiplying {} * {}", lhs, rhs);
         self.stack.push(lhs.mul(rhs));
     }
 
     fn div(&mut self) {
         let rhs = self.stack.pop().unwrap();
         let lhs = self.stack.pop().unwrap();
-        println!(" dividing {} / {}", lhs, rhs);
         self.stack.push(lhs.div(rhs));
     }
 
     fn equal(&mut self) {
         let rhs = self.stack.pop().unwrap();
         let lhs = self.stack.pop().unwrap();
-        println!(" comparing {} == {}", lhs, rhs);
         self.stack.push((lhs == rhs).into());
     }
 
     fn not_equal(&mut self) {
         let rhs = self.stack.pop().unwrap();
         let lhs = self.stack.pop().unwrap();
-        println!(" comparing {} != {}", lhs, rhs);
 
         self.stack.push((lhs != rhs).into());
     }
 
     fn negate(&mut self) {
         let value: value::Value = self.stack.pop().unwrap();
-        println!(" negating {}", value);
         // Value to f64
         self.stack.push(value.neg());
     }

@@ -39,7 +39,7 @@ impl<'a> Compiler<'a> {
         match statement {
             Statement::Expression(expr) => self.compile_expression(expr.expr, allocator),
             Statement::Print(print) => self.print_statement((print, range), allocator),
-            Statement::Var(var) => self.compile_var(var, allocator),
+            Statement::Var(var) => self.compile_var((var, range), allocator),
             _ => todo!("statement not implemented"),
         }
     }
@@ -68,7 +68,8 @@ impl<'a> Compiler<'a> {
         }
     }
 
-    fn compile_var(&mut self, var: StatementVar, allocator: &mut CeAllocation) {
+    fn compile_var(&mut self, var: (StatementVar, Range<usize>), allocator: &mut CeAllocation) {
+        let (var, range) = var;
         match var.value {
             Some(value) => self.compile_expression(value, allocator),
             None => {
@@ -78,7 +79,8 @@ impl<'a> Compiler<'a> {
         match var.var.type_ {
             Some(t) => match t {
                 Type::String => {
-                    allocator.alloc(var.var.name);
+                    let string = allocator.alloc(var.var.name);
+                    self.emit_constant(Value::String(string), range);
                 }
                 _ => todo!(),
             },
@@ -138,7 +140,8 @@ impl<'a> Compiler<'a> {
                 self.emit_constant(Value::Number(value), range);
             }
             ExprLiteral::String(string) => {
-                allocator.alloc(string);
+                let string = allocator.alloc(string);
+                self.emit_constant(Value::String(string), range);
             }
             ExprLiteral::Bool(value) => match value {
                 true => self.write_byte(op::TRUE, range),
