@@ -15,7 +15,7 @@ mod cc_lexer;
 mod cc_parser;
 mod vm;
 fn main() {
-    let input = r#" let hello: String = "Hello "+"World"; "#;
+    let input = r#" let hello: String = "Hello "+"World"; print "Munkherdene"; 1+1;"#;
     let mut lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {
             // println!("{:?}", token);
@@ -25,9 +25,9 @@ fn main() {
     });
     let parser = grammar::ProgramParser::new();
     let mut program = parser.parse(lexer).unwrap();
-    // for (statement, _range) in &program.statements {
-    //     println!("{:?}", statement);
-    // }
+    for (statement, _range) in &program.statements {
+        println!("{:?}", statement);
+    }
 
     let mut chunk = Chunk::new();
     let mut allocator = CeAllocation::new();

@@ -151,4 +151,5 @@ pub enum Type {
     Bool,
     Int,
     Object,
+    UnInitialized,
 }
