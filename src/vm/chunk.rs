@@ -30,6 +30,8 @@ impl Chunk {
 
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         match self.code[offset] {
+            op::DEFINE_GLOBAL => self.constant_instruction("DEFINE_GLOBAL", offset),
+            op::GET_GLOBAL => self.constant_instruction("GET_GLOBAL", offset),
             op::ADD => self.simple_instruction("ADD", offset),
             op::SUB => self.simple_instruction("SUB", offset),
             op::MUL => self.simple_instruction("MUL", offset),

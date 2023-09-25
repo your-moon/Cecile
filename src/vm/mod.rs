@@ -1,8 +1,14 @@
+use std::hash::BuildHasherDefault;
+
+use hashbrown::HashMap;
+
 use crate::vm::value::Value;
 use crate::{
     allocator::allocation::{CeAlloc, CeAllocation},
     vm::object::StringObject,
 };
+use rustc_hash::FxHasher;
+
 pub mod chunk;
 pub mod compiler;
 pub mod object;
@@ -15,6 +21,7 @@ pub struct VM<'a> {
     ip: usize,
     stack: Vec<value::Value>,
     allocator: &'a mut CeAllocation,
+    globals: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
 }
 
 impl<'a> VM<'a> {
@@ -24,12 +31,13 @@ impl<'a> VM<'a> {
             ip: 0,
             stack: Vec::new(),
             allocator,
+            globals: HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default()),
         }
     }
 
     pub fn run(&mut self) {
         loop {
-            self.chunk.disassemble_instruction(self.ip);
+            // self.chunk.disassemble_instruction(self.ip);
             match self.read_byte() {
                 op::PRINT => {
                     let value: value::Value = self.stack.pop().unwrap();
@@ -46,6 +54,8 @@ impl<'a> VM<'a> {
                     let constant = self.read_constant();
                     self.stack.push(constant);
                 }
+                op::DEFINE_GLOBAL => self.define_global(),
+                op::GET_GLOBAL => self.get_global(),
                 op::TRUE => self.op_true(),
                 op::FALSE => self.op_false(),
                 op::NIL => self.op_nil(),
@@ -56,11 +66,37 @@ impl<'a> VM<'a> {
                 _ => todo!(),
             }
             //print top of stack element
-            for (i, value) in self.stack.iter().enumerate() {
-                print!("[ {:?} ]", value);
-            }
-            println!();
+            // for (i, value) in self.stack.iter().enumerate() {
+            //     print!("[ {:?} ]", value);
+            // }
+            // println!();
         }
+    }
+
+    fn get_global(&mut self) {
+        let name = self.read_constant();
+        match name {
+            Value::String(ptr_string) => match self.globals.get(&ptr_string) {
+                Some(value) => {
+                    self.stack.push(*value);
+                }
+                None => {
+                    todo!()
+                }
+            },
+            _ => todo!(),
+        };
+    }
+
+    fn define_global(&mut self) {
+        let value = self.stack.pop().unwrap();
+        let name = self.read_constant();
+        let name = match name {
+            Value::String(ptr_string) => {
+                self.globals.insert(ptr_string, value);
+            }
+            _ => todo!(),
+        };
     }
 
     fn op_nil(&mut self) {
@@ -92,7 +128,7 @@ impl<'a> VM<'a> {
         let lhs = self.stack.pop().unwrap();
         match (lhs, rhs) {
             (value::Value::Number(lhs), value::Value::Number(rhs)) => {
-                println!(" adding {} + {}", lhs, rhs);
+                // println!(" adding {} + {}", lhs, rhs);
                 self.stack.push(Value::Number(lhs + rhs));
             }
             (value::Value::String(lhs), value::Value::String(rhs)) => {

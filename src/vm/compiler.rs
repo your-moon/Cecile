@@ -1,4 +1,6 @@
-use std::ops::Range;
+use std::{hash::BuildHasherDefault, ops::Range};
+
+use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
 
 use crate::{
     allocator::allocation::CeAllocation,
@@ -8,15 +10,20 @@ use crate::{
     },
 };
 
-use super::{chunk::Chunk, op, value::Value};
+use super::{chunk::Chunk, object::StringObject, op, value::Value};
+use rustc_hash::FxHasher;
 
 pub struct Compiler<'a> {
     chunk: &'a mut Chunk,
+    globals: HashMap<*mut StringObject, Type, BuildHasherDefault<FxHasher>>,
 }
 
 impl<'a> Compiler<'a> {
     pub fn new(chunk: &'a mut Chunk) -> Self {
-        Self { chunk }
+        Self {
+            chunk,
+            globals: HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default()),
+        }
     }
     pub fn compile(&mut self, source: &mut Program, allocator: &mut CeAllocation) {
         for statement in &source.statements {
@@ -35,7 +42,7 @@ impl<'a> Compiler<'a> {
         match statement {
             Statement::Expression(expr) => self.compile_expression(&expr.expr, allocator),
             Statement::Print(print) => self.print_statement((print, range), allocator),
-            Statement::Var(var) => self.compile_var((var, range), allocator),
+            Statement::Var(var) => self.compile_statement_var((var, range), allocator),
             _ => todo!("statement not implemented"),
         }
     }
@@ -61,12 +68,12 @@ impl<'a> Compiler<'a> {
             Expression::Prefix(prefix) => self.compile_prefix((prefix, range), allocator),
             Expression::Infix(infix) => self.compile_infix((infix, range), allocator),
             Expression::Literal(value) => self.compile_literal((value, range), allocator),
-            Expression::Var(var) => todo!(),
+            Expression::Var(var) => self.compile_expression_var((var, range), allocator),
             _ => todo!("expression not implemented"),
         }
     }
 
-    fn compile_var(
+    fn compile_statement_var(
         &mut self,
         var: (&StatementVar, &Range<usize>),
         allocator: &mut CeAllocation,
@@ -89,7 +96,16 @@ impl<'a> Compiler<'a> {
                 Type::String => {
                     let name = &var.var.name;
                     let string = allocator.alloc(name);
-                    self.emit_constant(Value::String(string), &range);
+                    self.globals.insert(string, Type::String);
+                    self.write_byte(op::DEFINE_GLOBAL, &range);
+                    self.write_constant(Value::String(string), &range);
+                }
+                Type::Int => {
+                    let name = &var.var.name;
+                    let string = allocator.alloc(name);
+                    self.globals.insert(string, Type::Int);
+                    self.write_byte(op::DEFINE_GLOBAL, &range);
+                    self.write_constant(Value::String(string), &range);
                 }
                 _ => todo!("type not implemented"),
             },
@@ -98,6 +114,21 @@ impl<'a> Compiler<'a> {
             }
         }
         return var_type;
+    }
+
+    fn compile_expression_var(
+        &mut self,
+        (prefix, range): (&ExprVar, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Type {
+        let name = allocator.alloc(&prefix.var.name);
+        self.write_byte(op::GET_GLOBAL, &range);
+        self.write_constant(Value::String(name), &range);
+        let type_ = self.globals.get(&name);
+        match type_ {
+            Some(t) => return t.clone(),
+            None => Type::UnInitialized,
+        }
     }
 
     fn compile_prefix(
@@ -188,6 +219,12 @@ impl<'a> Compiler<'a> {
     fn emit_constant(&mut self, value: Value, span: &Span) {
         let index = self.chunk.constants.len() as u8;
         self.write_byte(op::CECILE_CONSTANT, span);
+        self.write_byte(index, span);
+        self.chunk.constants.push(value);
+    }
+
+    fn write_constant(&mut self, value: Value, span: &Span) {
+        let index = self.chunk.constants.len() as u8;
         self.write_byte(index, span);
         self.chunk.constants.push(value);
     }

@@ -20,7 +20,9 @@ iota! {
     TRUE,
     FALSE,
     NIL,
-    RETURN
+    RETURN,
+    DEFINE_GLOBAL,
+    GET_GLOBAL
 
 
 
