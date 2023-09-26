@@ -82,9 +82,7 @@ impl<'a> VM<'a> {
 
     fn get_local(&mut self) {
         let index = self.read_byte() as usize;
-        println!("index: {}", index);
         let stack_idx = self.chunk.constants[index].clone();
-        println!("stack_index: {}", stack_idx);
         match stack_idx {
             Value::Number(stack_idx) => {
                 let value = self.stack[stack_idx as usize];

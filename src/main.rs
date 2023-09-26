@@ -20,6 +20,9 @@ fn main() {
     let a: Int = 1 + 1;
     {
     let b: Int = 2 + 2;
+    let x: Int = 3*3;
+    b = 5;
+    print x;
     print b;
     }
     }
