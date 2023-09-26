@@ -33,7 +33,7 @@ impl Display for Local {
 
 pub struct Compiler<'a> {
     chunk: &'a mut Chunk,
-    globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
+    pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
     locals: Vec<Local>,
     scope_depth: usize,
 }
@@ -129,40 +129,23 @@ impl<'a> Compiler<'a> {
 
     fn compile_statement_var(
         &mut self,
-        var: (&StatementVar, &Range<usize>),
+        (var, range): (&StatementVar, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Type {
-        let (var, range) = var;
-        let var_type = match &var.value {
-            Some(value) => self.compile_expression(value, allocator),
-            None => Type::UnInitialized,
-        };
-        // if &var_type != var.var.type_.as_ref().unwrap() {
-        //     todo!("type mismatch in var declaration");
-        // }
+        let var_type = var.value.as_ref().map_or(Type::UnInitialized, |value| {
+            self.compile_expression(value, allocator)
+        });
 
         match &var.var.type_ {
             Some(t) => match t {
-                Type::String => {
+                Type::String | Type::Int => {
                     let name = &var.var.name;
                     if self.is_global() {
                         let string = allocator.alloc(name);
-                        self.globals.insert(name.clone(), Type::String);
+                        self.globals.insert(name.clone(), t.clone());
                         self.write_byte(op::DEFINE_GLOBAL, &range);
                         self.write_constant(Value::String(string), &range);
                         return Type::String;
-                    } else {
-                        self.declare_local(name, &var_type, &range);
-                    }
-                }
-                Type::Int => {
-                    let name = &var.var.name;
-                    if self.is_global() {
-                        let string = allocator.alloc(name);
-                        self.globals.insert(name.clone(), Type::Int);
-                        self.write_byte(op::DEFINE_GLOBAL, &range);
-                        self.write_constant(Value::String(string), &range);
-                        return Type::Int;
                     } else {
                         self.declare_local(name, &var_type, &range);
                     }
@@ -172,9 +155,13 @@ impl<'a> Compiler<'a> {
             None => {
                 let name = &var.var.name;
                 let string = allocator.alloc(name);
-                self.globals.insert(name.clone(), var_type.clone());
-                self.write_byte(op::DEFINE_GLOBAL, &range);
-                self.write_constant(Value::String(string), &range);
+                if self.is_global() {
+                    self.globals.insert(name.clone(), var_type.clone());
+                    self.write_byte(op::DEFINE_GLOBAL, &range);
+                    self.write_constant(Value::String(string), &range);
+                } else {
+                    self.declare_local(name, &var_type, &range);
+                }
             }
         }
         return var_type;

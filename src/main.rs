@@ -17,17 +17,19 @@ mod vm;
 fn main() {
     let input = r#" 
     {
-    let a: Int = 1 + 1;
+    let a = 1 + 1;
     {
-    let b: Int = 2 + 2;
-    let x: Int = 3*3;
+    let b = 2 + 2;
+    let x = 3*3;
     b = 5;
     print x;
     print b;
     }
     }
-    let c: Int = 3 + 3;
+    let c = 3 + 3;
+    let b = c + 3;
     print c;
+    print b;
     "#;
     let mut lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {
@@ -38,17 +40,18 @@ fn main() {
     });
     let parser = grammar::ProgramParser::new();
     let mut program = parser.parse(lexer).unwrap();
-    for (statement, _range) in &program.statements {
-        println!("{:?}", statement);
-    }
+    // for (statement, _range) in &program.statements {
+    //     println!("{:?}", statement);
+    // }
 
     let mut chunk = Chunk::new();
     let mut allocator = CeAllocation::new();
     let mut compiler = Compiler::new(&mut chunk);
 
     compiler.compile(&mut program, &mut allocator);
+    println!("{:?}", compiler.globals);
 
-    println!("{:?}", chunk);
+    // println!("{:?}", chunk);
     let mut vm = vm::VM::new(chunk, &mut allocator);
     vm.run();
 
