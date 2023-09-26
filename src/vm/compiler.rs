@@ -88,9 +88,9 @@ impl<'a> Compiler<'a> {
                 todo!();
             }
         };
-        if &var_type != var.var.type_.as_ref().unwrap() {
-            todo!("type mismatch in var declaration");
-        }
+        // if &var_type != var.var.type_.as_ref().unwrap() {
+        //     todo!("type mismatch in var declaration");
+        // }
         match &var.var.type_ {
             Some(t) => match t {
                 Type::String => {
@@ -110,7 +110,11 @@ impl<'a> Compiler<'a> {
                 _ => todo!("type not implemented"),
             },
             None => {
-                todo!();
+                let name = &var.var.name;
+                let string = allocator.alloc(name);
+                self.globals.insert(string, var_type.clone());
+                self.write_byte(op::DEFINE_GLOBAL, &range);
+                self.write_constant(Value::String(string), &range);
             }
         }
         return var_type;

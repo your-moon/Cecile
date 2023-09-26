@@ -20,6 +20,11 @@ fn main() {
     let world: String = "World"; 
     let hello_world: String = hello + " " + world;
     print hello_world;
+
+    let a: Int = 123;
+    let b: Int = 123;
+    let c: Int = (a + b)/(2*2);
+    print c;
     "#;
     let mut lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {

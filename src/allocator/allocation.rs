@@ -24,7 +24,7 @@ impl CeAllocation {
 
 impl Drop for CeAllocation {
     fn drop(&mut self) {
-        println!("Dropping CeAllocation");
+        // println!("Dropping CeAllocation");
         for object in &self.objects {
             object.free();
         }
