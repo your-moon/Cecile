@@ -1,21 +1,41 @@
-use std::{hash::BuildHasherDefault, ops::Range};
+use std::{fmt::Display, hash::BuildHasherDefault, ops::Range};
 
 use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
 
 use crate::{
     allocator::allocation::CeAllocation,
     cc_parser::ast::{
-        ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix, OpPrefix, Program, Span,
-        Statement, StatementExpr, StatementPrint, StatementVar, Type,
+        ExprAssign, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix, OpPrefix,
+        Program, Span, Statement, StatementBlock, StatementExpr, StatementPrint, StatementVar,
+        Type,
     },
 };
 
 use super::{chunk::Chunk, object::StringObject, op, value::Value};
 use rustc_hash::FxHasher;
 
+#[derive(Debug, Default)]
+struct Local {
+    name: String,
+    depth: usize,
+    is_initialized: bool,
+}
+
+impl Display for Local {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{name: {}, depth: {}, is_initialized: {}}}",
+            self.name, self.depth, self.is_initialized
+        )
+    }
+}
+
 pub struct Compiler<'a> {
     chunk: &'a mut Chunk,
-    globals: HashMap<*mut StringObject, Type, BuildHasherDefault<FxHasher>>,
+    globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
+    locals: Vec<Local>,
+    scope_depth: usize,
 }
 
 impl<'a> Compiler<'a> {
@@ -23,6 +43,8 @@ impl<'a> Compiler<'a> {
         Self {
             chunk,
             globals: HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default()),
+            locals: Vec::new(),
+            scope_depth: 0,
         }
     }
     pub fn compile(&mut self, source: &mut Program, allocator: &mut CeAllocation) {
@@ -43,8 +65,22 @@ impl<'a> Compiler<'a> {
             Statement::Expression(expr) => self.compile_expression(&expr.expr, allocator),
             Statement::Print(print) => self.print_statement((print, range), allocator),
             Statement::Var(var) => self.compile_statement_var((var, range), allocator),
+            Statement::Block(block) => self.compile_statement_block((block, range), allocator),
             _ => todo!("statement not implemented"),
         }
+    }
+
+    fn compile_statement_block(
+        &mut self,
+        (block, range): (&StatementBlock, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Type {
+        self.begin_scope();
+        for statement in &block.statements {
+            self.compile_statement(&statement, allocator);
+        }
+        self.end_scope(range.clone(), allocator);
+        return Type::UnInitialized;
     }
 
     fn print_statement(
@@ -65,6 +101,7 @@ impl<'a> Compiler<'a> {
     ) -> Type {
         let (expr, range) = expr;
         match expr {
+            Expression::Assign(assign) => self.compile_assign((assign, range), allocator),
             Expression::Prefix(prefix) => self.compile_prefix((prefix, range), allocator),
             Expression::Infix(infix) => self.compile_infix((infix, range), allocator),
             Expression::Literal(value) => self.compile_literal((value, range), allocator),
@@ -73,46 +110,69 @@ impl<'a> Compiler<'a> {
         }
     }
 
+    fn compile_assign(
+        &mut self,
+        (assign, range): (&Box<ExprAssign>, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Type {
+        let var_type = self.compile_expression(&assign.rhs, allocator);
+        if let Some(local_index) = self.resolve_local(&assign.lhs.name, &range) {
+            self.write_byte(op::SET_LOCAL, &range);
+            self.write_constant(Value::Number(local_index.into()), &range);
+        } else {
+            let name = allocator.alloc(&assign.lhs.name);
+            self.write_byte(op::SET_GLOBAL, &range);
+            self.write_constant(Value::String(name), &range);
+        }
+        return var_type;
+    }
+
     fn compile_statement_var(
         &mut self,
         var: (&StatementVar, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Type {
         let (var, range) = var;
-        let mut var_type = Type::UnInitialized;
-        match &var.value {
-            Some(value) => {
-                var_type = self.compile_expression(value, allocator);
-            }
-            None => {
-                todo!();
-            }
+        let var_type = match &var.value {
+            Some(value) => self.compile_expression(value, allocator),
+            None => Type::UnInitialized,
         };
         // if &var_type != var.var.type_.as_ref().unwrap() {
         //     todo!("type mismatch in var declaration");
         // }
+
         match &var.var.type_ {
             Some(t) => match t {
                 Type::String => {
                     let name = &var.var.name;
-                    let string = allocator.alloc(name);
-                    self.globals.insert(string, Type::String);
-                    self.write_byte(op::DEFINE_GLOBAL, &range);
-                    self.write_constant(Value::String(string), &range);
+                    if self.is_global() {
+                        let string = allocator.alloc(name);
+                        self.globals.insert(name.clone(), Type::String);
+                        self.write_byte(op::DEFINE_GLOBAL, &range);
+                        self.write_constant(Value::String(string), &range);
+                        return Type::String;
+                    } else {
+                        self.declare_local(name, &var_type, &range);
+                    }
                 }
                 Type::Int => {
                     let name = &var.var.name;
-                    let string = allocator.alloc(name);
-                    self.globals.insert(string, Type::Int);
-                    self.write_byte(op::DEFINE_GLOBAL, &range);
-                    self.write_constant(Value::String(string), &range);
+                    if self.is_global() {
+                        let string = allocator.alloc(name);
+                        self.globals.insert(name.clone(), Type::Int);
+                        self.write_byte(op::DEFINE_GLOBAL, &range);
+                        self.write_constant(Value::String(string), &range);
+                        return Type::Int;
+                    } else {
+                        self.declare_local(name, &var_type, &range);
+                    }
                 }
                 _ => todo!("type not implemented"),
             },
             None => {
                 let name = &var.var.name;
                 let string = allocator.alloc(name);
-                self.globals.insert(string, var_type.clone());
+                self.globals.insert(name.clone(), var_type.clone());
                 self.write_byte(op::DEFINE_GLOBAL, &range);
                 self.write_constant(Value::String(string), &range);
             }
@@ -125,13 +185,24 @@ impl<'a> Compiler<'a> {
         (prefix, range): (&ExprVar, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Type {
-        let name = allocator.alloc(&prefix.var.name);
-        self.write_byte(op::GET_GLOBAL, &range);
-        self.write_constant(Value::String(name), &range);
-        let type_ = self.globals.get(&name);
-        match type_ {
-            Some(t) => return t.clone(),
-            None => Type::UnInitialized,
+        let name = &prefix.var.name;
+        if let Some(local_index) = self.resolve_local(&prefix.var.name, &range) {
+            self.write_byte(op::GET_LOCAL, &range);
+            self.write_constant(Value::Number(local_index.into()), &range);
+            let type_ = self.globals.get(&*name);
+            match type_ {
+                Some(t) => return t.clone(),
+                None => Type::UnInitialized,
+            }
+        } else {
+            let string = allocator.alloc(name);
+            self.write_byte(op::GET_GLOBAL, &range);
+            self.write_constant(Value::String(string), &range);
+            let type_ = self.globals.get(&*name);
+            return match type_ {
+                Some(t) => return t.clone(),
+                None => Type::UnInitialized,
+            };
         }
     }
 
@@ -215,6 +286,54 @@ impl<'a> Compiler<'a> {
             _ => todo!(),
         }
     }
+
+    fn begin_scope(&mut self) {
+        self.scope_depth += 1;
+    }
+
+    fn end_scope(&mut self, span: Range<usize>, allocator: &mut CeAllocation) {
+        self.scope_depth -= 1;
+        while !self.locals.is_empty() && self.locals.last().unwrap().depth > self.scope_depth {
+            let local = self.locals.pop().unwrap();
+            self.write_byte(op::POP, &span);
+        }
+    }
+
+    fn declare_local(&mut self, name: &str, is_initialized: &Type, span: &Span) {
+        let is_initialized = match is_initialized {
+            Type::UnInitialized => false,
+            _ => true,
+        };
+        for local in self.locals.iter().rev() {
+            if local.depth != self.scope_depth {
+                break;
+            }
+
+            if local.name == name {
+                todo!("Already declared variable in this scope");
+            }
+        }
+
+        let local = Local {
+            name: name.to_string(),
+            depth: self.scope_depth,
+            is_initialized,
+        };
+        self.locals.push(local);
+    }
+
+    fn define_local(&mut self) {
+        let local = self
+            .locals
+            .last_mut()
+            .expect("Define local called without locals");
+        local.is_initialized = true;
+    }
+
+    fn is_global(&self) -> bool {
+        self.scope_depth == 0
+    }
+
     fn write_byte(&mut self, byte: u8, span: &Span) {
         self.chunk.code.push(byte);
         self.chunk.spans.push(span.clone());
@@ -231,5 +350,17 @@ impl<'a> Compiler<'a> {
         let index = self.chunk.constants.len() as u8;
         self.write_byte(index, span);
         self.chunk.constants.push(value);
+    }
+
+    fn resolve_local(&mut self, name: &str, span: &Span) -> Option<u8> {
+        for (i, local) in self.locals.iter().enumerate().rev() {
+            if local.name == name {
+                if !local.is_initialized {
+                    todo!("Can't read local variable in its own initializer");
+                }
+                return Some(i as u8);
+            }
+        }
+        None
     }
 }

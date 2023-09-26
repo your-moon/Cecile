@@ -1,5 +1,6 @@
 use std::hash::BuildHasherDefault;
 
+use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
 
 use crate::vm::value::Value;
@@ -37,8 +38,11 @@ impl<'a> VM<'a> {
 
     pub fn run(&mut self) {
         loop {
-            // self.chunk.disassemble_instruction(self.ip);
+            self.chunk.disassemble_instruction(self.ip);
             match self.read_byte() {
+                op::GET_LOCAL => self.get_local(),
+                op::SET_LOCAL => self.set_local(),
+                op::SET_GLOBAL => self.set_global(),
                 op::PRINT => {
                     let value: value::Value = self.stack.pop().unwrap();
                     println!("{}", value);
@@ -59,6 +63,9 @@ impl<'a> VM<'a> {
                 op::TRUE => self.op_true(),
                 op::FALSE => self.op_false(),
                 op::NIL => self.op_nil(),
+                op::POP => {
+                    self.stack.pop();
+                }
                 op::RETURN => {
                     self.stack.pop();
                     return;
@@ -66,11 +73,53 @@ impl<'a> VM<'a> {
                 _ => todo!(),
             }
             //print top of stack element
-            // for (i, value) in self.stack.iter().enumerate() {
-            //     print!("[ {:?} ]", value);
-            // }
-            // println!();
+            for (i, value) in self.stack.iter().enumerate() {
+                print!("[ {:?} ]", value);
+            }
+            println!();
         }
+    }
+
+    fn get_local(&mut self) {
+        let index = self.read_byte() as usize;
+        println!("index: {}", index);
+        let stack_idx = self.chunk.constants[index].clone();
+        println!("stack_index: {}", stack_idx);
+        match stack_idx {
+            Value::Number(stack_idx) => {
+                let value = self.stack[stack_idx as usize];
+                self.stack.push(value);
+            }
+            _ => todo!(),
+        }
+    }
+
+    fn set_local(&mut self) {
+        let constant_index = self.read_byte() as usize;
+        let stack_index = self.chunk.constants[constant_index].clone();
+        match stack_index {
+            Value::Number(stack_index) => {
+                let value = self.stack.pop().unwrap();
+                self.stack[stack_index as usize] = value;
+            }
+            _ => todo!(),
+        }
+    }
+
+    fn set_global(&mut self) {
+        let value = self.stack.pop().unwrap();
+        let name = self.read_constant();
+        match name {
+            Value::String(ptr_string) => match self.globals.entry(ptr_string) {
+                Entry::Occupied(mut entry) => {
+                    entry.insert(value);
+                }
+                Entry::Vacant(entry) => {
+                    todo!();
+                }
+            },
+            _ => todo!(),
+        };
     }
 
     fn get_global(&mut self) {

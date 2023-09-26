@@ -16,14 +16,14 @@ mod cc_parser;
 mod vm;
 fn main() {
     let input = r#" 
-    let hello: String = "Hello";
-    let world: String = "World"; 
-    let hello_world: String = hello + " " + world;
-    print hello_world;
-
-    let a: Int = 123;
-    let b: Int = 123;
-    let c: Int = (a + b)/(2*2);
+    {
+    let a: Int = 1 + 1;
+    {
+    let b: Int = 2 + 2;
+    print b;
+    }
+    }
+    let c: Int = 3 + 3;
     print c;
     "#;
     let mut lexer = Lexer::new(input).map(|token| match token {
@@ -35,9 +35,9 @@ fn main() {
     });
     let parser = grammar::ProgramParser::new();
     let mut program = parser.parse(lexer).unwrap();
-    // for (statement, _range) in &program.statements {
-    // println!("{:?}", statement);
-    // }
+    for (statement, _range) in &program.statements {
+        println!("{:?}", statement);
+    }
 
     let mut chunk = Chunk::new();
     let mut allocator = CeAllocation::new();
@@ -45,10 +45,11 @@ fn main() {
 
     compiler.compile(&mut program, &mut allocator);
 
+    println!("{:?}", chunk);
     let mut vm = vm::VM::new(chunk, &mut allocator);
     vm.run();
 
-    // println!("{:?} VM", vm);
+    println!("{:?} VM", vm);
 
     // let mut stdout = StandardStream::stdout(ColorChoice::Always);
     // stdout.set_color(ColorSpec::new().set_fg(Some(Color::Magenta)));

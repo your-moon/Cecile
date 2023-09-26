@@ -3,6 +3,7 @@ iota! {
     pub const
     CECILE_CONSTANT: u8 = iota;,
     ADD,
+    POP,
     PRINT,
     SUB,
     MUL,
@@ -22,7 +23,10 @@ iota! {
     NIL,
     RETURN,
     DEFINE_GLOBAL,
-    GET_GLOBAL
+    GET_GLOBAL,
+    SET_GLOBAL,
+    GET_LOCAL,
+    SET_LOCAL
 
 
 
