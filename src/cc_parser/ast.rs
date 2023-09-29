@@ -18,12 +18,43 @@ pub enum Statement {
     Print(StatementPrint),
     Return(StatementReturn),
     Var(StatementVar),
+    If(Box<StatementIf>),
+    While(Box<StatementWhile>),
+    For(Box<StatementFor>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementFor {
+    pub init: Option<StatementS>,
+    pub cond: Option<ExprS>,
+    pub update: Option<ExprS>,
+    pub body: StatementS,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementWhile {
+    pub cond: ExprS,
+    pub body: StatementS,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementIf {
+    pub cond: ExprS,
+    pub then_branch: StatementS,
+    pub else_branch: Option<StatementS>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StatementVar {
     pub var: Var,
     pub value: Option<ExprS>,
+}
+
+impl StatementVar {
+    pub fn new(name: String, type_: Option<Type>, value: Option<ExprS>) -> Self {
+        let var = Var { name, type_ };
+        Self { var, value }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

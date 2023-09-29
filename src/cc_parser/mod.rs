@@ -7,7 +7,188 @@ use crate::cc_lexer as lexer;
 #[cfg(test)]
 
 mod tests {
+    use crate::cc_parser::{
+        self,
+        ast::{ExprInfix, ExprLiteral, Expression},
+    };
+
     use super::*;
+
+    #[test]
+    fn if_statement_declaration_2() {
+        let input = r#"if(true) { print 1; }"#;
+        let mut lexer = lexer::Lexer::new(input).map(|token| match token {
+            Ok((l, token, r)) => (l, token, r),
+            Err(_) => todo!("Error handling"),
+        });
+        let parser = grammar::ProgramParser::new();
+        let program = parser.parse(lexer).unwrap();
+        for (statement, _range) in &program.statements {
+            assert_eq!(
+                statement,
+                &ast::Statement::If(Box::new(ast::StatementIf {
+                    cond: (ast::Expression::Literal(ast::ExprLiteral::Bool(true)), 3..7),
+                    then_branch: (
+                        ast::Statement::Block(ast::StatementBlock {
+                            statements: vec![(
+                                ast::Statement::Print(ast::StatementPrint {
+                                    value: (
+                                        ast::Expression::Literal(ast::ExprLiteral::Number(1.0)),
+                                        17..18
+                                    )
+                                }),
+                                11..19
+                            )]
+                        }),
+                        9..21
+                    ),
+                    else_branch: None
+                }))
+            );
+        }
+    }
+
+    #[test]
+    fn if_statement_declaration() {
+        let input = r#"if(true) {}"#;
+        let mut lexer = lexer::Lexer::new(input).map(|token| match token {
+            Ok((l, token, r)) => {
+                println!("{:?}", token);
+                return (l, token, r);
+            }
+            Err(_) => todo!("Error handling"),
+        });
+        let parser = grammar::ProgramParser::new();
+        let program = parser.parse(lexer).unwrap();
+        for (statement, _range) in &program.statements {
+            assert_eq!(
+                statement,
+                &ast::Statement::If(Box::new(ast::StatementIf {
+                    cond: (ast::Expression::Literal(ast::ExprLiteral::Bool(true)), 3..7),
+                    then_branch: (
+                        ast::Statement::Block(ast::StatementBlock { statements: vec![] }),
+                        9..11
+                    ),
+                    else_branch: None
+                }))
+            );
+        }
+    }
+
+    #[test]
+    fn while_statement_declaration() {
+        let input = r#"while(true) {}"#;
+        let mut lexer = lexer::Lexer::new(input).map(|token| match token {
+            Ok((l, token, r)) => {
+                println!("{:?}", token);
+                return (l, token, r);
+            }
+            Err(_) => todo!("Error handling"),
+        });
+        let parser = grammar::ProgramParser::new();
+        let program = parser.parse(lexer).unwrap();
+        for (statement, _range) in &program.statements {
+            assert_eq!(
+                statement,
+                &ast::Statement::While(Box::new(ast::StatementWhile {
+                    cond: (
+                        ast::Expression::Literal(ast::ExprLiteral::Bool(true)),
+                        6..10
+                    ),
+                    body: (
+                        ast::Statement::Block(ast::StatementBlock { statements: vec![] }),
+                        12..14
+                    )
+                }))
+            );
+        }
+    }
+
+    #[test]
+    fn for_statement_declaration() {
+        let input = r#"for(let i = 0; i<10; i=i+1) {}"#;
+        let mut lexer = lexer::Lexer::new(input).map(|token| match token {
+            Ok((l, token, r)) => {
+                println!("{:?}", token);
+                return (l, token, r);
+            }
+            Err(_) => todo!("Error handling"),
+        });
+        let parser = grammar::ProgramParser::new();
+        let program = parser.parse(lexer).unwrap();
+        for (statement, _range) in &program.statements {
+            println!("STATEMENT {:?}", statement);
+            assert_eq!(
+                statement,
+                &ast::Statement::For(Box::new(ast::StatementFor {
+                    init: Some((
+                        ast::Statement::Var(ast::StatementVar {
+                            var: ast::Var {
+                                name: "i".to_string(),
+                                type_: None
+                            },
+                            value: Some((
+                                ast::Expression::Literal(ast::ExprLiteral::Number(0.0)),
+                                12..13
+                            )),
+                        }),
+                        4..14
+                    )),
+                    cond: Some((
+                        ast::Expression::Infix(Box::new(ast::ExprInfix {
+                            lhs: (
+                                ast::Expression::Var(ast::ExprVar {
+                                    var: ast::Var {
+                                        name: "i".to_string(),
+                                        type_: None
+                                    }
+                                }),
+                                15..16
+                            ),
+                            op: ast::OpInfix::Less,
+                            rhs: (
+                                ast::Expression::Literal(ast::ExprLiteral::Number(10.0)),
+                                17..19
+                            )
+                        })),
+                        15..19
+                    )),
+                    update: Some((
+                        ast::Expression::Assign(Box::new(ast::ExprAssign {
+                            lhs: ast::Var {
+                                name: "i".to_string(),
+                                type_: None
+                            },
+
+                            rhs: (
+                                Expression::Infix(Box::new(ExprInfix {
+                                    lhs: (
+                                        Expression::Var(ast::ExprVar {
+                                            var: ast::Var {
+                                                name: "i".to_string(),
+                                                type_: None
+                                            }
+                                        }),
+                                        23..24
+                                    ),
+                                    op: ast::OpInfix::Add,
+                                    rhs: (Expression::Literal(ExprLiteral::Number(1.0)), 25..26)
+                                })),
+                                23..26
+                            )
+                        })),
+                        21..26
+                    )),
+
+                    body: (
+                        ast::Statement::Block(ast::StatementBlock { statements: vec![] }),
+                        28..30
+                    )
+                }))
+            );
+        }
+    }
+
     #[test]
     fn variable_declaration() {
         let input = r#"let variable_1: String = "Hello";"#;

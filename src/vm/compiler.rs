@@ -220,6 +220,8 @@ impl<'a> Compiler<'a> {
         let lhs_type = self.compile_expression(&(infix.lhs), allocator);
         // absolute litiral
         let rhs_type = self.compile_expression(&(infix.rhs), allocator);
+        //if lhs_type: String rhs_type: String => concat string command will be called
+        //if lhs_type: Int  rhs_type: Int  => add int command will be called
 
         if lhs_type != rhs_type {
             todo!("type mismatch");

@@ -9,7 +9,7 @@ use crate::{
     vm::object::StringObject,
 };
 use rustc_hash::FxHasher;
-use std::{mem, ptr};
+use std::ptr;
 pub mod chunk;
 pub mod compiler;
 pub mod object;
@@ -42,12 +42,12 @@ impl<'a> VM<'a> {
         self.stack_top = self.stack.as_mut_ptr();
         loop {
             self.chunk.disassemble_instruction(self.ip);
-            match self.read_byte() {
+            match self.read_u8() {
                 op::GET_LOCAL => self.get_local(),
                 op::SET_LOCAL => self.set_local(),
                 op::SET_GLOBAL => self.set_global(),
                 op::PRINT => {
-                    let value: value::Value = self.pop();
+                    let value: value::Value = self.pop_from_stack();
                     println!("{}", value);
                 }
                 op::ADD => self.add(),
@@ -59,7 +59,7 @@ impl<'a> VM<'a> {
                 op::NEG => self.negate(),
                 op::CECILE_CONSTANT => {
                     let constant = self.read_constant();
-                    self.push(constant);
+                    self.push_to_stack(constant);
                 }
                 op::DEFINE_GLOBAL => self.define_global(),
                 op::GET_GLOBAL => self.get_global(),
@@ -67,10 +67,10 @@ impl<'a> VM<'a> {
                 op::FALSE => self.op_false(),
                 op::NIL => self.op_nil(),
                 op::POP => {
-                    self.pop();
+                    self.pop_from_stack();
                 }
                 op::RETURN => {
-                    self.pop();
+                    self.pop_from_stack();
                     return;
                 }
                 _ => todo!(),
@@ -86,11 +86,11 @@ impl<'a> VM<'a> {
     }
 
     fn get_local(&mut self) {
-        let stack_index = self.read_constant();
-        match stack_index {
-            Value::Number(stack_index) => {
-                let value = self.stack[stack_index as usize];
-                self.push(value);
+        let stack_idx = self.read_constant();
+        match stack_idx {
+            Value::Number(stack_idx) => {
+                let value = self.stack[stack_idx as usize];
+                self.push_to_stack(value);
             }
             _ => todo!(),
         }
@@ -100,7 +100,7 @@ impl<'a> VM<'a> {
         let stack_index = self.read_constant();
         match stack_index {
             Value::Number(stack_index) => {
-                let value = self.pop();
+                let value = self.pop_from_stack();
                 self.stack[stack_index as usize] = value;
             }
             _ => todo!(),
@@ -108,14 +108,14 @@ impl<'a> VM<'a> {
     }
 
     fn set_global(&mut self) {
-        let value = self.pop();
+        let value = self.pop_from_stack();
         let name = self.read_constant();
         match name {
             Value::String(ptr_string) => match self.globals.entry(ptr_string) {
                 Entry::Occupied(mut entry) => {
                     entry.insert(value);
                 }
-                Entry::Vacant(entry) => {
+                Entry::Vacant(_entry) => {
                     todo!();
                 }
             },
@@ -128,7 +128,7 @@ impl<'a> VM<'a> {
         match name {
             Value::String(ptr_string) => match self.globals.get(&ptr_string) {
                 Some(value) => {
-                    self.push(*value);
+                    self.push_to_stack(*value);
                 }
                 None => {
                     todo!()
@@ -139,9 +139,9 @@ impl<'a> VM<'a> {
     }
 
     fn define_global(&mut self) {
-        let value = self.pop();
+        let value = self.pop_from_stack();
         let name = self.read_constant();
-        let name = match name {
+        match name {
             Value::String(ptr_string) => {
                 self.globals.insert(ptr_string, value);
             }
@@ -150,104 +150,104 @@ impl<'a> VM<'a> {
     }
 
     fn op_nil(&mut self) {
-        self.push(value::Value::Number(0.0));
+        self.push_to_stack(value::Value::Number(0.0));
     }
 
     fn op_true(&mut self) {
-        self.push(true.into());
+        self.push_to_stack(true.into());
     }
 
     fn op_false(&mut self) {
-        self.push(false.into());
+        self.push_to_stack(false.into());
     }
 
-    fn push(&mut self, value: Value) {
+    fn push_to_stack(&mut self, value: Value) {
         unsafe {
             ptr::write(self.stack_top, value);
             self.stack_top = self.stack_top.add(1);
         }
     }
 
-    fn pop(&mut self) -> Value {
+    fn pop_from_stack(&mut self) -> Value {
         unsafe {
             self.stack_top = self.stack_top.sub(1);
             ptr::read(self.stack_top)
         }
     }
 
-    fn peek(&self, distance: usize) -> *mut Value {
+    fn _peek(&self, distance: usize) -> *mut Value {
         unsafe { self.stack_top.sub(distance + 1) }
     }
 
     fn read_constant(&mut self) -> value::Value {
-        let index = self.read_byte() as usize;
+        let index = self.read_u8() as usize;
         let constant = self.chunk.constants[index].clone();
         constant
     }
 
-    fn read_byte(&mut self) -> u8 {
+    fn read_u8(&mut self) -> u8 {
         let byte = self.chunk.code[self.ip];
         self.ip += 1;
         byte
     }
 
     fn add(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
         match (lhs, rhs) {
             (value::Value::Number(lhs), value::Value::Number(rhs)) => {
                 // println!(" adding {} + {}", lhs, rhs);
-                self.push(Value::Number(lhs + rhs));
+                self.push_to_stack(Value::Number(lhs + rhs));
             }
             (value::Value::String(lhs), value::Value::String(rhs)) => {
-                let mut lhs = unsafe { (*lhs).value.clone() };
-                let mut rhs = unsafe { (*rhs).value.clone() };
+                let lhs = unsafe { (*lhs).value.clone() };
+                let rhs = unsafe { (*rhs).value.clone() };
                 let string = lhs.to_string() + &rhs.to_string();
                 // let static_str: &'static str = Box::leak(string.into_boxed_str());
                 // let string_obj = StringObject::new(static_str);
                 let ptr_string = self.alloc(string);
                 let string = Value::String(ptr_string);
-                self.push(string);
+                self.push_to_stack(string);
             }
             _ => todo!(),
         }
     }
 
     fn sub(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push(lhs.sub(rhs));
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
+        self.push_to_stack(lhs.sub(rhs));
     }
 
     fn mul(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push(lhs.mul(rhs));
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
+        self.push_to_stack(lhs.mul(rhs));
     }
 
     fn div(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push(lhs.div(rhs));
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
+        self.push_to_stack(lhs.div(rhs));
     }
 
     fn equal(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push((lhs == rhs).into());
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
+        self.push_to_stack((lhs == rhs).into());
     }
 
     fn not_equal(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
 
-        self.push((lhs != rhs).into());
+        self.push_to_stack((lhs != rhs).into());
     }
 
     fn negate(&mut self) {
-        let value: value::Value = self.pop();
+        let value: value::Value = self.pop_from_stack();
         // Value to f64
-        self.push(value.neg());
+        self.push_to_stack(value.neg());
     }
 
     fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {

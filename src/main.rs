@@ -55,7 +55,7 @@ fn main() {
     let mut vm = vm::VM::new(chunk, &mut allocator);
     vm.run();
 
-    println!("{:?} VM", vm);
+    // println!("{:?} VM", vm);
 
     // let mut stdout = StandardStream::stdout(ColorChoice::Always);
     // stdout.set_color(ColorSpec::new().set_fg(Some(Color::Magenta)));

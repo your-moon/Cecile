@@ -29,8 +29,48 @@ Types: ast::Type = {
 }
 
 Stmt: ast::Statement = {
-  StmtSimple
+ StmtOpen,
+ StmtClosed,
 }
+
+
+StmtOpen: ast::Statement = {
+    "for" "(" <init:ForInit> <cond:ForCond> <update:ForIncr> ")" <body:Spanned<StmtOpen>> =>
+        ast::Statement::For(Box::new(ast::StatementFor { <> })),
+
+    "if" "(" <cond:ExprS> ")" <then_branch:Spanned<Stmt>> =>
+        ast::Statement::If(Box::new(ast::StatementIf { <>, else_branch: None })),
+
+    "if" "(" <cond:ExprS> ")" <then_branch:Spanned<StmtClosed>> "else" <else_branch:Spanned<StmtOpen>> =>
+        ast::Statement::If(Box::new(ast::StatementIf { cond, then_branch, else_branch: Some(else_branch)})),
+
+    "while" "(" <cond:ExprS> ")" <body:Spanned<StmtOpen>> =>
+        ast::Statement::While(Box::new(ast::StatementWhile { <> })),
+
+
+}
+
+StmtClosed: ast::Statement = {
+    "if" "(" <cond:ExprS> ")" <then_branch:Spanned<StmtClosed>> "else" <else_branch:Spanned<StmtClosed>> =>
+        ast::Statement::If(Box::new(ast::StatementIf { cond, then_branch, else_branch: Some(else_branch) })),
+    "while" "(" <cond:ExprS> ")" <body:Spanned<StmtClosed>> =>
+        ast::Statement::While(Box::new(ast::StatementWhile { <> })),
+    "for" "(" <init:ForInit> <cond:ForCond> <update:ForIncr> ")" <body:Spanned<StmtClosed>> =>
+        ast::Statement::For(Box::new(ast::StatementFor { <> })),
+    StmtSimple,
+}
+
+ForInit: Option<ast::StatementS> = {
+    <Spanned<DeclVar>> => Some(<>),
+    <Spanned<StmtExpr>> => Some(<>),
+    ";" => None,
+}
+
+ForCond = <ExprS?> ";";
+
+ForIncr = <ExprS?>;
+
+
 
 StmtSimple = {
     StmtExpr,
@@ -150,6 +190,7 @@ extern {
     "print" => Token::Print,
     "if" => Token::If,
     "else" => Token::Else,
+    "for" => Token::For,
     "while" => Token::While,
     "return" => Token::Return,
     "true" => Token::True,
