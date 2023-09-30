@@ -32,7 +32,7 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-    if (2 == 1) {
+    if (2 == 2) {
         print 1;
     } else {
         print 2;

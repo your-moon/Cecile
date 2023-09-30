@@ -44,7 +44,7 @@ impl<'a> VM<'a> {
             self.chunk.disassemble_instruction(self.ip);
             println!("ip {}", self.ip);
             match self.read_u8() {
-                // op::JUMP => self.jump(),
+                op::JUMP => self.jump(),
                 op::JUMP_IF_FALSE => self.jump_if_false(),
                 op::GET_LOCAL => self.get_local(),
                 op::SET_LOCAL => self.set_local(),
@@ -88,6 +88,11 @@ impl<'a> VM<'a> {
         }
     }
 
+    fn jump(&mut self) {
+        let offset = self.read_u16() as usize;
+        self.ip += offset;
+    }
+
     fn jump_if_false(&mut self) {
         let offset = self.read_u16() as usize;
         let value = self.peek(0);
@@ -102,27 +107,6 @@ impl<'a> VM<'a> {
             _ => todo!(),
         }
     }
-
-    // fn jump_if_false(&mut self) {
-    //     let offset = self.read_u16() as usize;
-    //     println!("offset: {}", offset);
-    //     let value = self.peek(0);
-    //     println!("value: {}", unsafe { *value });
-    //     match unsafe { *value } {
-    //         Value::Bool(value) => {
-    //             if !value {
-    //                 self.ip = offset;
-    //             }
-    //         }
-    //         _ => todo!(),
-    //     }
-    //     println!("ip {}", self.ip);
-    // }
-    //
-    // fn jump(&mut self) {
-    //     let offset = self.read_u16() as usize;
-    //     self.ip = offset;
-    // }
 
     fn get_local(&mut self) {
         let stack_idx = self.read_constant();
