@@ -17,6 +17,7 @@ pub enum Statement {
     Expression(StatementExpr),
     Block(StatementBlock),
     Print(StatementPrint),
+    PrintLn(StatementPrintLn),
     Return(StatementReturn),
     Var(StatementVar),
     If(Box<StatementIf>),
@@ -61,6 +62,11 @@ impl StatementVar {
 #[derive(Clone, Debug, PartialEq)]
 pub struct StatementReturn {
     pub value: Option<ExprS>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementPrintLn {
+    pub value: ExprS,
 }
 
 #[derive(Clone, Debug, PartialEq)]

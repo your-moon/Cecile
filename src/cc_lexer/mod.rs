@@ -21,6 +21,9 @@ pub enum Token {
     #[token("print")]
     Print,
 
+    #[token("println")]
+    PrintLn,
+
     #[token("if")]
     If,
     #[token("else")]

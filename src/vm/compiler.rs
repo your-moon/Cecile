@@ -7,7 +7,7 @@ use crate::{
     cc_parser::ast::{
         ExprAssign, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix, OpPrefix,
         Program, Span, Statement, StatementBlock, StatementExpr, StatementFor, StatementIf,
-        StatementPrint, StatementVar, StatementWhile, Type,
+        StatementPrint, StatementPrintLn, StatementVar, StatementWhile, Type,
     },
 };
 
@@ -65,6 +65,7 @@ impl<'a> Compiler<'a> {
         match statement {
             Statement::Expression(expr) => self.compile_expression(&expr.expr, allocator),
             Statement::Print(print) => self.print_statement((print, range), allocator),
+            Statement::PrintLn(print) => self.print_ln_statement((print, range), allocator),
             Statement::Var(var) => self.compile_statement_var((var, range), allocator),
             Statement::Block(block) => self.compile_statement_block((block, range), allocator),
             Statement::If(if_) => self.compile_statement_if((if_, range), allocator),
@@ -179,6 +180,17 @@ impl<'a> Compiler<'a> {
         }
         self.end_scope(range.clone(), allocator);
         return Type::UnInitialized;
+    }
+
+    fn print_ln_statement(
+        &mut self,
+        print: (&StatementPrintLn, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Type {
+        let (print, range) = print;
+        let expr_type = self.compile_expression(&print.value, allocator);
+        self.emit_u8(op::PRINT_LN, range);
+        return expr_type;
     }
 
     fn print_statement(

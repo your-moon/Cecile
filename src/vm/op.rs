@@ -5,6 +5,7 @@ iota! {
     ADD,
     POP,
     PRINT,
+    PRINT_LN,
     SUB,
     MUL,
     DIV,

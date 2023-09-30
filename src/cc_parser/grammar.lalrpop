@@ -76,12 +76,17 @@ SmallStmt = {
     StmtExpr,
     StmtBlock,
     StmtPrint,
+    StmtPrintLn,
     StmtReturn,
 }
 
 
 StmtReturn: ast::Statement = "return" <value:ExprS?> ";" =>
   ast::Statement::Return(ast::StatementReturn { <> });
+
+StmtPrintLn: ast::Statement = "println" <value:ExprS> ";" =>
+  ast::Statement::PrintLn(ast::StatementPrintLn { <> });
+
 
 StmtPrint: ast::Statement = "print" <value:ExprS> ";" =>
   ast::Statement::Print(ast::StatementPrint { <> });
@@ -188,6 +193,7 @@ extern {
     "and" => Token::And,
     "struct" => Token::Struct,
     "print" => Token::Print,
+    "println" => Token::PrintLn,
     "if" => Token::If,
     "else" => Token::Else,
     "for" => Token::For,

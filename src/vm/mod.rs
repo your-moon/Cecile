@@ -53,6 +53,10 @@ impl<'a> VM<'a> {
                     let value: value::Value = self.pop_from_stack();
                     print!("{}", value);
                 }
+                op::PRINT_LN => {
+                    let value: value::Value = self.pop_from_stack();
+                    println!("{}", value);
+                }
                 op::GREATER_THAN => self.greater(),
                 op::GREATER_THAN_EQUAL => self.greater_equal(),
                 op::LESS_THAN => self.less(),

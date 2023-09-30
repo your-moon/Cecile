@@ -1,15 +1,8 @@
-use lalrpop_util::lalrpop_mod;
-use std::io::Write;
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
-
 use crate::allocator::allocation::CeAllocation;
-use crate::allocator::Allocator;
 use crate::cc_lexer::Lexer;
+use crate::cc_parser::grammar;
 use crate::vm::chunk::Chunk;
 use crate::vm::compiler::Compiler;
-use crate::vm::object::Object;
-use crate::{cc_lexer::Token, cc_parser::grammar};
-use logos::{Logos, SpannedIter};
 mod allocator;
 mod cc_lexer;
 mod cc_parser;
@@ -33,11 +26,10 @@ fn main() {
     // "#;
     let input = r#"
     for(let i: Int = 0; i < 10; i = i + 1) {
-        print i;
-        print " ";
+        println i;
     }
     "#;
-    let mut lexer = Lexer::new(input).map(|token| match token {
+    let lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {
             // println!("{:?}", token);
             return (l, token, r);
