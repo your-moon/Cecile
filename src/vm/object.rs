@@ -1,10 +1,13 @@
 use std::fmt::{self, Debug, Display, Formatter};
 
-#[derive(Clone, Copy)]
+use super::chunk::Chunk;
+
+#[derive(Clone, Copy, Eq)]
 #[repr(C)]
 pub union Object {
     pub string: *mut StringObject,
     pub main: *mut MainObject,
+    pub function: *mut ObjectFunction,
 }
 
 impl Object {
@@ -14,7 +17,12 @@ impl Object {
 
     pub fn free(self) {
         match self.type_() {
-            ObjectType::String => unsafe { Box::from_raw(self.string) },
+            ObjectType::Function => {
+                let _free = unsafe { Box::from_raw(self.function) };
+            }
+            ObjectType::String => {
+                let _free = unsafe { Box::from_raw(self.string) };
+            }
         };
     }
 }
@@ -29,6 +37,7 @@ impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.type_() {
             ObjectType::String => write!(f, "{}", unsafe { (*self.string).value }),
+            ObjectType::Function => write!(f, "{}", "function"),
         }
     }
 }
@@ -44,6 +53,7 @@ macro_rules! impl_from_object {
 }
 
 impl_from_object!(string, StringObject);
+impl_from_object!(function, ObjectFunction);
 
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
@@ -55,6 +65,32 @@ impl PartialEq for Object {
 #[repr(u8)]
 pub enum ObjectType {
     String,
+    Function,
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct ObjectFunction {
+    pub common: MainObject,
+    pub name: *mut StringObject,
+    pub arity: u8,
+    pub upvalue_count: u16,
+    pub chunk: Chunk,
+}
+
+impl ObjectFunction {
+    pub fn new(name: *mut StringObject, arity: u8) -> Self {
+        let common = MainObject {
+            type_: ObjectType::Function,
+        };
+        Self {
+            common,
+            name,
+            arity,
+            upvalue_count: 0,
+            chunk: Chunk::default(),
+        }
+    }
 }
 
 #[derive(Debug)]

@@ -25,8 +25,14 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-    for(let i: Int = 0; i < 10; i = i + 1) {
-        println i;
+    for(let i = 0; i < 10; i = i + 1) {
+        print i;
+    }
+    fn main() {
+        print "Hello World!";
+    }
+    fn add() {
+        print a + b;
     }
     "#;
     let lexer = Lexer::new(input).map(|token| match token {
@@ -42,18 +48,19 @@ fn main() {
     //     println!("{:?}", statement);
     // }
 
-    let mut chunk = Chunk::new();
     let mut allocator = CeAllocation::new();
-    let mut compiler = Compiler::new(&mut chunk);
-
+    let mut compiler = Compiler::new(&mut allocator);
     compiler.compile(&mut program, &mut allocator);
-    println!("{:?}", compiler.globals);
-    chunk.disassemble();
+    println!("{:?}", unsafe {
+        (*compiler.current_compiler.function)
+            .chunk
+            .disassemble("script")
+    });
     println!("--------------");
 
     // println!("{:?}", chunk);
-    let mut vm = vm::VM::new(chunk, &mut allocator);
-    vm.run();
+    // let mut vm = vm::VM::new(compiler.chunk.clone(), &mut allocator);
+    // vm.run();
 
     // println!("{:?} VM", vm);
     println!("{:?}", allocator);

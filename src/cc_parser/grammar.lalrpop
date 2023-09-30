@@ -13,9 +13,12 @@ pub Program: ast::Program = <statements:DeclS*> => ast::Program { <> };
 DeclS = Spanned<Decl>;
 Decl = {
     Stmt,
-    DeclVar
+    DeclVar,
+    DeclFun
 }
 
+
+DeclFun: ast::Statement = "fn" <function:Function> => ast::Statement::Fun(<>);
 
 DeclVar: ast::Statement = "let" <name:identifier> <type_:(":" <Types>)?> <value:("=" <ExprS>)?> ";" =>
   ast::Statement::Var(ast::StatementVar {
@@ -167,6 +170,26 @@ ExprPrimary: ast::Expression = {
     "(" <Expression> ")",
 }
 
+Function: ast::StatementFun =
+    <name:identifier> "(" <params:Params> ")" <body:StatementBlockIn> =>
+        ast::StatementFun { <> };
+
+Params: Vec<String> = {
+    <first:identifier> <mut params:("," <identifier>)*> => {
+        params.insert(0, first);
+        params
+    },
+    () => Vec::new(),
+};
+
+Args: Vec<ast::ExprS> = {
+    <first:ExprS> <mut args:("," <ExprS>)*> => {
+        args.insert(0, first);
+        args
+    },
+    () => Vec::new(),
+}
+
 ExprVar: ast::Expression = <name:identifier> =>
   ast::Expression::Var(ast::ExprVar { var: ast::Var {name, type_: None} });
 
@@ -232,5 +255,6 @@ extern {
     "<=" => Token::LessEqual,
     "!" => Token::Bang,
     "!=" => Token::BangEqual,
+    "," => Token::Comma,
   }
 }

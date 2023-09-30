@@ -1,4 +1,4 @@
-use std::{fmt::Display, hash::BuildHasherDefault, ops::Range};
+use std::{fmt::Display, hash::BuildHasherDefault, mem, ops::Range};
 
 use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
 
@@ -6,13 +6,23 @@ use crate::{
     allocator::allocation::CeAllocation,
     cc_parser::ast::{
         ExprAssign, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix, OpPrefix,
-        Program, Span, Statement, StatementBlock, StatementExpr, StatementFor, StatementIf,
-        StatementPrint, StatementPrintLn, StatementVar, StatementWhile, Type,
+        Program, Span, Statement, StatementBlock, StatementExpr, StatementFor, StatementFun,
+        StatementIf, StatementPrint, StatementPrintLn, StatementVar, StatementWhile, Type,
     },
 };
 
-use super::{chunk::Chunk, object::StringObject, op, value::Value};
+use super::{
+    chunk::Chunk,
+    object::{ObjectFunction, StringObject},
+    op,
+    value::Value,
+};
 use rustc_hash::FxHasher;
+
+pub enum FunctionType {
+    Script,
+    Function,
+}
 
 #[derive(Debug, Default)]
 struct Local {
@@ -32,20 +42,46 @@ impl Display for Local {
     }
 }
 
-pub struct Compiler<'a> {
-    chunk: &'a mut Chunk,
+pub struct CompilerCell {
+    pub function: *mut ObjectFunction,
+    type_: FunctionType,
     pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
     locals: Vec<Local>,
     scope_depth: usize,
+    parent: Option<Box<CompilerCell>>,
 }
 
-impl<'a> Compiler<'a> {
-    pub fn new(chunk: &'a mut Chunk) -> Self {
+impl CompilerCell {
+    pub fn resolve_local(&mut self, name: &str, span: &Span) -> Option<u8> {
+        for (i, local) in self.locals.iter().enumerate().rev() {
+            if local.name == name {
+                println!("local: {}", local);
+                if !local.is_initialized {
+                    todo!("Can't read local variable in its own initializer");
+                }
+                return Some(i as u8);
+            }
+        }
+        None
+    }
+}
+
+pub struct Compiler {
+    pub current_compiler: CompilerCell,
+}
+
+impl Compiler {
+    pub fn new(allocator: &mut CeAllocation) -> Self {
+        let name = allocator.alloc("");
         Self {
-            chunk,
-            globals: HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default()),
-            locals: Vec::new(),
-            scope_depth: 0,
+            current_compiler: CompilerCell {
+                function: allocator.alloc(ObjectFunction::new(name, 0)),
+                type_: FunctionType::Script,
+                globals: HashMap::default(),
+                locals: Vec::new(),
+                scope_depth: 0,
+                parent: None,
+            },
         }
     }
     pub fn compile(&mut self, source: &mut Program, allocator: &mut CeAllocation) {
@@ -71,8 +107,75 @@ impl<'a> Compiler<'a> {
             Statement::If(if_) => self.compile_statement_if((if_, range), allocator),
             Statement::While(while_) => self.compile_statement_while((while_, range), allocator),
             Statement::For(for_) => self.compile_statement_for((for_, range), allocator),
+            Statement::Fun(func_) => {
+                self.compile_statement_fun((func_, range), FunctionType::Function, allocator)
+            }
             _ => todo!("statement not implemented"),
         }
+    }
+
+    fn compile_statement_fun(
+        &mut self,
+        (func, range): (&StatementFun, &Range<usize>),
+        type_: FunctionType,
+        allocator: &mut CeAllocation,
+    ) -> Type {
+        let name = allocator.alloc(&func.name);
+        let arity = func.params.len() as u8;
+        let cell = CompilerCell {
+            function: allocator.alloc(ObjectFunction::new(name, arity)),
+            type_: FunctionType::Function,
+            globals: HashMap::default(),
+            locals: Vec::new(),
+            scope_depth: self.current_compiler.scope_depth + 1,
+            parent: None,
+        };
+        self.begin_cell(cell);
+
+        match type_ {
+            FunctionType::Script => {
+                self.current_compiler
+                    .globals
+                    .insert(func.name.clone(), Type::Object);
+            }
+            FunctionType::Function => {
+                self.declare_local(&func.name, &Type::Object, &range);
+            }
+        }
+
+        for param in &func.params {
+            self.declare_local(&param, &Type::Object, &range);
+            self.define_local();
+        }
+
+        for statement in &func.body.statements {
+            self.compile_statement(&statement, allocator);
+        }
+
+        if unsafe { (*self.current_compiler.function).chunk.code.last().unwrap() } != &op::RETURN {
+            self.emit_u8(op::NIL, &range);
+            self.emit_u8(op::RETURN, &range);
+        }
+
+        let function = self.end_cell();
+        println!("{:?}", unsafe { (*function).chunk.disassemble(&func.name) });
+
+        return Type::UnInitialized;
+    }
+
+    fn begin_cell(&mut self, cell: CompilerCell) {
+        let cell = mem::replace(&mut self.current_compiler, cell);
+        self.current_compiler.parent = Some(Box::new(cell));
+    }
+
+    fn end_cell(&mut self) -> *mut ObjectFunction {
+        let parent = self
+            .current_compiler
+            .parent
+            .take()
+            .expect("Compiler has no parent");
+        let cell = mem::replace(&mut self.current_compiler, *parent);
+        cell.function
     }
 
     fn compile_statement_for(
@@ -84,7 +187,7 @@ impl<'a> Compiler<'a> {
         if let Some(init) = &for_.init {
             self.compile_statement(&init, allocator);
         }
-        let loop_start = self.chunk.code.len();
+        let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
         let mut exit_jump = None;
         if let Some(cond) = &for_.cond {
             let cond_type = self.compile_expression(cond, allocator);
@@ -115,7 +218,7 @@ impl<'a> Compiler<'a> {
         (while_, range): (&StatementWhile, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Type {
-        let loop_start = self.chunk.code.len();
+        let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
         let cond_type = self.compile_expression(&while_.cond, allocator);
         if cond_type != Type::Bool {
             todo!("while condition must be bool");
@@ -131,7 +234,7 @@ impl<'a> Compiler<'a> {
 
     fn emit_loop(&mut self, loop_start: usize, span: &Span) {
         self.emit_u8(op::LOOP, span);
-        let offset = self.chunk.code.len() - loop_start + 2;
+        let offset = unsafe { (*self.current_compiler.function).chunk.code.len() - loop_start + 2 };
         if offset > u16::MAX as usize {
             todo!("Loop body too large");
         }
@@ -226,7 +329,10 @@ impl<'a> Compiler<'a> {
         allocator: &mut CeAllocation,
     ) -> Type {
         let var_type = self.compile_expression(&assign.rhs, allocator);
-        if let Some(local_index) = self.resolve_local(&assign.lhs.name, &range) {
+        if let Some(local_index) = self
+            .current_compiler
+            .resolve_local(&assign.lhs.name, &range)
+        {
             self.emit_u8(op::SET_LOCAL, &range);
             self.write_constant(Value::Number(local_index.into()), &range);
         } else {
@@ -252,7 +358,9 @@ impl<'a> Compiler<'a> {
                     let name = &var.var.name;
                     if self.is_global() {
                         let string = allocator.alloc(name);
-                        self.globals.insert(name.clone(), t.clone());
+                        self.current_compiler
+                            .globals
+                            .insert(name.clone(), t.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
                         self.write_constant(Value::String(string), &range);
                         return Type::String;
@@ -266,7 +374,9 @@ impl<'a> Compiler<'a> {
                 let name = &var.var.name;
                 let string = allocator.alloc(name);
                 if self.is_global() {
-                    self.globals.insert(name.clone(), var_type.clone());
+                    self.current_compiler
+                        .globals
+                        .insert(name.clone(), var_type.clone());
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
                     self.write_constant(Value::String(string), &range);
                 } else {
@@ -283,15 +393,20 @@ impl<'a> Compiler<'a> {
         allocator: &mut CeAllocation,
     ) -> Type {
         let name = &prefix.var.name;
-        if let Some(local_index) = self.resolve_local(&prefix.var.name, &range) {
+        if let Some(local_index) = self
+            .current_compiler
+            .resolve_local(&prefix.var.name, &range)
+        {
             self.emit_u8(op::GET_LOCAL, &range);
             self.write_constant(Value::Number(local_index.into()), &range);
-            self.locals[local_index as usize].type_.clone()
+            self.current_compiler.locals[local_index as usize]
+                .type_
+                .clone()
         } else {
             let string = allocator.alloc(name);
             self.emit_u8(op::GET_GLOBAL, &range);
             self.write_constant(Value::String(string), &range);
-            let type_ = self.globals.get(&*name);
+            let type_ = self.current_compiler.globals.get(&*name);
             return match type_ {
                 Some(t) => return t.clone(),
                 None => Type::UnInitialized,
@@ -324,10 +439,8 @@ impl<'a> Compiler<'a> {
         let (infix, range) = infix;
         // absolute litiral
         let lhs_type = self.compile_expression(&(infix.lhs), allocator);
-        println!("lhs_type: {:?}", lhs_type);
         // absolute litiral
         let rhs_type = self.compile_expression(&(infix.rhs), allocator);
-        println!("rhs_type: {:?}", rhs_type);
         //if lhs_type: String rhs_type: String => concat string command will be called
         //if lhs_type: Int  rhs_type: Int  => add int command will be called
 
@@ -418,13 +531,16 @@ impl<'a> Compiler<'a> {
     }
 
     fn begin_scope(&mut self) {
-        self.scope_depth += 1;
+        self.current_compiler.scope_depth += 1;
     }
 
     fn end_scope(&mut self, span: Range<usize>, allocator: &mut CeAllocation) {
-        self.scope_depth -= 1;
-        while !self.locals.is_empty() && self.locals.last().unwrap().depth > self.scope_depth {
-            let local = self.locals.pop().unwrap();
+        self.current_compiler.scope_depth -= 1;
+        while !self.current_compiler.locals.is_empty()
+            && self.current_compiler.locals.last().unwrap().depth
+                > self.current_compiler.scope_depth
+        {
+            let local = self.current_compiler.locals.pop().unwrap();
             self.emit_u8(op::POP, &span);
         }
     }
@@ -434,8 +550,8 @@ impl<'a> Compiler<'a> {
             Type::UnInitialized => false,
             _ => true,
         };
-        for local in self.locals.iter().rev() {
-            if local.depth != self.scope_depth {
+        for local in self.current_compiler.locals.iter().rev() {
+            if local.depth != self.current_compiler.scope_depth {
                 break;
             }
 
@@ -447,14 +563,15 @@ impl<'a> Compiler<'a> {
         let local = Local {
             name: name.to_string(),
             type_: type_.clone(),
-            depth: self.scope_depth,
+            depth: self.current_compiler.scope_depth,
             is_initialized,
         };
-        self.locals.push(local);
+        self.current_compiler.locals.push(local);
     }
 
     fn define_local(&mut self) {
         let local = self
+            .current_compiler
             .locals
             .last_mut()
             .expect("Define local called without locals");
@@ -462,53 +579,46 @@ impl<'a> Compiler<'a> {
     }
 
     fn is_global(&self) -> bool {
-        self.scope_depth == 0
+        self.current_compiler.scope_depth == 0
     }
 
     fn emit_jump(&mut self, instruction: u8, span: &Span) -> usize {
         self.emit_u8(instruction, span);
         self.emit_u8(0xff, span);
         self.emit_u8(0xff, span);
-        self.chunk.code.len() - 2
+        unsafe { (*self.current_compiler.function).chunk.code.len() - 2 }
     }
 
     fn patch_jump(&mut self, offset_idx: usize, span: &Span) {
-        let offset = self.chunk.code.len() - offset_idx - 2;
+        let offset = unsafe { (*self.current_compiler.function).chunk.code.len() - offset_idx - 2 };
         if offset > u16::MAX as usize {
             todo!("Too much code to jump over");
         }
-        self.chunk.code[offset_idx] = (offset >> 8) as u8;
-        self.chunk.code[offset_idx + 1] = offset as u8;
+        unsafe {
+            (*self.current_compiler.function).chunk.code[offset_idx] = (offset >> 8) as u8;
+            (*self.current_compiler.function).chunk.code[offset_idx + 1] = offset as u8;
+        }
     }
 
     fn emit_u8(&mut self, byte: u8, span: &Span) {
-        self.chunk.code.push(byte);
-        self.chunk.spans.push(span.clone());
+        unsafe {
+            (*self.current_compiler.function).chunk.emit_u8(byte, span);
+        }
     }
 
     fn emit_constant(&mut self, value: Value, span: &Span) {
-        let index = self.chunk.constants.len() as u8;
-        self.emit_u8(op::CECILE_CONSTANT, span);
-        self.emit_u8(index, span);
-        self.chunk.constants.push(value);
+        unsafe {
+            (*self.current_compiler.function)
+                .chunk
+                .emit_constant(value, span);
+        }
     }
 
     fn write_constant(&mut self, value: Value, span: &Span) {
-        let index = self.chunk.constants.len() as u8;
-        self.emit_u8(index, span);
-        self.chunk.constants.push(value);
-    }
-
-    fn resolve_local(&mut self, name: &str, span: &Span) -> Option<u8> {
-        for (i, local) in self.locals.iter().enumerate().rev() {
-            if local.name == name {
-                println!("local: {}", local);
-                if !local.is_initialized {
-                    todo!("Can't read local variable in its own initializer");
-                }
-                return Some(i as u8);
-            }
+        unsafe {
+            (*self.current_compiler.function)
+                .chunk
+                .write_constant(value, span);
         }
-        None
     }
 }

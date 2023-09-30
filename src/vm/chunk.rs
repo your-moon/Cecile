@@ -5,7 +5,7 @@ use crate::cc_parser::ast::Span;
 use crate::vm::op;
 use crate::vm::value::Value;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Chunk {
     pub code: Vec<u8>,
     pub constants: Vec<Value>,
@@ -21,7 +21,8 @@ impl Chunk {
         }
     }
 
-    pub fn disassemble(&self) {
+    pub fn disassemble(&self, name: &str) {
+        println!("== {} ==", name);
         let mut offset = 0;
         while offset < self.code.len() {
             offset = self.disassemble_instruction(offset);
@@ -31,6 +32,7 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
+            op::PRINT_LN => self.simple_instruction("PRINT_LN", offset),
             op::LOOP => self.jump_instruction("LOOP", offset),
             op::JUMP => self.jump_instruction("JUMP", offset),
             op::JUMP_IF_FALSE => self.jump_instruction("JUMP_IF_FALSE", offset),
@@ -95,5 +97,22 @@ impl Chunk {
             name, constant, self.constants[constant as usize]
         );
         offset + 2
+    }
+    pub fn emit_u8(&mut self, byte: u8, span: &Span) {
+        self.code.push(byte);
+        self.spans.push(span.clone());
+    }
+
+    pub fn emit_constant(&mut self, value: Value, span: &Span) {
+        let index = self.constants.len() as u8;
+        self.emit_u8(op::CECILE_CONSTANT, span);
+        self.emit_u8(index, span);
+        self.constants.push(value);
+    }
+
+    pub fn write_constant(&mut self, value: Value, span: &Span) {
+        let index = self.constants.len() as u8;
+        self.emit_u8(index, span);
+        self.constants.push(value);
     }
 }

@@ -23,6 +23,14 @@ pub enum Statement {
     If(Box<StatementIf>),
     While(Box<StatementWhile>),
     For(Box<StatementFor>),
+    Fun(StatementFun),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementFun {
+    pub name: String,
+    pub params: Vec<String>,
+    pub body: StatementBlock,
 }
 
 #[derive(Clone, Debug, PartialEq)]
