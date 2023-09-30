@@ -78,6 +78,34 @@ impl Value {
         }
     }
 
+    pub fn greater(&self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Number(a), Value::Number(b)) => Value::Bool(a > &b),
+            _ => todo!(),
+        }
+    }
+
+    pub fn greater_equal(&self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Number(a), Value::Number(b)) => Value::Bool(a >= &b),
+            _ => todo!(),
+        }
+    }
+
+    pub fn less(&self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Number(a), Value::Number(b)) => Value::Bool(a < &b),
+            _ => todo!(),
+        }
+    }
+
+    pub fn less_equal(&self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Number(a), Value::Number(b)) => Value::Bool(a <= &b),
+            _ => todo!(),
+        }
+    }
+
     pub fn neg(&self) -> Value {
         match self {
             Value::Number(n) => Value::Number(-n),

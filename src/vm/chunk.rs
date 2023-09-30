@@ -31,6 +31,7 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
+            op::LOOP => self.jump_instruction("LOOP", offset),
             op::JUMP => self.jump_instruction("JUMP", offset),
             op::JUMP_IF_FALSE => self.jump_instruction("JUMP_IF_FALSE", offset),
             op::POP => self.simple_instruction("POP", offset),

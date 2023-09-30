@@ -42,8 +42,8 @@ impl<'a> VM<'a> {
         self.stack_top = self.stack.as_mut_ptr();
         loop {
             self.chunk.disassemble_instruction(self.ip);
-            println!("ip {}", self.ip);
             match self.read_u8() {
+                op::LOOP => self.loop_(),
                 op::JUMP => self.jump(),
                 op::JUMP_IF_FALSE => self.jump_if_false(),
                 op::GET_LOCAL => self.get_local(),
@@ -53,6 +53,10 @@ impl<'a> VM<'a> {
                     let value: value::Value = self.pop_from_stack();
                     println!("{}", value);
                 }
+                op::GREATER_THAN => self.greater(),
+                op::GREATER_THAN_EQUAL => self.greater_equal(),
+                op::LESS_THAN => self.less(),
+                op::LESS_THAN_EQUAL => self.less_equal(),
                 op::ADD => self.add(),
                 op::SUB => self.sub(),
                 op::MUL => self.mul(),
@@ -86,6 +90,35 @@ impl<'a> VM<'a> {
             }
             println!();
         }
+    }
+
+    fn greater(&mut self) {
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
+        self.push_to_stack(lhs.greater(rhs));
+    }
+
+    fn greater_equal(&mut self) {
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
+        self.push_to_stack(lhs.greater_equal(rhs));
+    }
+
+    fn less(&mut self) {
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
+        self.push_to_stack(lhs.less(rhs));
+    }
+
+    fn less_equal(&mut self) {
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
+        self.push_to_stack(lhs.less_equal(rhs));
+    }
+
+    fn loop_(&mut self) {
+        let offset = self.read_u16() as usize;
+        self.ip -= offset;
     }
 
     fn jump(&mut self) {

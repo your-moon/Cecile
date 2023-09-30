@@ -7,7 +7,7 @@ use crate::{
     cc_parser::ast::{
         ExprAssign, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix, OpPrefix,
         Program, Span, Statement, StatementBlock, StatementExpr, StatementIf, StatementPrint,
-        StatementVar, Type,
+        StatementVar, StatementWhile, Type,
     },
 };
 
@@ -68,8 +68,38 @@ impl<'a> Compiler<'a> {
             Statement::Var(var) => self.compile_statement_var((var, range), allocator),
             Statement::Block(block) => self.compile_statement_block((block, range), allocator),
             Statement::If(if_) => self.compile_statement_if((if_, range), allocator),
+            Statement::While(while_) => self.compile_statement_while((while_, range), allocator),
             _ => todo!("statement not implemented"),
         }
+    }
+
+    fn compile_statement_while(
+        &mut self,
+        (while_, range): (&StatementWhile, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Type {
+        let loop_start = self.chunk.code.len();
+        let cond_type = self.compile_expression(&while_.cond, allocator);
+        if cond_type != Type::Bool {
+            todo!("while condition must be bool");
+        }
+        let exit_jump = self.emit_jump(op::JUMP_IF_FALSE, &range);
+        self.emit_u8(op::POP, &range);
+        self.compile_statement(&while_.body, allocator);
+        self.emit_loop(loop_start, &range);
+        self.patch_jump(exit_jump, &range);
+        self.emit_u8(op::POP, &range);
+        return Type::UnInitialized;
+    }
+
+    fn emit_loop(&mut self, loop_start: usize, span: &Span) {
+        self.emit_u8(op::LOOP, span);
+        let offset = self.chunk.code.len() - loop_start + 2;
+        if offset > u16::MAX as usize {
+            todo!("Loop body too large");
+        }
+        self.emit_u8((offset >> 8) as u8, span);
+        self.emit_u8(offset as u8, span);
     }
 
     fn compile_statement_if(

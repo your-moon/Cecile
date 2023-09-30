@@ -28,7 +28,8 @@ iota! {
     GET_LOCAL,
     SET_LOCAL,
     JUMP_IF_FALSE,
-    JUMP
+    JUMP,
+    LOOP
 
 
 
