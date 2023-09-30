@@ -41,7 +41,7 @@ impl<'a> VM<'a> {
     pub fn run(&mut self) {
         self.stack_top = self.stack.as_mut_ptr();
         loop {
-            self.chunk.disassemble_instruction(self.ip);
+            // self.chunk.disassemble_instruction(self.ip);
             match self.read_u8() {
                 op::LOOP => self.loop_(),
                 op::JUMP => self.jump(),
@@ -51,7 +51,7 @@ impl<'a> VM<'a> {
                 op::SET_GLOBAL => self.set_global(),
                 op::PRINT => {
                     let value: value::Value = self.pop_from_stack();
-                    println!("{}", value);
+                    print!("{}", value);
                 }
                 op::GREATER_THAN => self.greater(),
                 op::GREATER_THAN_EQUAL => self.greater_equal(),
@@ -83,12 +83,12 @@ impl<'a> VM<'a> {
                 _ => todo!(),
             }
             //print top of stack element
-            let mut stack_ptr = self.stack.as_mut_ptr();
-            while stack_ptr < self.stack_top {
-                print!("[ {} ]", unsafe { *stack_ptr });
-                stack_ptr = unsafe { stack_ptr.add(1) };
-            }
-            println!();
+            // let mut stack_ptr = self.stack.as_mut_ptr();
+            // while stack_ptr < self.stack_top {
+            //     print!("[ {} ]", unsafe { *stack_ptr });
+            //     stack_ptr = unsafe { stack_ptr.add(1) };
+            // }
+            // println!();
         }
     }
 
@@ -131,9 +131,7 @@ impl<'a> VM<'a> {
         let value = self.peek(0);
         match unsafe { *value } {
             Value::Bool(value) => {
-                println!("value: {}", value);
                 if !value {
-                    println!("jumping to {}", offset);
                     self.ip += offset;
                 }
             }

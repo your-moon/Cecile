@@ -32,10 +32,9 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-    let a: Int = 0;
-    while (a < 4) {
-        print a;
-        a = a + 1;
+    for(let i: Int = 0; i < 10; i = i + 1) {
+        print i;
+        print " ";
     }
     "#;
     let mut lexer = Lexer::new(input).map(|token| match token {

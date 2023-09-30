@@ -6,8 +6,8 @@ use crate::{
     allocator::allocation::CeAllocation,
     cc_parser::ast::{
         ExprAssign, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix, OpPrefix,
-        Program, Span, Statement, StatementBlock, StatementExpr, StatementIf, StatementPrint,
-        StatementVar, StatementWhile, Type,
+        Program, Span, Statement, StatementBlock, StatementExpr, StatementFor, StatementIf,
+        StatementPrint, StatementVar, StatementWhile, Type,
     },
 };
 
@@ -69,8 +69,44 @@ impl<'a> Compiler<'a> {
             Statement::Block(block) => self.compile_statement_block((block, range), allocator),
             Statement::If(if_) => self.compile_statement_if((if_, range), allocator),
             Statement::While(while_) => self.compile_statement_while((while_, range), allocator),
+            Statement::For(for_) => self.compile_statement_for((for_, range), allocator),
             _ => todo!("statement not implemented"),
         }
+    }
+
+    fn compile_statement_for(
+        &mut self,
+        (for_, range): (&StatementFor, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Type {
+        self.begin_scope();
+        if let Some(init) = &for_.init {
+            self.compile_statement(&init, allocator);
+        }
+        let loop_start = self.chunk.code.len();
+        let mut exit_jump = None;
+        if let Some(cond) = &for_.cond {
+            let cond_type = self.compile_expression(cond, allocator);
+            if cond_type != Type::Bool {
+                todo!("for condition must be bool");
+            }
+            exit_jump = Some(self.emit_jump(op::JUMP_IF_FALSE, &range));
+            self.emit_u8(op::POP, &range);
+        }
+
+        self.compile_statement(&for_.body, allocator);
+        if let Some(increment) = &for_.update {
+            self.compile_expression(increment, allocator);
+            // self.emit_u8(op::POP, &range);
+        }
+        self.emit_loop(loop_start, &range);
+
+        if let Some(exit_jump) = exit_jump {
+            self.patch_jump(exit_jump, &range);
+            self.emit_u8(op::POP, &range);
+        }
+        self.end_scope(range.clone(), allocator);
+        return Type::UnInitialized;
     }
 
     fn compile_statement_while(
