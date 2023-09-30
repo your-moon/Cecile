@@ -8,6 +8,8 @@ use super::object::{Object, StringObject};
 pub enum Value {
     Number(f64),
     String(*mut StringObject),
+    Bool(bool),
+    Nil,
 }
 
 impl Debug for Value {
@@ -15,6 +17,8 @@ impl Debug for Value {
         match self {
             Value::Number(n) => write!(f, "{}", n),
             Value::String(ptr) => unsafe { write!(f, "{}", (**ptr).value) },
+            Value::Bool(b) => write!(f, "{}", b),
+            Value::Nil => write!(f, "nil"),
         }
     }
 }
@@ -24,6 +28,8 @@ impl Display for Value {
         match self {
             Value::Number(n) => write!(f, "{}", n),
             Value::String(ptr) => write!(f, "{}", unsafe { (**ptr).value }),
+            Value::Bool(b) => write!(f, "{}", b),
+            Value::Nil => write!(f, "nil"),
         }
     }
 }
@@ -40,12 +46,6 @@ impl Into<f64> for Value {
 impl From<f64> for Value {
     fn from(n: f64) -> Self {
         Value::Number(n)
-    }
-}
-
-impl From<bool> for Value {
-    fn from(b: bool) -> Self {
-        Value::Number(b as i32 as f64)
     }
 }
 

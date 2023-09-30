@@ -29,7 +29,10 @@ impl Chunk {
     }
 
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
+        print!("{:04} ", offset);
         match self.code[offset] {
+            op::JUMP => self.jump_instruction("JUMP", offset),
+            op::JUMP_IF_FALSE => self.jump_instruction("JUMP_IF_FALSE", offset),
             op::POP => self.simple_instruction("POP", offset),
             op::GET_LOCAL => self.simple_instruction("GET_LOCAL", offset),
             op::SET_LOCAL => self.simple_instruction("SET_LOCAL", offset),
@@ -62,6 +65,21 @@ impl Chunk {
                 return offset + 1;
             }
         }
+    }
+
+    fn read_u16(&self, offset: usize) -> u16 {
+        ((self.code[offset] as u16) << 8) | self.code[offset + 1] as u16
+    }
+
+    fn jump_instruction(&self, name: &str, offset: usize) -> usize {
+        let jump = self.read_u16(offset + 1);
+        println!(
+            "{:16} {:4} -> {}",
+            name,
+            offset,
+            offset as isize + 3 + jump as isize
+        );
+        offset + 3
     }
 
     fn simple_instruction(&self, name: &str, offset: usize) -> usize {

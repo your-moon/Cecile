@@ -26,7 +26,9 @@ iota! {
     GET_GLOBAL,
     SET_GLOBAL,
     GET_LOCAL,
-    SET_LOCAL
+    SET_LOCAL,
+    JUMP_IF_FALSE,
+    JUMP
 
 
 

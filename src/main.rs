@@ -15,21 +15,28 @@ mod cc_lexer;
 mod cc_parser;
 mod vm;
 fn main() {
-    let input = r#" 
-    {
-    let a = 1 + 1;
-    {
-    let b = 2 + 2;
-    let x = 3*3;
-    b = 5;
-    print x;
-    print b;
+    // let input = r#"
+    // {
+    // let a = 1 + 1;
+    // {
+    // let b = 2 + 2;
+    // let x = 3*3;
+    // b = 5;
+    // print x;
+    // print b;
+    // }
+    // }
+    // let c = 3 + 3;
+    // let b = c + 3;
+    // print c;
+    // print b;
+    // "#;
+    let input = r#"
+    if (2 == 1) {
+        print 1;
+    } else {
+        print 2;
     }
-    }
-    let c = 3 + 3;
-    let b = c + 3;
-    print c;
-    print b;
     "#;
     let mut lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {
@@ -50,12 +57,15 @@ fn main() {
 
     compiler.compile(&mut program, &mut allocator);
     println!("{:?}", compiler.globals);
+    chunk.disassemble();
+    println!("--------------");
 
     // println!("{:?}", chunk);
     let mut vm = vm::VM::new(chunk, &mut allocator);
     vm.run();
 
     // println!("{:?} VM", vm);
+    println!("{:?}", allocator);
 
     // let mut stdout = StandardStream::stdout(ColorChoice::Always);
     // stdout.set_color(ColorSpec::new().set_fg(Some(Color::Magenta)));

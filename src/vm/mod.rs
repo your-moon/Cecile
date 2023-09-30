@@ -42,7 +42,10 @@ impl<'a> VM<'a> {
         self.stack_top = self.stack.as_mut_ptr();
         loop {
             self.chunk.disassemble_instruction(self.ip);
+            println!("ip {}", self.ip);
             match self.read_u8() {
+                // op::JUMP => self.jump(),
+                op::JUMP_IF_FALSE => self.jump_if_false(),
                 op::GET_LOCAL => self.get_local(),
                 op::SET_LOCAL => self.set_local(),
                 op::SET_GLOBAL => self.set_global(),
@@ -84,6 +87,42 @@ impl<'a> VM<'a> {
             println!();
         }
     }
+
+    fn jump_if_false(&mut self) {
+        let offset = self.read_u16() as usize;
+        let value = self.peek(0);
+        match unsafe { *value } {
+            Value::Bool(value) => {
+                println!("value: {}", value);
+                if !value {
+                    println!("jumping to {}", offset);
+                    self.ip += offset;
+                }
+            }
+            _ => todo!(),
+        }
+    }
+
+    // fn jump_if_false(&mut self) {
+    //     let offset = self.read_u16() as usize;
+    //     println!("offset: {}", offset);
+    //     let value = self.peek(0);
+    //     println!("value: {}", unsafe { *value });
+    //     match unsafe { *value } {
+    //         Value::Bool(value) => {
+    //             if !value {
+    //                 self.ip = offset;
+    //             }
+    //         }
+    //         _ => todo!(),
+    //     }
+    //     println!("ip {}", self.ip);
+    // }
+    //
+    // fn jump(&mut self) {
+    //     let offset = self.read_u16() as usize;
+    //     self.ip = offset;
+    // }
 
     fn get_local(&mut self) {
         let stack_idx = self.read_constant();
@@ -150,15 +189,15 @@ impl<'a> VM<'a> {
     }
 
     fn op_nil(&mut self) {
-        self.push_to_stack(value::Value::Number(0.0));
+        self.push_to_stack(value::Value::Nil);
     }
 
     fn op_true(&mut self) {
-        self.push_to_stack(true.into());
+        self.push_to_stack(Value::Bool(true));
     }
 
     fn op_false(&mut self) {
-        self.push_to_stack(false.into());
+        self.push_to_stack(Value::Bool(false));
     }
 
     fn push_to_stack(&mut self, value: Value) {
@@ -175,7 +214,7 @@ impl<'a> VM<'a> {
         }
     }
 
-    fn _peek(&self, distance: usize) -> *mut Value {
+    fn peek(&self, distance: usize) -> *mut Value {
         unsafe { self.stack_top.sub(distance + 1) }
     }
 
@@ -189,6 +228,12 @@ impl<'a> VM<'a> {
         let byte = self.chunk.code[self.ip];
         self.ip += 1;
         byte
+    }
+
+    fn read_u16(&mut self) -> u16 {
+        let byte1 = self.read_u8();
+        let byte2 = self.read_u8();
+        (byte1 as u16) << 8 | byte2 as u16
     }
 
     fn add(&mut self) {
@@ -234,14 +279,14 @@ impl<'a> VM<'a> {
     fn equal(&mut self) {
         let rhs = self.pop_from_stack();
         let lhs = self.pop_from_stack();
-        self.push_to_stack((lhs == rhs).into());
+        self.push_to_stack(Value::Bool(rhs == lhs));
     }
 
     fn not_equal(&mut self) {
         let rhs = self.pop_from_stack();
         let lhs = self.pop_from_stack();
 
-        self.push_to_stack((lhs != rhs).into());
+        self.push_to_stack(Value::Bool(rhs != lhs));
     }
 
     fn negate(&mut self) {

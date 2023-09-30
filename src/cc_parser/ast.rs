@@ -1,3 +1,4 @@
+use std::default;
 use std::fmt::{self, Display, Formatter};
 use std::ops::Range;
 pub type Spanned<T> = (T, Span);
@@ -176,11 +177,12 @@ pub struct Var {
     pub type_: Option<Type>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum Type {
     String,
     Bool,
     Int,
     Object,
+    #[default]
     UnInitialized,
 }

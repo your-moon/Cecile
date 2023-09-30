@@ -57,7 +57,7 @@ StmtClosed: ast::Statement = {
         ast::Statement::While(Box::new(ast::StatementWhile { <> })),
     "for" "(" <init:ForInit> <cond:ForCond> <update:ForIncr> ")" <body:Spanned<StmtClosed>> =>
         ast::Statement::For(Box::new(ast::StatementFor { <> })),
-    StmtSimple,
+    SmallStmt,
 }
 
 ForInit: Option<ast::StatementS> = {
@@ -72,7 +72,7 @@ ForIncr = <ExprS?>;
 
 
 
-StmtSimple = {
+SmallStmt = {
     StmtExpr,
     StmtBlock,
     StmtPrint,
