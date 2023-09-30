@@ -28,9 +28,6 @@ fn main() {
     for(let i = 0; i < 10; i = i + 1) {
         print i;
     }
-    fn main() {
-        print "Hello World!";
-    }
     fn add() {
         print a + b;
     }
@@ -50,12 +47,8 @@ fn main() {
 
     let mut allocator = CeAllocation::new();
     let mut compiler = Compiler::new(&mut allocator);
-    compiler.compile(&mut program, &mut allocator);
-    println!("{:?}", unsafe {
-        (*compiler.current_compiler.function)
-            .chunk
-            .disassemble("script")
-    });
+    let function = compiler.compile(&mut program, &mut allocator);
+    println!("{:?}", unsafe { (*function).chunk.disassemble("script") });
     println!("--------------");
 
     // println!("{:?}", chunk);

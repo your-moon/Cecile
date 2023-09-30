@@ -84,13 +84,18 @@ impl Compiler {
             },
         }
     }
-    pub fn compile(&mut self, source: &mut Program, allocator: &mut CeAllocation) {
+    pub fn compile(
+        &mut self,
+        source: &mut Program,
+        allocator: &mut CeAllocation,
+    ) -> *mut ObjectFunction {
         for statement in &source.statements {
             self.compile_statement(statement, allocator);
         }
 
         self.emit_u8(op::NIL, &(0..0));
         self.emit_u8(op::RETURN, &(0..0));
+        self.current_compiler.function
     }
 
     fn compile_statement(
