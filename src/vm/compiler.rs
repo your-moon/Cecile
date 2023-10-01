@@ -189,8 +189,9 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Type {
         self.begin_scope();
+        let mut compiled_type = None;
         if let Some(init) = &for_.init {
-            self.compile_statement(&init, allocator);
+            compiled_type = Some(self.compile_statement(&init, allocator));
         }
         let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
         let mut exit_jump = None;
@@ -215,6 +216,9 @@ impl Compiler {
             self.emit_u8(op::POP, &range);
         }
         self.end_scope(range.clone(), allocator);
+        if let Some(compiled_type) = compiled_type {
+            return compiled_type;
+        }
         return Type::UnInitialized;
     }
 
@@ -296,6 +300,7 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Type {
         let (print, range) = print;
+        println!("ENTERING PRINT_LN");
         let expr_type = self.compile_expression(&print.value, allocator);
         self.emit_u8(op::PRINT_LN, range);
         return expr_type;
@@ -307,6 +312,7 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Type {
         let (print, range) = print;
+        println!("ENTERING PRINT");
         let expr_type = self.compile_expression(&print.value, allocator);
         self.emit_u8(op::PRINT, range);
         return expr_type;

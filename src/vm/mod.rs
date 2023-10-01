@@ -1,8 +1,10 @@
 use std::hash::BuildHasherDefault;
 
+use arrayvec::ArrayVec;
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
 
+use crate::cc_parser::ast::Program;
 use crate::vm::value::Value;
 use crate::{
     allocator::allocation::{CeAlloc, CeAllocation},
@@ -10,37 +12,68 @@ use crate::{
 };
 use rustc_hash::FxHasher;
 use std::ptr;
+
+use self::compiler::Compiler;
+use self::object::ObjectFunction;
 pub mod chunk;
 pub mod compiler;
 pub mod object;
 pub mod op;
 pub mod value;
 
+const FRAMES_MAX: usize = 64;
+const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
+const STACK_MAX_PER_FRAME: usize = u8::MAX as usize + 1;
+
 #[derive(Debug)]
 pub struct VM<'a> {
-    chunk: chunk::Chunk,
     ip: usize,
     stack: Box<[Value; 256]>,
+    frames: ArrayVec<CallFrame, FRAMES_MAX>,
+    frame: CallFrame,
     stack_top: *mut Value,
     allocator: &'a mut CeAllocation,
     globals: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
 }
 
 impl<'a> VM<'a> {
-    pub fn new(chunk: chunk::Chunk, allocator: &'a mut CeAllocation) -> VM {
+    pub fn new(allocator: &'a mut CeAllocation) -> VM {
         VM {
-            chunk,
             ip: 0,
             stack: Box::new([Value::Number(0.0); 256]),
             stack_top: ptr::null_mut(),
             allocator,
             globals: HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default()),
+            frames: ArrayVec::new(),
+            frame: CallFrame {
+                function: ptr::null_mut(),
+                ip: ptr::null_mut(),
+                stack: ptr::null_mut(),
+            },
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self, program: &mut Program) {
+        let mut compiler = Compiler::new(self.allocator);
+        let function = compiler.compile(program, self.allocator);
+        // println!("{:?}", unsafe { (*function).chunk.disassemble("script") });
+        self.run_function(function);
+    }
+
+    pub fn run_function(&mut self, function: *mut ObjectFunction) {
         self.stack_top = self.stack.as_mut_ptr();
+
+        self.frames.clear();
+        self.frame = CallFrame {
+            function,
+            ip: unsafe { (*function).chunk.code.as_ptr() },
+            stack: self.stack_top,
+        };
+
         loop {
+            let function = self.frame.function;
+            // let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
+            // unsafe { (*function).chunk.disassemble_instruction(idx as usize) };
             // self.chunk.disassemble_instruction(self.ip);
             match self.read_u8() {
                 op::LOOP => self.loop_(),
@@ -86,7 +119,7 @@ impl<'a> VM<'a> {
                 }
                 _ => todo!(),
             }
-            //print top of stack element
+            // print top of stack element
             // let mut stack_ptr = self.stack.as_mut_ptr();
             // while stack_ptr < self.stack_top {
             //     print!("[ {} ]", unsafe { *stack_ptr });
@@ -122,12 +155,12 @@ impl<'a> VM<'a> {
 
     fn loop_(&mut self) {
         let offset = self.read_u16() as usize;
-        self.ip -= offset;
+        self.frame.ip = unsafe { self.frame.ip.sub(offset) };
     }
 
     fn jump(&mut self) {
         let offset = self.read_u16() as usize;
-        self.ip += offset;
+        self.frame.ip = unsafe { self.frame.ip.add(offset) };
     }
 
     fn jump_if_false(&mut self) {
@@ -136,7 +169,7 @@ impl<'a> VM<'a> {
         match unsafe { *value } {
             Value::Bool(value) => {
                 if !value {
-                    self.ip += offset;
+                    self.frame.ip = unsafe { self.frame.ip.add(offset) };
                 }
             }
             _ => todo!(),
@@ -147,22 +180,38 @@ impl<'a> VM<'a> {
         let stack_idx = self.read_constant();
         match stack_idx {
             Value::Number(stack_idx) => {
-                let value = self.stack[stack_idx as usize];
+                let value = unsafe { (*self.frame.stack.add(stack_idx as usize)) };
                 self.push_to_stack(value);
             }
             _ => todo!(),
         }
+        // let stack_idx = self.read_constant();
+        // match stack_idx {
+        //     Value::Number(stack_idx) => {
+        //         let value = self.stack[stack_idx as usize];
+        //         self.push_to_stack(value);
+        //     }
+        //     _ => todo!(),
+        // }
     }
 
     fn set_local(&mut self) {
-        let stack_index = self.read_constant();
-        match stack_index {
-            Value::Number(stack_index) => {
+        let stack_idx = self.read_constant();
+        match stack_idx {
+            Value::Number(stack_idx) => {
                 let value = self.pop_from_stack();
-                self.stack[stack_index as usize] = value;
+                unsafe { *self.frame.stack.add(stack_idx as usize) = value };
             }
             _ => todo!(),
         }
+        // let stack_index = self.read_constant();
+        // match stack_index {
+        //     Value::Number(stack_index) => {
+        //         let value = self.pop_from_stack();
+        //         self.stack[stack_index as usize] = value;
+        //     }
+        //     _ => todo!(),
+        // }
     }
 
     fn set_global(&mut self) {
@@ -239,13 +288,16 @@ impl<'a> VM<'a> {
 
     fn read_constant(&mut self) -> value::Value {
         let index = self.read_u8() as usize;
-        let constant = self.chunk.constants[index].clone();
+        let constant = unsafe {
+            let constant = (*self.frame.function).chunk.constants[index];
+            constant
+        };
         constant
     }
 
     fn read_u8(&mut self) -> u8 {
-        let byte = self.chunk.code[self.ip];
-        self.ip += 1;
+        let byte = unsafe { *self.frame.ip };
+        self.frame.ip = unsafe { self.frame.ip.add(1) };
         byte
     }
 
@@ -317,4 +369,16 @@ impl<'a> VM<'a> {
     fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {
         self.allocator.alloc(object)
     }
+}
+
+#[derive(Debug)]
+pub struct CallFrame {
+    function: *mut ObjectFunction,
+    /// Instruction pointer for the current Chunk.
+    ///
+    /// Accessing `ip` without bounds checking is safe, assuming that the
+    /// compiler always outputs correct code. The program stops execution
+    /// when it reaches `op::RETURN`.
+    ip: *const u8,
+    stack: *mut Value,
 }

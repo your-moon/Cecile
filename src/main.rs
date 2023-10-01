@@ -26,10 +26,7 @@ fn main() {
     // "#;
     let input = r#"
     for(let i = 0; i < 10; i = i + 1) {
-        print i;
-    }
-    fn add() {
-        print a + b;
+        println i;
     }
     "#;
     let lexer = Lexer::new(input).map(|token| match token {
@@ -41,15 +38,15 @@ fn main() {
     });
     let parser = grammar::ProgramParser::new();
     let mut program = parser.parse(lexer).unwrap();
-    // for (statement, _range) in &program.statements {
-    //     println!("{:?}", statement);
-    // }
+    for (statement, _range) in &program.statements {
+        println!("{:?}", statement);
+    }
 
     let mut allocator = CeAllocation::new();
-    let mut compiler = Compiler::new(&mut allocator);
-    let function = compiler.compile(&mut program, &mut allocator);
-    println!("{:?}", unsafe { (*function).chunk.disassemble("script") });
+    let mut vm = vm::VM::new(&mut allocator);
+    vm.run(&mut program);
     println!("--------------");
+    //Next todo CallFrame
 
     // println!("{:?}", chunk);
     // let mut vm = vm::VM::new(compiler.chunk.clone(), &mut allocator);
