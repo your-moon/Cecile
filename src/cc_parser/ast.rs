@@ -97,8 +97,15 @@ pub enum Expression {
     Infix(Box<ExprInfix>),
     Prefix(Box<ExprPrefix>),
     Assign(Box<ExprAssign>),
+    Call(Box<ExprCall>),
     Literal(ExprLiteral),
     Var(ExprVar),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprCall {
+    pub callee: ExprS,
+    pub args: Vec<ExprS>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

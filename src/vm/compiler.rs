@@ -5,9 +5,10 @@ use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
 use crate::{
     allocator::allocation::CeAllocation,
     cc_parser::ast::{
-        ExprAssign, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix, OpPrefix,
-        Program, Span, Statement, StatementBlock, StatementExpr, StatementFor, StatementFun,
-        StatementIf, StatementPrint, StatementPrintLn, StatementVar, StatementWhile, Type,
+        ExprAssign, ExprCall, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix,
+        OpPrefix, Program, Span, Statement, StatementBlock, StatementExpr, StatementFor,
+        StatementFun, StatementIf, StatementPrint, StatementPrintLn, StatementReturn, StatementVar,
+        StatementWhile, Type,
     },
 };
 
@@ -55,7 +56,7 @@ impl CompilerCell {
     pub fn resolve_local(&mut self, name: &str, span: &Span) -> Option<u8> {
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local.name == name {
-                println!("local: {}", local);
+                // println!("local: {}", local);
                 if !local.is_initialized {
                     todo!("Can't read local variable in its own initializer");
                 }
@@ -115,7 +116,34 @@ impl Compiler {
             Statement::Fun(func_) => {
                 self.compile_statement_fun((func_, range), FunctionType::Function, allocator)
             }
+            Statement::Return(return_) => {
+                self.compile_statement_return((return_, range), allocator)
+            }
             _ => todo!("statement not implemented"),
+        }
+    }
+
+    fn compile_statement_return(
+        &mut self,
+        (return_, range): (&StatementReturn, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Type {
+        match self.current_compiler.type_ {
+            FunctionType::Script => {
+                todo!("Can't return from top-level code");
+            }
+            FunctionType::Function => match &return_.value {
+                Some(value) => {
+                    let type_ = self.compile_expression(value, allocator);
+                    self.emit_u8(op::RETURN, &range);
+                    return type_;
+                }
+                None => {
+                    self.emit_u8(op::NIL, &range);
+                    self.emit_u8(op::RETURN, &range);
+                    return Type::UnInitialized;
+                }
+            },
         }
     }
 
@@ -163,7 +191,10 @@ impl Compiler {
         }
 
         let function = self.end_cell();
-        println!("{:?}", unsafe { (*function).chunk.disassemble(&func.name) });
+        self.emit_u8(op::DEFINE_GLOBAL, &range);
+        self.write_constant(Value::Function(function), &range);
+
+        // println!("{:?}", unsafe { (*function).chunk.disassemble(&func.name) });
 
         return Type::UnInitialized;
     }
@@ -300,7 +331,6 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Type {
         let (print, range) = print;
-        println!("ENTERING PRINT_LN");
         let expr_type = self.compile_expression(&print.value, allocator);
         self.emit_u8(op::PRINT_LN, range);
         return expr_type;
@@ -312,7 +342,6 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Type {
         let (print, range) = print;
-        println!("ENTERING PRINT");
         let expr_type = self.compile_expression(&print.value, allocator);
         self.emit_u8(op::PRINT, range);
         return expr_type;
@@ -330,8 +359,31 @@ impl Compiler {
             Expression::Infix(infix) => self.compile_infix((infix, range), allocator),
             Expression::Literal(value) => self.compile_literal((value, range), allocator),
             Expression::Var(var) => self.compile_expression_var((var, range), allocator),
+            Expression::Call(call) => self.compile_call((call, range), allocator),
             _ => todo!("expression not implemented"),
         }
+    }
+
+    fn compile_call(
+        &mut self,
+        (call, range): (&Box<ExprCall>, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Type {
+        let arg_count = call.args.len();
+        if arg_count > u8::MAX as usize {
+            todo!("Too many arguments, Can't call more than 255 arguments");
+        }
+        let callee_type = self.compile_expression(&call.callee, allocator);
+        // if callee_type != Type::Object {
+        //     todo!("Can only call functions and classes");
+        // }
+        for arg in &call.args {
+            self.compile_expression(&arg, allocator);
+        }
+
+        self.emit_u8(op::CALL, &range);
+        self.emit_u8(arg_count as u8, &range);
+        callee_type
     }
 
     fn compile_assign(
@@ -450,14 +502,16 @@ impl Compiler {
         let (infix, range) = infix;
         // absolute litiral
         let lhs_type = self.compile_expression(&(infix.lhs), allocator);
+        // println!("lhs_type: {:?}", lhs_type);
         // absolute litiral
         let rhs_type = self.compile_expression(&(infix.rhs), allocator);
+        // println!("rhs_type: {:?}", rhs_type);
         //if lhs_type: String rhs_type: String => concat string command will be called
         //if lhs_type: Int  rhs_type: Int  => add int command will be called
 
-        if lhs_type != rhs_type {
-            todo!("type mismatch");
-        }
+        // if lhs_type != rhs_type {
+        //     todo!("type mismatch");
+        // }
 
         match infix.op {
             OpInfix::Add => {

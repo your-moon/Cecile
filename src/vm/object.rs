@@ -8,6 +8,7 @@ pub union Object {
     pub string: *mut StringObject,
     pub main: *mut MainObject,
     pub function: *mut ObjectFunction,
+    pub native: *mut ObjectNative,
 }
 
 impl Object {
@@ -22,6 +23,9 @@ impl Object {
             }
             ObjectType::String => {
                 let _free = unsafe { Box::from_raw(self.string) };
+            }
+            ObjectType::Native => {
+                let _free = unsafe { Box::from_raw(self.native) };
             }
         };
     }
@@ -38,6 +42,7 @@ impl Display for Object {
         match self.type_() {
             ObjectType::String => write!(f, "{}", unsafe { (*self.string).value }),
             ObjectType::Function => write!(f, "{}", "function"),
+            ObjectType::Native => write!(f, "<native {}>", unsafe { (*self.native).native }),
         }
     }
 }
@@ -54,6 +59,7 @@ macro_rules! impl_from_object {
 
 impl_from_object!(string, StringObject);
 impl_from_object!(function, ObjectFunction);
+impl_from_object!(native, ObjectNative);
 
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
@@ -66,9 +72,38 @@ impl PartialEq for Object {
 pub enum ObjectType {
     String,
     Function,
+    Native,
 }
 
-#[derive(Debug)]
+pub struct ObjectNative {
+    pub common: MainObject,
+    pub native: Native,
+}
+
+impl ObjectNative {
+    pub fn new(native: Native) -> Self {
+        Self {
+            common: MainObject {
+                type_: ObjectType::Native,
+            },
+            native,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Native {
+    Clock,
+}
+
+impl Display for Native {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Native::Clock => write!(f, "{}", "clock"),
+        }
+    }
+}
+
 #[repr(C)]
 pub struct ObjectFunction {
     pub common: MainObject,
@@ -124,6 +159,18 @@ impl Debug for StringObject {
 
 impl Display for StringObject {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", "string")
+        write!(f, "{}", "String")
+    }
+}
+
+impl Debug for ObjectFunction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", "Function")
+    }
+}
+
+impl Display for ObjectFunction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", "Function")
     }
 }

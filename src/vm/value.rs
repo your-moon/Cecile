@@ -2,13 +2,14 @@ use std::fmt::{Debug, Display};
 
 use crate::vm::object::ObjectType;
 
-use super::object::{Object, ObjectFunction, StringObject};
+use super::object::{Object, ObjectFunction, ObjectNative, StringObject};
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Value {
     Number(f64),
     String(*mut StringObject),
     Function(*mut ObjectFunction),
+    Native(*mut ObjectNative),
     Bool(bool),
     Nil,
 }
@@ -20,7 +21,8 @@ impl Debug for Value {
             Value::String(ptr) => unsafe { write!(f, "{}", (**ptr).value) },
             Value::Bool(b) => write!(f, "{}", b),
             Value::Nil => write!(f, "nil"),
-            Value::Function(ptr) => write!(f, "{:?}", unsafe { (**ptr).name }),
+            Value::Function(ptr) => write!(f, "<function {:?}>", unsafe { (*(**ptr).name).value }),
+            Value::Native(ptr) => write!(f, "<native {:?}>", unsafe { (**ptr).native }),
         }
     }
 }
@@ -32,7 +34,10 @@ impl Display for Value {
             Value::String(ptr) => write!(f, "{}", unsafe { (**ptr).value }),
             Value::Bool(b) => write!(f, "{}", b),
             Value::Nil => write!(f, "nil"),
-            Value::Function(ptr) => write!(f, "{:?}", unsafe { (**ptr).name }),
+            Value::Function(ptr) => {
+                write!(f, "<function {:?}>", unsafe { (*(*(*ptr)).name).value })
+            }
+            Value::Native(ptr) => write!(f, "<native {:?}>", unsafe { (**ptr).native }),
         }
     }
 }

@@ -1,5 +1,3 @@
-use std::hash::BuildHasherDefault;
-
 use arrayvec::ArrayVec;
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
@@ -11,10 +9,11 @@ use crate::{
     vm::object::StringObject,
 };
 use rustc_hash::FxHasher;
-use std::ptr;
+use std::hash::BuildHasherDefault;
+use std::{mem, ptr};
 
 use self::compiler::Compiler;
-use self::object::ObjectFunction;
+use self::object::{Native, ObjectFunction, ObjectNative};
 pub mod chunk;
 pub mod compiler;
 pub mod object;
@@ -38,12 +37,16 @@ pub struct VM<'a> {
 
 impl<'a> VM<'a> {
     pub fn new(allocator: &'a mut CeAllocation) -> VM {
+        let mut globals = HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
+        let clock_string = allocator.alloc("clock");
+        let clock_native = allocator.alloc(ObjectNative::new(Native::Clock));
+        globals.insert(clock_string, Value::Native(clock_native));
         VM {
             ip: 0,
             stack: Box::new([Value::Number(0.0); 256]),
             stack_top: ptr::null_mut(),
             allocator,
-            globals: HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default()),
+            globals,
             frames: ArrayVec::new(),
             frame: CallFrame {
                 function: ptr::null_mut(),
@@ -56,6 +59,7 @@ impl<'a> VM<'a> {
     pub fn run(&mut self, program: &mut Program) {
         let mut compiler = Compiler::new(self.allocator);
         let function = compiler.compile(program, self.allocator);
+        // println!("{:?}", self.allocator);
         // println!("{:?}", unsafe { (*function).chunk.disassemble("script") });
         self.run_function(function);
     }
@@ -71,11 +75,11 @@ impl<'a> VM<'a> {
         };
 
         loop {
-            let function = self.frame.function;
+            // let function = self.frame.function;
             // let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
             // unsafe { (*function).chunk.disassemble_instruction(idx as usize) };
-            // self.chunk.disassemble_instruction(self.ip);
             match self.read_u8() {
+                op::CALL => self.call(),
                 op::LOOP => self.loop_(),
                 op::JUMP => self.jump(),
                 op::JUMP_IF_FALSE => self.jump_if_false(),
@@ -114,18 +118,68 @@ impl<'a> VM<'a> {
                     self.pop_from_stack();
                 }
                 op::RETURN => {
-                    self.pop_from_stack();
-                    return;
+                    let value = self.pop_from_stack();
+
+                    self.stack_top = self.frame.stack;
+                    match self.frames.pop() {
+                        Some(frame) => {
+                            self.frame = frame;
+                        }
+                        None => {
+                            return;
+                        }
+                    }
+                    self.push_to_stack(value);
                 }
                 _ => todo!(),
             }
             // print top of stack element
-            // let mut stack_ptr = self.stack.as_mut_ptr();
+            // print!("    ");
+            // let mut stack_ptr = self.frame.stack;
             // while stack_ptr < self.stack_top {
-            //     print!("[ {} ]", unsafe { *stack_ptr });
+            //     eprint!("[ {:?} ]", unsafe { *stack_ptr });
             //     stack_ptr = unsafe { stack_ptr.add(1) };
             // }
             // println!();
+        }
+    }
+
+    fn call(&mut self) {
+        let arg_count = self.read_u8();
+
+        let function = self.peek(arg_count as usize);
+        match unsafe { *function } {
+            Value::Function(ptr_function) => {
+                let function = unsafe { &mut *ptr_function };
+
+                let frame = CallFrame {
+                    function,
+                    ip: unsafe { (*function).chunk.code.as_ptr() },
+                    stack: self.peek(arg_count as usize),
+                };
+                unsafe {
+                    self.frames
+                        .push_unchecked(mem::replace(&mut self.frame, frame))
+                }
+            }
+            Value::Native(ptr_native) => {
+                self.pop_from_stack();
+                let native = unsafe { &mut *ptr_native };
+                let result = match native.native {
+                    Native::Clock => {
+                        let now = std::time::SystemTime::now();
+                        let duration = now
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .expect("Time went backwards");
+                        let seconds = duration.as_secs() as f64;
+                        let nanos = duration.subsec_nanos() as f64 / 1_000_000_000.0;
+                        Value::Number(seconds + nanos)
+                    }
+                };
+                self.stack_top = unsafe { self.stack_top.sub(arg_count as usize) };
+                self.push_to_stack(result);
+            }
+            _ => todo!(),
         }
     }
 
@@ -180,7 +234,7 @@ impl<'a> VM<'a> {
         let stack_idx = self.read_constant();
         match stack_idx {
             Value::Number(stack_idx) => {
-                let value = unsafe { (*self.frame.stack.add(stack_idx as usize)) };
+                let value = unsafe { *self.frame.stack.add(stack_idx as usize) };
                 self.push_to_stack(value);
             }
             _ => todo!(),
@@ -233,24 +287,24 @@ impl<'a> VM<'a> {
     fn get_global(&mut self) {
         let name = self.read_constant();
         match name {
-            Value::String(ptr_string) => match self.globals.get(&ptr_string) {
-                Some(value) => {
-                    self.push_to_stack(*value);
-                }
-                None => {
-                    todo!()
-                }
-            },
+            Value::String(ptr_string) => {
+                let value = *self.globals.get(&ptr_string).unwrap();
+                self.push_to_stack(value);
+            }
             _ => todo!(),
         };
     }
 
     fn define_global(&mut self) {
-        let value = self.pop_from_stack();
         let name = self.read_constant();
+        let value = self.pop_from_stack();
         match name {
             Value::String(ptr_string) => {
                 self.globals.insert(ptr_string, value);
+            }
+            Value::Function(ptr_func) => {
+                let func_name = unsafe { (*ptr_func).name };
+                self.globals.insert(func_name, name);
             }
             _ => todo!(),
         };
@@ -269,10 +323,8 @@ impl<'a> VM<'a> {
     }
 
     fn push_to_stack(&mut self, value: Value) {
-        unsafe {
-            ptr::write(self.stack_top, value);
-            self.stack_top = self.stack_top.add(1);
-        }
+        unsafe { *self.stack_top = value };
+        self.stack_top = unsafe { self.stack_top.add(1) };
     }
 
     fn pop_from_stack(&mut self) -> Value {
@@ -289,8 +341,8 @@ impl<'a> VM<'a> {
     fn read_constant(&mut self) -> value::Value {
         let index = self.read_u8() as usize;
         let constant = unsafe {
-            let constant = (*self.frame.function).chunk.constants[index];
-            constant
+            let constant = (*self.frame.function).chunk.constants.get_unchecked(index);
+            *constant
         };
         constant
     }

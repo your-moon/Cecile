@@ -155,6 +155,20 @@ pub OpPrefix: ast::OpPrefix = {
   "!" => ast::OpPrefix::Not,  
 }
 
+ExprPrefix: ast::Expression = {
+    <op:OpPrefix> <rt:Spanned<ExprPrefix>> =>
+        ast::Expression::Prefix(Box::new(ast::ExprPrefix { <> })),
+    ExprCall,
+}
+
+ExprCall: ast::Expression = {
+    <callee:Spanned<ExprCall>> "(" <args:Args> ")" =>
+      ast::Expression::Call(Box::new(ast::ExprCall { callee, args })),
+//    <object:Spanned<ExprCall>> "." <name:identifier> =>
+//        ast::Expr::Get(Box::new(ast::ExprGet { <> })),
+      ExprPrimary
+}
+
 ExprPrimary: ast::Expression = {
     // Literals
     "nil" => ast::Expression::Literal(ast::ExprLiteral::Nil),
@@ -193,12 +207,7 @@ Args: Vec<ast::ExprS> = {
 ExprVar: ast::Expression = <name:identifier> =>
   ast::Expression::Var(ast::ExprVar { var: ast::Var {name, type_: None} });
 
-ExprPrefix: ast::Expression = {
-    <op:OpPrefix> <rt:Spanned<ExprPrefix>> =>
-        ast::Expression::Prefix(Box::new(ast::ExprPrefix { <> })),
-    ExprPrimary
-//    ExprCall,
-}
+
 
 ExprInfix<Lhs, Op, Rhs>: ast::Expression =  {
   <lhs:Spanned<Lhs>> <op:Op> <rhs:Spanned<Rhs>> =>
@@ -256,5 +265,6 @@ extern {
     "!" => Token::Bang,
     "!=" => Token::BangEqual,
     "," => Token::Comma,
+    "." => Token::Dot,
   }
 }
