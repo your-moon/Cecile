@@ -1,10 +1,12 @@
 import time
 
 
-def fib_recursive(n):
-    return 1 if n < 2 else fib_recursive(n - 2) + fib_recursive(n - 1)
+def fib(n):
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
 
 
 start = time.time()
-print(fib_recursive(35))
+print(fib(35))
 print(time.time() - start)

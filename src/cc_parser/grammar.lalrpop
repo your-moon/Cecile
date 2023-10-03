@@ -3,6 +3,8 @@ use crate::cc_lexer::LexicalError;
 use crate::cc_lexer::Token;
 use crate::cc_parser::ast::Expression;
 use crate::cc_parser::ast;
+use hashbrown::HashMap;
+
 grammar;
 
 Spanned<T>: ast::Spanned<T> = <l:@L> <t:T> <r:@R> => (t, l..r);
@@ -26,10 +28,6 @@ DeclVar: ast::Statement = "let" <name:identifier> <type_:(":" <Types>)?> <value:
         value ,
       });
 
-Types: ast::Type = {
-  type_string => ast::Type::String,
-  type_int => ast::Type::Int,
-}
 
 Stmt: ast::Statement = {
  StmtOpen,
@@ -147,6 +145,7 @@ ExprFactor = ExprInfix<ExprFactor, OpFactor, ExprPrefix>;
 OpFactor: ast::OpInfix = {
     "*" => ast::OpInfix::Mul,
     "/" => ast::OpInfix::Div,
+    "%" => ast::OpInfix::Modulo,
 }
 
 
@@ -185,16 +184,25 @@ ExprPrimary: ast::Expression = {
 }
 
 Function: ast::StatementFun =
-    <name:identifier> "(" <params:Params> ")" <body:StatementBlockIn> =>
+    <name:identifier>  "("  <params:Params> ")" <return_type:("->" <Types>)?>  <body:StatementBlockIn> =>
         ast::StatementFun { <> };
 
-Params: Vec<String> = {
-    <first:identifier> <mut params:("," <identifier>)*> => {
-        params.insert(0, first);
-        params
+Params: HashMap<String, Option<ast::Type>> = {
+    <first:Param> <mut params:("," <Param>)*> => {
+        let mut param_map = HashMap::new();
+        let (string_, type_) = first;
+        param_map.insert(string_, type_);
+        for (string_, type_) in params {
+          param_map.insert(string_, type_);
+        }
+        param_map
     },
-    () => Vec::new(),
+    () => HashMap::new(),
 };
+Param: (String, Option<ast::Type>) = {
+  <string_:identifier> <type_:(":" <Types>)?> =>
+    (string_,type_)
+}
 
 Args: Vec<ast::ExprS> = {
     <first:ExprS> <mut args:("," <ExprS>)*> => {
@@ -203,6 +211,12 @@ Args: Vec<ast::ExprS> = {
     },
     () => Vec::new(),
 }
+
+Types: ast::Type = {
+  type_string => ast::Type::String,
+  type_int => ast::Type::Int,
+}
+
 
 ExprVar: ast::Expression = <name:identifier> =>
   ast::Expression::Var(ast::ExprVar { var: ast::Var {name, type_: None} });
@@ -246,6 +260,8 @@ extern {
     type_int => Token::TypeInt,
 
     // Punctuation
+    "->" => Token::Arrow,
+    "%" => Token::Percent,
     "(" => Token::LeftParen,
     ")" => Token::RightParen,
     "{" => Token::LeftBrace,

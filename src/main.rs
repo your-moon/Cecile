@@ -25,15 +25,15 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-        fn fib(n) {
-            if (n < 2) {
-                return n;
-            }
-            return fib(n - 1) + fib(n - 2);
+        fn add(a: Int, b: Int) -> Int {
+            return a + b;
         }
-        let start = clock();
-        println fib(35);
-        println clock() - start;
+        let a: Int = 1;
+        let b: Int = 2;
+        let c: Int = add(a, b);
+        print c;
+
+
     "#;
     let lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {
@@ -44,20 +44,13 @@ fn main() {
     });
     let parser = grammar::ProgramParser::new();
     let mut program = parser.parse(lexer).unwrap();
-    // for (statement, _range) in &program.statements {
-    //     println!("{:?}", statement);
-    // }
+    for (statement, _range) in &program.statements {
+        println!("{:?}", statement);
+    }
 
     let mut allocator = CeAllocation::new();
     let mut vm = vm::VM::new(&mut allocator);
     vm.run(&mut program);
-    //Next todo CallFrame
-
-    // println!("{:?}", chunk);
-    // let mut vm = vm::VM::new(compiler.chunk.clone(), &mut allocator);
-    // vm.run();
-
-    // println!("{:?} VM", vm);
 
     // let mut stdout = StandardStream::stdout(ColorChoice::Always);
     // stdout.set_color(ColorSpec::new().set_fg(Some(Color::Magenta)));

@@ -1,5 +1,7 @@
 use std::fmt::{self, Debug, Display, Formatter};
 
+use crate::cc_parser::ast::Type;
+
 use super::chunk::Chunk;
 
 #[derive(Clone, Copy, Eq)]
@@ -111,10 +113,11 @@ pub struct ObjectFunction {
     pub arity: u8,
     pub upvalue_count: u16,
     pub chunk: Chunk,
+    pub return_type: Option<Type>,
 }
 
 impl ObjectFunction {
-    pub fn new(name: *mut StringObject, arity: u8) -> Self {
+    pub fn new(name: *mut StringObject, arity: u8, return_type: Option<Type>) -> Self {
         let common = MainObject {
             type_: ObjectType::Function,
         };
@@ -123,6 +126,7 @@ impl ObjectFunction {
             name,
             arity,
             upvalue_count: 0,
+            return_type,
             chunk: Chunk::default(),
         }
     }

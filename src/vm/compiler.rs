@@ -56,7 +56,6 @@ impl CompilerCell {
     pub fn resolve_local(&mut self, name: &str, span: &Span) -> Option<u8> {
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local.name == name {
-                // println!("local: {}", local);
                 if !local.is_initialized {
                     todo!("Can't read local variable in its own initializer");
                 }
@@ -76,7 +75,7 @@ impl Compiler {
         let name = allocator.alloc("");
         Self {
             current_compiler: CompilerCell {
-                function: allocator.alloc(ObjectFunction::new(name, 0)),
+                function: allocator.alloc(ObjectFunction::new(name, 0, None)),
                 type_: FunctionType::Script,
                 globals: HashMap::default(),
                 locals: Vec::new(),
@@ -135,8 +134,24 @@ impl Compiler {
             FunctionType::Function => match &return_.value {
                 Some(value) => {
                     let type_ = self.compile_expression(value, allocator);
-                    self.emit_u8(op::RETURN, &range);
-                    return type_;
+                    let func_type = unsafe { &(*self.current_compiler.function).return_type };
+                    println!("type: {:?} func_return_type:{:?}", type_, func_type);
+                    match func_type {
+                        Some(t) => {
+                            if &type_ != t {
+                                todo!("return type mismatch");
+                            }
+                            self.emit_u8(op::RETURN, &range);
+                            return type_;
+                        }
+                        None => {
+                            if type_ != Type::Nil {
+                                todo!("return type must be nil")
+                            }
+                            self.emit_u8(op::RETURN, &range);
+                            return type_;
+                        }
+                    }
                 }
                 None => {
                     self.emit_u8(op::NIL, &range);
@@ -156,7 +171,7 @@ impl Compiler {
         let name = allocator.alloc(&func.name);
         let arity = func.params.len() as u8;
         let cell = CompilerCell {
-            function: allocator.alloc(ObjectFunction::new(name, arity)),
+            function: allocator.alloc(ObjectFunction::new(name, arity, func.return_type.clone())),
             type_: FunctionType::Function,
             globals: HashMap::default(),
             locals: Vec::new(),
@@ -175,9 +190,19 @@ impl Compiler {
                 self.declare_local(&func.name, &Type::Object, &range);
             }
         }
-
-        for param in &func.params {
-            self.declare_local(&param, &Type::Object, &range);
+        //TODO check param type
+        for (param_string, param_type) in &func.params {
+            match param_type {
+                Some(t) => match t {
+                    Type::String | Type::Int => {
+                        self.declare_local(&param_string, t, &range);
+                    }
+                    _ => todo!("type not implemented"),
+                },
+                None => {
+                    self.declare_local(&param_string, &Type::UnInitialized, &range);
+                }
+            }
             self.define_local();
         }
 
@@ -500,35 +525,43 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Type {
         let (infix, range) = infix;
-        // absolute litiral
         let lhs_type = self.compile_expression(&(infix.lhs), allocator);
-        // println!("lhs_type: {:?}", lhs_type);
-        // absolute litiral
         let rhs_type = self.compile_expression(&(infix.rhs), allocator);
-        // println!("rhs_type: {:?}", rhs_type);
+        println!("lhs: {:?} rhs: {:?}", lhs_type, rhs_type);
         //if lhs_type: String rhs_type: String => concat string command will be called
         //if lhs_type: Int  rhs_type: Int  => add int command will be called
+        // let return_type = match (lhs_type, rhs_type) {
+        //     (Type::String, Type::String) => Type::String,
+        //     (Type::String, Type::Int) => Type::String,
+        //     (Type::Int, Type::String) => Type::String,
+        //     (Type::Int, Type::Int) => Type::Int,
+        //     _ => todo!("type mismatch"),
+        // };
+        let return_type = lhs_type;
 
         // if lhs_type != rhs_type {
         //     todo!("type mismatch");
         // }
 
         match infix.op {
+            OpInfix::Modulo => {
+                self.emit_u8(op::MODULO, &range);
+                return return_type;
+            }
             OpInfix::Add => {
                 self.emit_u8(op::ADD, &range);
-                return lhs_type;
+                return return_type;
             }
             OpInfix::Sub => {
-                self.emit_u8(op::SUB, &range);
-                return lhs_type;
+                return return_type;
             }
             OpInfix::Mul => {
                 self.emit_u8(op::MUL, &range);
-                return lhs_type;
+                return return_type;
             }
             OpInfix::Div => {
                 self.emit_u8(op::DIV, &range);
-                return lhs_type;
+                return return_type;
             }
             OpInfix::Equal => {
                 self.emit_u8(op::EQUAL, &range);
@@ -567,10 +600,9 @@ impl Compiler {
 
     fn compile_literal(
         &mut self,
-        literal: (&ExprLiteral, &Range<usize>),
+        (literal, range): (&ExprLiteral, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Type {
-        let (literal, range) = literal;
         match literal {
             ExprLiteral::Number(value) => {
                 self.emit_constant(Value::Number(*value), &range);
@@ -589,9 +621,9 @@ impl Compiler {
                 Type::Bool
             }
             ExprLiteral::Nil => {
-                todo!();
+                self.emit_u8(op::NIL, &range);
+                Type::Nil
             }
-            _ => todo!(),
         }
     }
 

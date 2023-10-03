@@ -75,10 +75,11 @@ impl<'a> VM<'a> {
         };
 
         loop {
-            // let function = self.frame.function;
-            // let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
-            // unsafe { (*function).chunk.disassemble_instruction(idx as usize) };
+            let function = self.frame.function;
+            let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
+            unsafe { (*function).chunk.disassemble_instruction(idx as usize) };
             match self.read_u8() {
+                op::MODULO => self.modulo(),
                 op::CALL => self.call(),
                 op::LOOP => self.loop_(),
                 op::JUMP => self.jump(),
@@ -134,13 +135,13 @@ impl<'a> VM<'a> {
                 _ => todo!(),
             }
             // print top of stack element
-            // print!("    ");
-            // let mut stack_ptr = self.frame.stack;
-            // while stack_ptr < self.stack_top {
-            //     eprint!("[ {:?} ]", unsafe { *stack_ptr });
-            //     stack_ptr = unsafe { stack_ptr.add(1) };
-            // }
-            // println!();
+            print!("    ");
+            let mut stack_ptr = self.frame.stack;
+            while stack_ptr < self.stack_top {
+                eprint!("[ {:?} ]", unsafe { *stack_ptr });
+                stack_ptr = unsafe { stack_ptr.add(1) };
+            }
+            println!();
         }
     }
 
@@ -357,6 +358,12 @@ impl<'a> VM<'a> {
         let byte1 = self.read_u8();
         let byte2 = self.read_u8();
         (byte1 as u16) << 8 | byte2 as u16
+    }
+
+    fn modulo(&mut self) {
+        let rhs = self.pop_from_stack();
+        let lhs = self.pop_from_stack();
+        self.push_to_stack(lhs.modulo(rhs));
     }
 
     fn add(&mut self) {

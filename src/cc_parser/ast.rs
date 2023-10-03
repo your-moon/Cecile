@@ -1,6 +1,8 @@
 use std::default;
 use std::fmt::{self, Display, Formatter};
 use std::ops::Range;
+
+use hashbrown::HashMap;
 pub type Spanned<T> = (T, Span);
 pub type Span = Range<usize>;
 
@@ -29,8 +31,9 @@ pub enum Statement {
 #[derive(Clone, Debug, PartialEq)]
 pub struct StatementFun {
     pub name: String,
-    pub params: Vec<String>,
+    pub params: HashMap<String, Option<Type>>,
     pub body: StatementBlock,
+    pub return_type: Option<Type>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -136,6 +139,7 @@ pub enum OpInfix {
     Mul,
     Div,
     Less,
+    Modulo,
     LessEqual,
     Greater,
     GreaterEqual,
@@ -148,6 +152,7 @@ pub enum OpInfix {
 impl Display for OpInfix {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let op = match self {
+            OpInfix::Modulo => "%",
             OpInfix::Add => "+",
             OpInfix::Sub => "-",
             OpInfix::Mul => "*",
@@ -200,6 +205,7 @@ pub struct Var {
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Type {
+    Nil,
     String,
     Bool,
     Int,

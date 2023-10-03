@@ -58,6 +58,12 @@ impl From<f64> for Value {
 }
 
 impl Value {
+    pub fn modulo(&self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Number(a), Value::Number(b)) => Value::Number(a % b),
+            _ => todo!(),
+        }
+    }
     pub fn add(&self, other: Value) -> Value {
         match (self, other) {
             (Value::Number(a), Value::Number(b)) => Value::Number(a + b),

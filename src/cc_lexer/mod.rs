@@ -5,6 +5,7 @@ use logos::{Logos, SpannedIter};
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\n\f]+")] // Зай болон мөр алгасах тэмдэгийг алгасанa.
 pub enum Token {
+    // Төрөл
     #[token("String")]
     TypeString,
     #[token("Int")]
@@ -67,6 +68,8 @@ pub enum Token {
     Number(f64),
 
     // Нэг үсэгт токэн.
+    #[token("%")]
+    Percent,
     #[token("(")]
     LeftParen,
     #[token(")")]
@@ -93,6 +96,8 @@ pub enum Token {
     Star,
 
     // Нэг болон хоёр үсэгт токэн.
+    #[token("->")]
+    Arrow,
     #[token("!")]
     Bang,
     #[token("!=")]
