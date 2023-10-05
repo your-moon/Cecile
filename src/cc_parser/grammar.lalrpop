@@ -16,7 +16,26 @@ DeclS = Spanned<Decl>;
 Decl = {
     Stmt,
     DeclVar,
-    DeclFun
+    DeclFun,
+    DeclStruct,
+}
+
+DeclStruct: ast::Statement = {
+  "struct" <name:identifier> <fields:StructFields> ";"  => 
+    ast::Statement::Struct(ast::StatementStruct { <> })
+}
+
+
+StructFields: Vec<ast::Field> = {
+   "{" <mut fields:(<SingleField>)*> "}" => {
+      fields
+    },
+    () => Vec::new(),
+}
+
+SingleField: ast::Field = {
+  <name:identifier> ":" <type_:Types> ","? =>
+    ast::Field { <> }
 }
 
 
@@ -25,7 +44,7 @@ DeclFun: ast::Statement = "fn" <function:Function> => ast::Statement::Fun(<>);
 DeclVar: ast::Statement = "let" <name:identifier> <type_:(":" <Types>)?> <value:("=" <ExprS>)?> ";" =>
   ast::Statement::Var(ast::StatementVar {
         var: ast::Var { name, type_: type_},
-        value ,
+        value,
       });
 
 
@@ -80,6 +99,7 @@ SmallStmt = {
     StmtPrintLn,
     StmtReturn,
 }
+
 
 
 StmtReturn: ast::Statement = "return" <value:ExprS?> ";" =>
@@ -168,6 +188,7 @@ ExprCall: ast::Expression = {
       ExprPrimary
 }
 
+
 ExprPrimary: ast::Expression = {
     // Literals
     "nil" => ast::Expression::Literal(ast::ExprLiteral::Nil),
@@ -187,6 +208,7 @@ Function: ast::StatementFun =
     <name:identifier>  "("  <params:Params> ")" <return_type:("->" <Types>)?>  <body:StatementBlockIn> =>
         ast::StatementFun { <> };
 
+
 Params: HashMap<String, Option<ast::Type>> = {
     <first:Param> <mut params:("," <Param>)*> => {
         let mut param_map = HashMap::new();
@@ -198,7 +220,8 @@ Params: HashMap<String, Option<ast::Type>> = {
         param_map
     },
     () => HashMap::new(),
-};
+}
+
 Param: (String, Option<ast::Type>) = {
   <string_:identifier> <type_:(":" <Types>)?> =>
     (string_,type_)

@@ -26,6 +26,19 @@ pub enum Statement {
     While(Box<StatementWhile>),
     For(Box<StatementFor>),
     Fun(StatementFun),
+    Struct(StatementStruct),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementStruct {
+    pub name: String,
+    pub fields: Vec<Field>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Field {
+    pub name: String,
+    pub type_: Type,
 }
 
 #[derive(Clone, Debug, PartialEq)]
