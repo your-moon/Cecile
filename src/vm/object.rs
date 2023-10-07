@@ -10,6 +10,7 @@ pub union Object {
     pub string: *mut StringObject,
     pub main: *mut MainObject,
     pub function: *mut ObjectFunction,
+    pub closure: *mut ClosureObject,
     pub native: *mut ObjectNative,
 }
 
@@ -29,6 +30,9 @@ impl Object {
             ObjectType::Native => {
                 let _free = unsafe { Box::from_raw(self.native) };
             }
+            ObjectType::Closure => {
+                let _free = unsafe { Box::from_raw(self.closure) };
+            }
         };
     }
 }
@@ -45,6 +49,7 @@ impl Display for Object {
             ObjectType::String => write!(f, "{}", unsafe { (*self.string).value }),
             ObjectType::Function => write!(f, "{}", "function"),
             ObjectType::Native => write!(f, "<native {}>", unsafe { (*self.native).native }),
+            ObjectType::Closure => write!(f, "{}", "closure"),
         }
     }
 }
@@ -75,6 +80,7 @@ pub enum ObjectType {
     String,
     Function,
     Native,
+    Closure,
 }
 
 pub struct ObjectNative {
@@ -155,26 +161,20 @@ impl StringObject {
     }
 }
 
-impl Debug for StringObject {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", "String")
-    }
+#[derive(Debug)]
+#[repr(C)]
+pub struct ClosureObject {
+    pub main: MainObject,
+    pub function: *mut ObjectFunction,
 }
 
-impl Display for StringObject {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", "String")
-    }
-}
-
-impl Debug for ObjectFunction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", "Function")
-    }
-}
-
-impl Display for ObjectFunction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", "Function")
+impl ClosureObject {
+    pub fn new(function: *mut ObjectFunction) -> Self {
+        Self {
+            main: MainObject {
+                type_: ObjectType::Closure,
+            },
+            function,
+        }
     }
 }
