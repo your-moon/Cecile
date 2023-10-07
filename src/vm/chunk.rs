@@ -32,15 +32,41 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
+            op::GET_UPVALUE => self.code_byte("GET_UPVALUE", offset),
+            op::CLOSURE => {
+                let mut idx = offset + 1;
+                let constant_idx = self.code[idx];
+                let constant = &self.constants[constant_idx as usize];
+                println!(
+                    "{name:16} {constant_idx:>4} '{constant}'",
+                    name = "OP_CLOSURE"
+                );
+
+                let function = unsafe { constant.as_function() };
+                for _ in 0..unsafe { (*function).upvalue_count } {
+                    let offset = idx;
+
+                    idx += 1;
+                    let is_local = self.code[idx];
+                    let label = if is_local == 0 { "upvalue" } else { "local" };
+
+                    idx += 1;
+                    let upvalue_idx = self.code[idx];
+
+                    println!("{offset:04} |                     {label} {upvalue_idx}");
+                }
+
+                idx + 1
+            }
             op::MODULO => self.simple_instruction("MODULO", offset),
-            op::CALL => self.simple_instruction("CALL", offset),
+            op::CALL => self.code_byte("CALL", offset),
             op::PRINT_LN => self.simple_instruction("PRINT_LN", offset),
             op::LOOP => self.jump_instruction("LOOP", offset),
             op::JUMP => self.jump_instruction("JUMP", offset),
             op::JUMP_IF_FALSE => self.jump_instruction("JUMP_IF_FALSE", offset),
             op::POP => self.simple_instruction("POP", offset),
-            op::GET_LOCAL => self.simple_instruction("GET_LOCAL", offset),
-            op::SET_LOCAL => self.simple_instruction("SET_LOCAL", offset),
+            op::GET_LOCAL => self.code_byte("GET_LOCAL", offset),
+            op::SET_LOCAL => self.code_byte("SET_LOCAL", offset),
             op::SET_GLOBAL => self.constant_instruction("SET_GLOBAL", offset),
             op::DEFINE_GLOBAL => self.constant_instruction("DEFINE_GLOBAL", offset),
             op::GET_GLOBAL => self.constant_instruction("GET_GLOBAL", offset),
@@ -70,6 +96,11 @@ impl Chunk {
                 return offset + 1;
             }
         }
+    }
+    fn code_byte(&self, name: &str, idx: usize) -> usize {
+        let byte = self.code[idx + 1];
+        println!("{name:16} {byte:>4}");
+        idx + 2
     }
 
     fn read_u16(&self, offset: usize) -> u16 {

@@ -32,7 +32,11 @@ iota! {
     JUMP_IF_FALSE,
     JUMP,
     LOOP,
-    CALL
+    CALL,
+    CLOSURE,
+    GET_UPVALUE,
+    SET_UPVALUE
+
 
 
 

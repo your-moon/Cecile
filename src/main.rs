@@ -25,15 +25,14 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-        fn add(a: Int, b: Int) -> Int {
-            return a + b;
+    fn fib(n: Int) -> Int {
+        if (n < 2) {
+            return n;
         }
-        let a: Int = 1;
-        let b: Int = 2;
-        let c: Int = add(a, b);
-        print c;
-
-
+        return fib(n - 1) + fib(n - 2);
+    }
+    let a = fib(2);
+    println a;
     "#;
     let lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {

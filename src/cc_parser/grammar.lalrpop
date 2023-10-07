@@ -238,6 +238,7 @@ Args: Vec<ast::ExprS> = {
 Types: ast::Type = {
   type_string => ast::Type::String,
   type_int => ast::Type::Int,
+  "fn" => ast::Type::Fn,
 }
 
 

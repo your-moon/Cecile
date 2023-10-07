@@ -2,7 +2,10 @@ use std::fmt::{Debug, Display};
 
 use crate::vm::object::ObjectType;
 
-use super::object::{ClosureObject, Object, ObjectFunction, ObjectNative, StringObject};
+use super::{
+    compiler::Upvalue,
+    object::{ClosureObject, Object, ObjectFunction, ObjectNative, StringObject, UpvalueObject},
+};
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Value {
@@ -10,9 +13,19 @@ pub enum Value {
     String(*mut StringObject),
     Function(*mut ObjectFunction),
     Closure(*mut ClosureObject),
+    Upvalue(*mut UpvalueObject),
     Native(*mut ObjectNative),
     Bool(bool),
     Nil,
+}
+
+impl Value {
+    pub fn as_function(&self) -> *mut ObjectFunction {
+        match self {
+            Value::Function(ptr) => *ptr,
+            _ => todo!(),
+        }
+    }
 }
 
 impl Debug for Value {
@@ -25,8 +38,9 @@ impl Debug for Value {
             Value::Function(ptr) => write!(f, "<function {:?}>", unsafe { (*(**ptr).name).value }),
             Value::Native(ptr) => write!(f, "<native {:?}>", unsafe { (**ptr).native }),
             Value::Closure(ptr) => write!(f, "<closure {:?}>", unsafe {
-                ((*(**ptr).function).name).value
+                (*(*(**ptr).function).name).value
             }),
+            Value::Upvalue(ptr) => write!(f, "<upvalue {:?}>", unsafe { (**ptr).value }),
         }
     }
 }
@@ -42,6 +56,10 @@ impl Display for Value {
                 write!(f, "<function {:?}>", unsafe { (*(*(*ptr)).name).value })
             }
             Value::Native(ptr) => write!(f, "<native {:?}>", unsafe { (**ptr).native }),
+            Value::Closure(ptr) => write!(f, "<closure {:?}>", unsafe {
+                (*(*(*(*ptr)).function).name).value
+            }),
+            Value::Upvalue(ptr) => write!(f, "<upvalue {:?}>", unsafe { (**ptr).value }),
         }
     }
 }

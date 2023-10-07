@@ -2,7 +2,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 
 use crate::cc_parser::ast::Type;
 
-use super::chunk::Chunk;
+use super::{chunk::Chunk, value::Value};
 
 #[derive(Clone, Copy, Eq)]
 #[repr(C)]
@@ -12,6 +12,7 @@ pub union Object {
     pub function: *mut ObjectFunction,
     pub closure: *mut ClosureObject,
     pub native: *mut ObjectNative,
+    pub upvalue: *mut UpvalueObject,
 }
 
 impl Object {
@@ -33,6 +34,9 @@ impl Object {
             ObjectType::Closure => {
                 let _free = unsafe { Box::from_raw(self.closure) };
             }
+            ObjectType::Upvalue => {
+                let _free = unsafe { Box::from_raw(self.upvalue) };
+            }
         };
     }
 }
@@ -47,9 +51,14 @@ impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.type_() {
             ObjectType::String => write!(f, "{}", unsafe { (*self.string).value }),
-            ObjectType::Function => write!(f, "{}", "function"),
+            ObjectType::Function => write!(f, "<function {}>", unsafe {
+                (*(*self.function).name).value
+            }),
             ObjectType::Native => write!(f, "<native {}>", unsafe { (*self.native).native }),
-            ObjectType::Closure => write!(f, "{}", "closure"),
+            ObjectType::Closure => write!(f, "<closure {:?}>", unsafe {
+                (*(*(*self.closure).function).name).value
+            }),
+            ObjectType::Upvalue => write!(f, "<upvalue {}>", unsafe { (*self.upvalue).value }),
         }
     }
 }
@@ -67,6 +76,8 @@ macro_rules! impl_from_object {
 impl_from_object!(string, StringObject);
 impl_from_object!(function, ObjectFunction);
 impl_from_object!(native, ObjectNative);
+impl_from_object!(closure, ClosureObject);
+impl_from_object!(upvalue, UpvalueObject);
 
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
@@ -81,6 +92,7 @@ pub enum ObjectType {
     Function,
     Native,
     Closure,
+    Upvalue,
 }
 
 pub struct ObjectNative {
@@ -116,21 +128,21 @@ impl Display for Native {
 pub struct ObjectFunction {
     pub common: MainObject,
     pub name: *mut StringObject,
-    pub arity: u8,
+    pub arity_count: u8,
     pub upvalue_count: u16,
     pub chunk: Chunk,
     pub return_type: Option<Type>,
 }
 
 impl ObjectFunction {
-    pub fn new(name: *mut StringObject, arity: u8, return_type: Option<Type>) -> Self {
+    pub fn new(name: *mut StringObject, arity_count: u8, return_type: Option<Type>) -> Self {
         let common = MainObject {
             type_: ObjectType::Function,
         };
         Self {
             common,
             name,
-            arity,
+            arity_count,
             upvalue_count: 0,
             return_type,
             chunk: Chunk::default(),
@@ -166,15 +178,37 @@ impl StringObject {
 pub struct ClosureObject {
     pub main: MainObject,
     pub function: *mut ObjectFunction,
+    pub upvalues: Vec<*mut UpvalueObject>,
 }
 
 impl ClosureObject {
-    pub fn new(function: *mut ObjectFunction) -> Self {
+    pub fn new(function: *mut ObjectFunction, upvalues: Vec<*mut UpvalueObject>) -> Self {
         Self {
             main: MainObject {
                 type_: ObjectType::Closure,
             },
             function,
+            upvalues,
+        }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct UpvalueObject {
+    pub common: MainObject,
+    pub value: Value,
+    pub closed: Value,
+}
+
+impl UpvalueObject {
+    pub fn new(value: Value) -> Self {
+        Self {
+            common: MainObject {
+                type_: ObjectType::Upvalue,
+            },
+            value,
+            closed: Value::Nil,
         }
     }
 }

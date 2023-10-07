@@ -218,6 +218,7 @@ pub struct Var {
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Type {
+    Fn,
     Nil,
     String,
     Bool,

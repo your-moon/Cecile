@@ -20,6 +20,7 @@ use super::{
 };
 use rustc_hash::FxHasher;
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum FunctionType {
     Script,
     Function,
@@ -43,6 +44,12 @@ impl Display for Local {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct Upvalue {
+    index: u8,
+    is_local: bool,
+}
+
 pub struct CompilerCell {
     pub function: *mut ObjectFunction,
     type_: FunctionType,
@@ -50,19 +57,52 @@ pub struct CompilerCell {
     locals: Vec<Local>,
     scope_depth: usize,
     parent: Option<Box<CompilerCell>>,
+    upvalues: Vec<Upvalue>,
 }
 
 impl CompilerCell {
     pub fn resolve_local(&mut self, name: &str, span: &Span) -> Option<u8> {
-        for (i, local) in self.locals.iter().enumerate().rev() {
-            if local.name == name {
-                if !local.is_initialized {
-                    todo!("Can't read local variable in its own initializer");
+        match self
+            .locals
+            .iter_mut()
+            .enumerate()
+            .rfind(|(_, local)| local.name == name)
+        {
+            Some((idx, local)) => {
+                if local.is_initialized {
+                    Some(idx.try_into().expect("local index overflow"))
+                } else {
+                    todo!("local used before initialization")
                 }
-                return Some(i as u8);
+            }
+            None => None,
+        }
+    }
+
+    pub fn resolve_upvalue(&mut self, name: &str, span: &Span) -> Option<u8> {
+        if let Some(parent) = &mut self.parent {
+            if let Some(local) = parent.resolve_local(name, span) {
+                return Some(self.add_upvalue(local, true));
+            }
+            if let Some(upvalue) = parent.resolve_upvalue(name, span) {
+                return Some(self.add_upvalue(upvalue, false));
             }
         }
         None
+    }
+
+    pub fn add_upvalue(&mut self, index: u8, is_local: bool) -> u8 {
+        let upvalue = Upvalue { index, is_local };
+        let upvalue_idx = match self.upvalues.iter().position(|u| u == &upvalue) {
+            Some(idx) => idx,
+            None => {
+                self.upvalues.push(upvalue);
+                let upvalue_cnt = self.upvalues.len();
+                unsafe { (*self.function).upvalue_count = upvalue_cnt as u16 };
+                upvalue_cnt - 1
+            }
+        };
+        upvalue_idx as u8
     }
 }
 
@@ -81,6 +121,7 @@ impl Compiler {
                 locals: Vec::new(),
                 scope_depth: 0,
                 parent: None,
+                upvalues: Vec::new(),
             },
         }
     }
@@ -95,6 +136,11 @@ impl Compiler {
 
         self.emit_u8(op::NIL, &(0..0));
         self.emit_u8(op::RETURN, &(0..0));
+        unsafe {
+            (*self.current_compiler.function)
+                .chunk
+                .disassemble("script")
+        };
         self.current_compiler.function
     }
 
@@ -104,7 +150,11 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Type {
         match statement {
-            Statement::Expression(expr) => self.compile_expression(&expr.expr, allocator),
+            Statement::Expression(expr) => {
+                let type_ = self.compile_expression(&expr.expr, allocator);
+                self.emit_u8(op::POP, &range);
+                type_
+            }
             Statement::Print(print) => self.print_statement((print, range), allocator),
             Statement::PrintLn(print) => self.print_ln_statement((print, range), allocator),
             Statement::Var(var) => self.compile_statement_var((var, range), allocator),
@@ -112,8 +162,21 @@ impl Compiler {
             Statement::If(if_) => self.compile_statement_if((if_, range), allocator),
             Statement::While(while_) => self.compile_statement_while((while_, range), allocator),
             Statement::For(for_) => self.compile_statement_for((for_, range), allocator),
-            Statement::Fun(func_) => {
-                self.compile_statement_fun((func_, range), FunctionType::Function, allocator)
+            Statement::Fun(func) => {
+                let func_type =
+                    self.compile_statement_fun((func, range), FunctionType::Function, allocator);
+                // println!("compiled func return type: {:?}", func_type);
+                if self.is_global() {
+                    let name = allocator.alloc(&func.name);
+                    self.current_compiler
+                        .globals
+                        .insert(func.name.clone(), Type::Fn);
+                    self.emit_u8(op::DEFINE_GLOBAL, &range);
+                    self.write_constant(Value::String(name), &range);
+                } else {
+                    self.declare_local(&func.name, &Type::Fn, &range);
+                }
+                return func_type;
             }
             Statement::Return(return_) => {
                 self.compile_statement_return((return_, range), allocator)
@@ -133,23 +196,26 @@ impl Compiler {
             }
             FunctionType::Function => match &return_.value {
                 Some(value) => {
-                    let type_ = self.compile_expression(value, allocator);
-                    let func_type = unsafe { &(*self.current_compiler.function).return_type };
-                    println!("type: {:?} func_return_type:{:?}", type_, func_type);
-                    match func_type {
+                    let return_type = self.compile_expression(value, allocator);
+                    let func_type_ = unsafe { &(*self.current_compiler.function).return_type };
+                    println!(
+                        "return type: {:?} func_return_type:{:?}",
+                        return_type, func_type_
+                    );
+                    match func_type_ {
                         Some(t) => {
-                            if &type_ != t {
-                                todo!("return type mismatch");
-                            }
+                            // if &return_type != t {
+                            //     todo!("function return type mismatch");
+                            // }
                             self.emit_u8(op::RETURN, &range);
-                            return type_;
+                            return return_type;
                         }
                         None => {
-                            if type_ != Type::Nil {
+                            if return_type != Type::Nil {
                                 todo!("return type must be nil")
                             }
                             self.emit_u8(op::RETURN, &range);
-                            return type_;
+                            return return_type;
                         }
                     }
                 }
@@ -169,14 +235,27 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Type {
         let name = allocator.alloc(&func.name);
-        let arity = func.params.len() as u8;
+        let arity_count = func.params.len() as u8;
+        // let mut arity = Vec::new();
+        // for (param_string, param_type) in &func.params {
+        //     let param = Arity {
+        //         name: allocator.alloc(param_string),
+        //         type_: param_type.clone().unwrap(),
+        //     };
+        //     arity.push(param);
+        // }
         let cell = CompilerCell {
-            function: allocator.alloc(ObjectFunction::new(name, arity, func.return_type.clone())),
+            function: allocator.alloc(ObjectFunction::new(
+                name,
+                arity_count,
+                func.return_type.clone(),
+            )),
             type_: FunctionType::Function,
             globals: HashMap::default(),
             locals: Vec::new(),
             scope_depth: self.current_compiler.scope_depth + 1,
             parent: None,
+            upvalues: Vec::new(),
         };
         self.begin_cell(cell);
 
@@ -184,10 +263,10 @@ impl Compiler {
             FunctionType::Script => {
                 self.current_compiler
                     .globals
-                    .insert(func.name.clone(), Type::Object);
+                    .insert(func.name.clone(), Type::Fn);
             }
             FunctionType::Function => {
-                self.declare_local(&func.name, &Type::Object, &range);
+                self.declare_local(&func.name, &Type::Fn, &range);
             }
         }
         //TODO check param type
@@ -215,13 +294,22 @@ impl Compiler {
             self.emit_u8(op::RETURN, &range);
         }
 
-        let function = self.end_cell();
-        self.emit_u8(op::DEFINE_GLOBAL, &range);
+        let (function, upvalues) = self.end_cell();
+        unsafe { (*function).chunk.disassemble((*name).value) };
+        println!("cell end upvalues {:?}", upvalues);
+        self.emit_u8(op::CLOSURE, &range);
         self.write_constant(Value::Function(function), &range);
+        for upvalue in &upvalues {
+            self.emit_u8(upvalue.is_local.into(), &range);
+            self.emit_u8(upvalue.index, &range);
+        }
 
         // println!("{:?}", unsafe { (*function).chunk.disassemble(&func.name) });
 
-        return Type::UnInitialized;
+        match &func.return_type {
+            Some(t) => t.clone(),
+            None => Type::Nil,
+        }
     }
 
     fn begin_cell(&mut self, cell: CompilerCell) {
@@ -229,14 +317,14 @@ impl Compiler {
         self.current_compiler.parent = Some(Box::new(cell));
     }
 
-    fn end_cell(&mut self) -> *mut ObjectFunction {
+    fn end_cell(&mut self) -> (*mut ObjectFunction, Vec<Upvalue>) {
         let parent = self
             .current_compiler
             .parent
             .take()
             .expect("Compiler has no parent");
         let cell = mem::replace(&mut self.current_compiler, *parent);
-        cell.function
+        (cell.function, cell.upvalues)
     }
 
     fn compile_statement_for(
@@ -263,7 +351,7 @@ impl Compiler {
         self.compile_statement(&for_.body, allocator);
         if let Some(increment) = &for_.update {
             self.compile_expression(increment, allocator);
-            // self.emit_u8(op::POP, &range);
+            self.emit_u8(op::POP, &range);
         }
         self.emit_loop(loop_start, &range);
 
@@ -271,7 +359,7 @@ impl Compiler {
             self.patch_jump(exit_jump, &range);
             self.emit_u8(op::POP, &range);
         }
-        self.end_scope(range.clone(), allocator);
+        self.end_scope(range.clone());
         if let Some(compiled_type) = compiled_type {
             return compiled_type;
         }
@@ -346,7 +434,7 @@ impl Compiler {
         for statement in &block.statements {
             self.compile_statement(&statement, allocator);
         }
-        self.end_scope(range.clone(), allocator);
+        self.end_scope(range.clone());
         return Type::UnInitialized;
     }
 
@@ -423,6 +511,12 @@ impl Compiler {
         {
             self.emit_u8(op::SET_LOCAL, &range);
             self.write_constant(Value::Number(local_index.into()), &range);
+        } else if let Some(upvalue) = self
+            .current_compiler
+            .resolve_upvalue(&assign.lhs.name, &range)
+        {
+            self.emit_u8(op::SET_UPVALUE, &range);
+            self.write_constant(Value::Number(upvalue.into()), &range);
         } else {
             let name = allocator.alloc(&assign.lhs.name);
             self.emit_u8(op::SET_GLOBAL, &range);
@@ -481,24 +575,47 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Type {
         let name = &prefix.var.name;
+        // if self.current_compiler.type_ == FunctionType::Function {
+        //     let function_ = unsafe { &mut (*self.current_compiler.function) };
+        //     let arity = function_.arity.as_ref().unwrap();
+        //     for param in arity {
+        //         if unsafe { (*param.name).value } == name {
+        //             return param.type_.clone();
+        //         }
+        //     }
+        // }
         if let Some(local_index) = self
             .current_compiler
             .resolve_local(&prefix.var.name, &range)
         {
             self.emit_u8(op::GET_LOCAL, &range);
             self.write_constant(Value::Number(local_index.into()), &range);
-            self.current_compiler.locals[local_index as usize]
+            let expr_var_type = self.current_compiler.locals[local_index as usize]
                 .type_
-                .clone()
+                .clone();
+            println!(
+                "expr var type: {:?}, name: {:?}",
+                expr_var_type, &prefix.var.name
+            );
+            return expr_var_type;
+        } else if let Some(upvalue) = self.current_compiler.resolve_upvalue(name, &range) {
+            self.emit_u8(op::GET_UPVALUE, &range);
+            self.write_constant(Value::Number(upvalue.into()), &range);
+            Type::UnInitialized
         } else {
             let string = allocator.alloc(name);
             self.emit_u8(op::GET_GLOBAL, &range);
             self.write_constant(Value::String(string), &range);
             let type_ = self.current_compiler.globals.get(&*name);
-            return match type_ {
-                Some(t) => return t.clone(),
+            let expr_var_type = match type_ {
+                Some(t) => t.clone(),
                 None => Type::UnInitialized,
             };
+            println!(
+                "expr var type: {:?}, name: {:?}",
+                expr_var_type, &prefix.var.name
+            );
+            return expr_var_type;
         }
     }
 
@@ -530,13 +647,6 @@ impl Compiler {
         println!("lhs: {:?} rhs: {:?}", lhs_type, rhs_type);
         //if lhs_type: String rhs_type: String => concat string command will be called
         //if lhs_type: Int  rhs_type: Int  => add int command will be called
-        // let return_type = match (lhs_type, rhs_type) {
-        //     (Type::String, Type::String) => Type::String,
-        //     (Type::String, Type::Int) => Type::String,
-        //     (Type::Int, Type::String) => Type::String,
-        //     (Type::Int, Type::Int) => Type::Int,
-        //     _ => todo!("type mismatch"),
-        // };
         let return_type = lhs_type;
 
         // if lhs_type != rhs_type {
@@ -631,13 +741,13 @@ impl Compiler {
         self.current_compiler.scope_depth += 1;
     }
 
-    fn end_scope(&mut self, span: Range<usize>, allocator: &mut CeAllocation) {
+    fn end_scope(&mut self, span: Range<usize>) {
         self.current_compiler.scope_depth -= 1;
         while !self.current_compiler.locals.is_empty()
             && self.current_compiler.locals.last().unwrap().depth
                 > self.current_compiler.scope_depth
         {
-            let local = self.current_compiler.locals.pop().unwrap();
+            self.current_compiler.locals.pop();
             self.emit_u8(op::POP, &span);
         }
     }
