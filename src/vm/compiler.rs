@@ -1,5 +1,6 @@
 use std::{fmt::Display, hash::BuildHasherDefault, mem, ops::Range};
 
+use arrayvec::ArrayVec;
 use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
 
 use crate::{
@@ -54,7 +55,7 @@ pub struct CompilerCell {
     pub function: *mut ObjectFunction,
     type_: FunctionType,
     pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
-    locals: Vec<Local>,
+    locals: ArrayVec<Local, 256>,
     scope_depth: usize,
     parent: Option<Box<CompilerCell>>,
     upvalues: Vec<Upvalue>,
@@ -118,7 +119,7 @@ impl Compiler {
                 function: allocator.alloc(ObjectFunction::new(name, 0, None)),
                 type_: FunctionType::Script,
                 globals: HashMap::default(),
-                locals: Vec::new(),
+                locals: ArrayVec::new(),
                 scope_depth: 0,
                 parent: None,
                 upvalues: Vec::new(),
@@ -252,7 +253,7 @@ impl Compiler {
             )),
             type_: FunctionType::Function,
             globals: HashMap::default(),
-            locals: Vec::new(),
+            locals: ArrayVec::new(),
             scope_depth: self.current_compiler.scope_depth + 1,
             parent: None,
             upvalues: Vec::new(),
@@ -270,7 +271,11 @@ impl Compiler {
             }
         }
         //TODO check param type
+        let mut param_strings = Vec::new();
         for (param_string, param_type) in &func.params {
+            param_strings.push((param_string, param_type));
+        }
+        for (param_string, param_type) in param_strings.iter().rev() {
             match param_type {
                 Some(t) => match t {
                     Type::String | Type::Int => {
@@ -296,15 +301,12 @@ impl Compiler {
 
         let (function, upvalues) = self.end_cell();
         unsafe { (*function).chunk.disassemble((*name).value) };
-        println!("cell end upvalues {:?}", upvalues);
         self.emit_u8(op::CLOSURE, &range);
         self.write_constant(Value::Function(function), &range);
         for upvalue in &upvalues {
             self.emit_u8(upvalue.is_local.into(), &range);
             self.emit_u8(upvalue.index, &range);
         }
-
-        // println!("{:?}", unsafe { (*function).chunk.disassemble(&func.name) });
 
         match &func.return_type {
             Some(t) => t.clone(),
@@ -491,7 +493,7 @@ impl Compiler {
         //     todo!("Can only call functions and classes");
         // }
         for arg in &call.args {
-            self.compile_expression(&arg, allocator);
+            let arg_type = self.compile_expression(&arg, allocator);
         }
 
         self.emit_u8(op::CALL, &range);
@@ -663,6 +665,7 @@ impl Compiler {
                 return return_type;
             }
             OpInfix::Sub => {
+                self.emit_u8(op::SUB, &range);
                 return return_type;
             }
             OpInfix::Mul => {

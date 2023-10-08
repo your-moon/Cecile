@@ -25,14 +25,11 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-    fn fib(n: Int) -> Int {
-        if (n < 2) {
-            return n;
-        }
-        return fib(n - 1) + fib(n - 2);
+    fn sub(a: Int, b: Int) -> Int {
+        return a - b;
     }
-    let a = fib(2);
-    println a;
+    println sub(1, 2);
+
     "#;
     let lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {

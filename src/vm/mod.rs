@@ -284,6 +284,7 @@ impl<'a> VM<'a> {
 
     fn get_local(&mut self) {
         let stack_idx = self.read_constant();
+        println!("get local stack_idx: {:?}", stack_idx);
         match stack_idx {
             Value::Number(stack_idx) => {
                 let value = unsafe { *self.frame.stack.add(stack_idx as usize) };
@@ -297,19 +298,11 @@ impl<'a> VM<'a> {
         let stack_idx = self.read_constant();
         match stack_idx {
             Value::Number(stack_idx) => {
-                let value = self.pop();
-                unsafe { *self.frame.stack.add(stack_idx as usize) = value };
+                let value = self.peek(0);
+                unsafe { *self.frame.stack.add(stack_idx as usize) = *value };
             }
             _ => todo!(),
         }
-        // let stack_index = self.read_constant();
-        // match stack_index {
-        //     Value::Number(stack_index) => {
-        //         let value = self.pop_from_stack();
-        //         self.stack[stack_index as usize] = value;
-        //     }
-        //     _ => todo!(),
-        // }
     }
 
     fn set_global(&mut self) {
@@ -395,7 +388,7 @@ impl<'a> VM<'a> {
     fn read_u16(&mut self) -> u16 {
         let byte1 = self.read_u8();
         let byte2 = self.read_u8();
-        u16::from_le_bytes([byte1, byte2])
+        (byte1 as u16) << 8 | (byte2 as u16)
     }
 
     fn modulo(&mut self) {
