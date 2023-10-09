@@ -195,37 +195,45 @@ impl Compiler {
             FunctionType::Script => {
                 todo!("Can't return from top-level code");
             }
-            FunctionType::Function => match &return_.value {
-                Some(value) => {
-                    let return_type = self.compile_expression(value, allocator);
-                    let func_type_ = unsafe { &(*self.current_compiler.function).return_type };
-                    println!(
-                        "return type: {:?} func_return_type:{:?}",
-                        return_type, func_type_
-                    );
-                    match func_type_ {
-                        Some(t) => {
-                            // if &return_type != t {
-                            //     todo!("function return type mismatch");
-                            // }
-                            self.emit_u8(op::RETURN, &range);
-                            return return_type;
-                        }
-                        None => {
-                            if return_type != Type::Nil {
-                                todo!("return type must be nil")
+            FunctionType::Function => {
+                let func_type_ = unsafe { &(*self.current_compiler.function).return_type };
+                match &return_.value {
+                    Some(value) => {
+                        let return_type = self.compile_expression(value, allocator);
+                        println!(
+                            "return type: {:?} func_return_type:{:?}",
+                            return_type, func_type_
+                        );
+                        match func_type_ {
+                            Some(t) => {
+                                if &return_type != t {
+                                    todo!("function return type mismatch");
+                                }
+                                self.emit_u8(op::RETURN, &range);
+                                return return_type;
                             }
-                            self.emit_u8(op::RETURN, &range);
-                            return return_type;
+                            None => {
+                                if return_type != Type::Nil {
+                                    todo!("return type must be nil")
+                                }
+                                self.emit_u8(op::RETURN, &range);
+                                return return_type;
+                            }
                         }
                     }
+                    None => {
+                        match func_type_ {
+                            Some(t) => {
+                                todo!("function return type mismatch type must be {t}");
+                            }
+                            _ => todo!("unreachable case"),
+                        }
+                        self.emit_u8(op::NIL, &range);
+                        self.emit_u8(op::RETURN, &range);
+                        return Type::UnInitialized;
+                    }
                 }
-                None => {
-                    self.emit_u8(op::NIL, &range);
-                    self.emit_u8(op::RETURN, &range);
-                    return Type::UnInitialized;
-                }
-            },
+            }
         }
     }
 
@@ -295,8 +303,8 @@ impl Compiler {
         }
 
         if unsafe { (*self.current_compiler.function).chunk.code.last().unwrap() } != &op::RETURN {
-            self.emit_u8(op::NIL, &range);
-            self.emit_u8(op::RETURN, &range);
+            let stmt = (Statement::Return(StatementReturn { value: None }), 0..0);
+            self.compile_statement(&stmt, allocator);
         }
 
         let (function, upvalues) = self.end_cell();

@@ -25,11 +25,7 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-    fn sub(a: Int, b: Int) -> Int {
-        return a - b;
-    }
-    println sub(1, 2);
-
+    println "Hello, World!";
     "#;
     let lexer = Lexer::new(input).map(|token| match token {
         Ok((l, token, r)) => {

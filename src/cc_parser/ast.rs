@@ -227,3 +227,18 @@ pub enum Type {
     #[default]
     UnInitialized,
 }
+
+impl Display for Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let type_ = match self {
+            Type::Fn => "fn",
+            Type::Nil => "nil",
+            Type::String => "String",
+            Type::Bool => "Bool",
+            Type::Int => "Int",
+            Type::Object => "Object",
+            Type::UnInitialized => "Uninitialized",
+        };
+        write!(f, "{type_}")
+    }
+}
