@@ -216,9 +216,14 @@ pub struct Var {
     pub type_: Option<Type>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct Fn {
+    pub return_type: Box<Option<Type>>,
+}
+
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Type {
-    Fn,
+    Fn(Fn),
     Nil,
     String,
     Bool,
@@ -228,16 +233,32 @@ pub enum Type {
     UnInitialized,
 }
 
+impl Type {
+    pub fn as_fn(&self) -> Option<Fn> {
+        match self {
+            Type::Fn(fn_) => Some(fn_.clone()),
+            _ => None,
+        }
+    }
+    pub fn is_fn(&self) -> bool {
+        self.as_fn().is_some()
+    }
+
+    pub fn is_both_fn(&self, other: &Type) -> bool {
+        self.is_fn() && other.is_fn()
+    }
+}
+
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let type_ = match self {
-            Type::Fn => "fn",
-            Type::Nil => "nil",
-            Type::String => "String",
-            Type::Bool => "Bool",
-            Type::Int => "Int",
-            Type::Object => "Object",
-            Type::UnInitialized => "Uninitialized",
+            Type::Fn(fn_) => format!("Fn({:?})", fn_.return_type),
+            Type::Nil => "Nil".to_string(),
+            Type::String => "String".to_string(),
+            Type::Bool => "Bool".to_string(),
+            Type::Int => "Int".to_string(),
+            Type::Object => "Object".to_string(),
+            Type::UnInitialized => "UnInitialized".to_string(),
         };
         write!(f, "{type_}")
     }

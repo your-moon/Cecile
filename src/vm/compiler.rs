@@ -7,10 +7,10 @@ use crate::{
     allocator::allocation::CeAllocation,
     cc_parser::{
         ast::{
-            ExprAssign, ExprCall, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix,
-            OpPrefix, Program, Span, Statement, StatementBlock, StatementExpr, StatementFor,
-            StatementFun, StatementIf, StatementPrint, StatementPrintLn, StatementReturn,
-            StatementVar, StatementWhile, Type,
+            ExprAssign, ExprCall, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, Fn,
+            OpInfix, OpPrefix, Program, Span, Statement, StatementBlock, StatementExpr,
+            StatementFor, StatementFun, StatementIf, StatementPrint, StatementPrintLn,
+            StatementReturn, StatementVar, StatementWhile, Type,
         },
         parse,
     },
@@ -185,13 +185,22 @@ impl Compiler {
                 // println!("compiled func return type: {:?}", func_type);
                 if self.is_global() {
                     let name = allocator.alloc(&func.name);
-                    self.current_compiler
-                        .globals
-                        .insert(func.name.clone(), Type::Fn);
+                    self.current_compiler.globals.insert(
+                        func.name.clone(),
+                        Type::Fn(Fn {
+                            return_type: Box::new(func.return_type.clone()),
+                        }),
+                    );
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
                     self.write_constant(Value::String(name), &range);
                 } else {
-                    self.declare_local(&func.name, &Type::Fn, &range);
+                    self.declare_local(
+                        &func.name,
+                        &Type::Fn(Fn {
+                            return_type: Box::new(func.return_type.clone()),
+                        }),
+                        &range,
+                    );
                 }
                 return (func_type, Ok(()));
             }
@@ -229,7 +238,13 @@ impl Compiler {
                         );
                         match func_type_ {
                             Some(t) => {
-                                if &return_type != t {
+                                //if function that return function else check return type and
+                                //function's return type
+                                if return_type.is_both_fn(t) {
+                                    self.emit_u8(op::RETURN, &range);
+                                    return (return_type, Ok(()));
+                                } else if &return_type != t {
+                                    println!("return type = {return_type}");
                                     let result = Err((
                                         Error::TypeError(TypeError::ReturnTypeMismatch {
                                             expected: t.to_string(),
@@ -312,12 +327,21 @@ impl Compiler {
 
         match type_ {
             FunctionType::Script => {
-                self.current_compiler
-                    .globals
-                    .insert(func.name.clone(), Type::Fn);
+                self.current_compiler.globals.insert(
+                    func.name.clone(),
+                    Type::Fn(Fn {
+                        return_type: Box::new(func.return_type.clone()),
+                    }),
+                );
             }
             FunctionType::Function => {
-                self.declare_local(&func.name, &Type::Fn, &range);
+                self.declare_local(
+                    &func.name,
+                    &Type::Fn(Fn {
+                        return_type: Box::new(func.return_type.clone()),
+                    }),
+                    &range,
+                );
             }
         }
         //TODO check param type
@@ -341,10 +365,14 @@ impl Compiler {
         }
 
         for statement in &func.body.statements {
-            self.compile_statement(&statement, allocator);
+            let (stmt_type, result) = self.compile_statement(&statement, allocator);
+            if let Err(e) = result {
+                return (stmt_type, Err(e));
+            }
         }
 
         if unsafe { (*self.current_compiler.function).chunk.code.last().unwrap() } != &op::RETURN {
+            println!("COMES FROM HERE");
             let stmt = (
                 Statement::Return(StatementReturn { value: None }),
                 range.clone(),
@@ -595,6 +623,19 @@ impl Compiler {
             todo!("Too many arguments, Can't call more than 255 arguments");
         }
         let (callee_type, result) = self.compile_expression(&call.callee, allocator);
+        let callee_type = if callee_type.is_fn() {
+            let mut callee_type = callee_type.as_fn().unwrap();
+            let callee_type = callee_type.return_type.as_mut().clone();
+            let callee_type = match callee_type {
+                Some(type_) => type_,
+                None => Type::Nil,
+            };
+            callee_type
+        } else {
+            callee_type
+        };
+
+        println!("callee type: {:?}", callee_type);
         if let Err(e) = result {
             return (callee_type, Err(e));
         }
@@ -744,10 +785,10 @@ impl Compiler {
                 Some(t) => t.clone(),
                 None => Type::UnInitialized,
             };
-            println!(
-                "expr var type: {:?}, name: {:?}",
-                expr_var_type, &prefix.var.name
-            );
+            // println!(
+            //     "expr var type: {:?}, name: {:?}",
+            //     expr_var_type, &prefix.var.name
+            // );
             return (expr_var_type, Ok(()));
         }
     }
@@ -794,7 +835,7 @@ impl Compiler {
             return (rhs_type, Err(e));
         }
 
-        println!("lhs: {:?} rhs: {:?}", lhs_type, rhs_type);
+        // println!("lhs: {:?} rhs: {:?}", lhs_type, rhs_type);
         //if lhs_type: String rhs_type: String => concat string command will be called
         //if lhs_type: Int  rhs_type: Int  => add int command will be called
         let return_type = lhs_type;

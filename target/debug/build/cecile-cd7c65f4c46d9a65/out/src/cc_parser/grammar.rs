@@ -1,11 +1,12 @@
 // auto-generated: "lalrpop 0.20.0"
-// sha3: 1ddb9987400881d46dbbbae9d50e0e85c79255ac323a8e4757ceed52ed26ce5b
+// sha3: adcc1f60ca6c9fca6c7cc358bcf7383917632ae8f4f795b7517bf80da336ceda
 use crate::cc_lexer;
 use crate::vm::error::ErrorS;
 use crate::cc_lexer::Token;
 use crate::cc_parser::ast::Expression;
 use crate::cc_parser::ast;
 use hashbrown::HashMap;
+use crate::cc_parser::ast::Fn;
 use lalrpop_util::ParseError;
 #[allow(unused_extern_crates)]
 extern crate lalrpop_util as __lalrpop_util;
@@ -24,6 +25,7 @@ mod __parse__OpPrefix {
     use crate::cc_parser::ast::Expression;
     use crate::cc_parser::ast;
     use hashbrown::HashMap;
+    use crate::cc_parser::ast::Fn;
     use lalrpop_util::ParseError;
     #[allow(unused_extern_crates)]
     extern crate lalrpop_util as __lalrpop_util;
@@ -5090,6 +5092,7 @@ mod __parse__Program {
     use crate::cc_parser::ast::Expression;
     use crate::cc_parser::ast;
     use hashbrown::HashMap;
+    use crate::cc_parser::ast::Fn;
     use lalrpop_util::ParseError;
     #[allow(unused_extern_crates)]
     extern crate lalrpop_util as __lalrpop_util;
@@ -12220,7 +12223,7 @@ fn __action84<
     (_, __0, _): (usize, Token, usize),
 ) -> ast::Type
 {
-    ast::Type::Fn
+    ast::Type::Fn(ast::Fn { return_type: Box::new(None) })
 }
 
 #[allow(unused_variables)]

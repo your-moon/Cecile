@@ -30,7 +30,15 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-    return 1;
+    fn add(a: Int, b: Int) -> Int {
+        fn g(a: Int, b: Int) -> Int {
+            return a + b;
+        }
+        return g(a, b);
+    }
+    let a = add(1, 2);
+    print a;
+
     "#;
     let mut allocator = CeAllocation::new();
     let mut vm = vm::VM::new(&mut allocator);
