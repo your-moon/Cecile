@@ -10,6 +10,8 @@ pub type ErrorS = Spanned<Error>;
 pub enum Error {
     #[error("invalid input")]
     SyntaxError(SyntaxError),
+    #[error("TypeError: {0}")]
+    TypeError(TypeError),
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]
@@ -39,6 +41,22 @@ pub enum SyntaxError {
     },
     #[error("unterminated string")]
     UnterminatedString,
+}
+
+#[derive(Debug, Error, Eq, PartialEq)]
+pub enum TypeError {
+    #[error("unsupported operand type for {op}: {rt_type:?}")]
+    UnsupportedOperandPrefix { op: String, rt_type: String },
+    #[error("loop must be boolean")]
+    LoopMustBeBoolean,
+    #[error("if must be boolean")]
+    IfMustBeBoolean,
+
+    #[error("return type must be nil")]
+    ReturnTypeMustBeNil,
+
+    #[error("return type must be {expected:?}, got {actual:?}")]
+    ReturnTypeMismatch { expected: String, actual: String },
 }
 
 //

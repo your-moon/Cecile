@@ -30,8 +30,7 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-    lt a;
-    lt x;
+    return 1;
     "#;
     let mut allocator = CeAllocation::new();
     let mut vm = vm::VM::new(&mut allocator);
