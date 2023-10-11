@@ -1,11 +1,12 @@
 // auto-generated: "lalrpop 0.20.0"
-// sha3: 6d2455993733489e35f6b76a9e51e99834338f6f01b512391a4eb2ef61939ceb
+// sha3: 1ddb9987400881d46dbbbae9d50e0e85c79255ac323a8e4757ceed52ed26ce5b
 use crate::cc_lexer;
-use crate::cc_lexer::LexicalError;
+use crate::vm::error::ErrorS;
 use crate::cc_lexer::Token;
 use crate::cc_parser::ast::Expression;
 use crate::cc_parser::ast;
 use hashbrown::HashMap;
+use lalrpop_util::ParseError;
 #[allow(unused_extern_crates)]
 extern crate lalrpop_util as __lalrpop_util;
 #[allow(unused_imports)]
@@ -18,11 +19,12 @@ extern crate alloc;
 mod __parse__OpPrefix {
 
     use crate::cc_lexer;
-    use crate::cc_lexer::LexicalError;
+    use crate::vm::error::ErrorS;
     use crate::cc_lexer::Token;
     use crate::cc_parser::ast::Expression;
     use crate::cc_parser::ast;
     use hashbrown::HashMap;
+    use lalrpop_util::ParseError;
     #[allow(unused_extern_crates)]
     extern crate lalrpop_util as __lalrpop_util;
     #[allow(unused_imports)]
@@ -146,29 +148,31 @@ mod __parse__OpPrefix {
         }).collect()
     }
     fn __expected_tokens_from_states<
+        'err,
     >(
         __states: &[i16],
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> alloc::vec::Vec<alloc::string::String>
     {
         __TERMINAL.iter().enumerate().filter_map(|(index, terminal)| {
-            if __accepts(None, __states, Some(index), core::marker::PhantomData::<()>) {
+            if __accepts(None, __states, Some(index), core::marker::PhantomData::<(&())>) {
                 Some(alloc::string::ToString::to_string(terminal))
             } else {
                 None
             }
         }).collect()
     }
-    pub(crate) struct __StateMachine<>
+    pub(crate) struct __StateMachine<'err>
     where 
     {
-        __phantom: core::marker::PhantomData<()>,
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
+        __phantom: core::marker::PhantomData<(&'err ())>,
     }
-    impl<> __state_machine::ParserDefinition for __StateMachine<>
+    impl<'err> __state_machine::ParserDefinition for __StateMachine<'err>
     where 
     {
         type Location = usize;
-        type Error = LexicalError;
+        type Error = ErrorS;
         type Token = Token;
         type TokenIndex = usize;
         type Symbol = __Symbol<>;
@@ -190,7 +194,7 @@ mod __parse__OpPrefix {
 
         #[inline]
         fn token_to_index(&self, token: &Self::Token) -> Option<usize> {
-            __token_to_integer(token, core::marker::PhantomData::<()>)
+            __token_to_integer(token, core::marker::PhantomData::<(&())>)
         }
 
         #[inline]
@@ -214,7 +218,7 @@ mod __parse__OpPrefix {
         }
 
         fn token_to_symbol(&self, token_index: usize, token: Self::Token) -> Self::Symbol {
-            __token_to_symbol(token_index, token, core::marker::PhantomData::<()>)
+            __token_to_symbol(token_index, token, core::marker::PhantomData::<(&())>)
         }
 
         fn expected_tokens(&self, state: i16) -> alloc::vec::Vec<alloc::string::String> {
@@ -222,7 +226,7 @@ mod __parse__OpPrefix {
         }
 
         fn expected_tokens_from_states(&self, states: &[i16]) -> alloc::vec::Vec<alloc::string::String> {
-            __expected_tokens_from_states(states, core::marker::PhantomData::<()>)
+            __expected_tokens_from_states(states, core::marker::PhantomData::<(&())>)
         }
 
         #[inline]
@@ -246,22 +250,24 @@ mod __parse__OpPrefix {
             symbols: &mut alloc::vec::Vec<__state_machine::SymbolTriple<Self>>,
         ) -> Option<__state_machine::ParseResult<Self>> {
             __reduce(
+                self.errors,
                 action,
                 start_location,
                 states,
                 symbols,
-                core::marker::PhantomData::<()>,
+                core::marker::PhantomData::<(&())>,
             )
         }
 
         fn simulate_reduce(&self, action: i16) -> __state_machine::SimulatedReduce<Self> {
-            __simulate_reduce(action, core::marker::PhantomData::<()>)
+            __simulate_reduce(action, core::marker::PhantomData::<(&())>)
         }
     }
     fn __token_to_integer<
+        'err,
     >(
         __token: &Token,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> Option<usize>
     {
         match *__token {
@@ -311,10 +317,11 @@ mod __parse__OpPrefix {
         }
     }
     fn __token_to_symbol<
+        'err,
     >(
         __token_index: usize,
         __token: Token,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> __Symbol<>
     {
         match __token_index {
@@ -331,10 +338,11 @@ mod __parse__OpPrefix {
         }
     }
     fn __simulate_reduce<
+        'err,
     >(
         __reduce_index: i16,
-        _: core::marker::PhantomData<()>,
-    ) -> __state_machine::SimulatedReduce<__StateMachine<>>
+        _: core::marker::PhantomData<(&'err ())>,
+    ) -> __state_machine::SimulatedReduce<__StateMachine<'err>>
     {
         match __reduce_index {
             0 => {
@@ -1320,29 +1328,33 @@ mod __parse__OpPrefix {
 
         #[allow(dead_code)]
         pub fn parse<
-            __TOKEN: __ToTriple<>,
+            'err,
+            __TOKEN: __ToTriple<'err, >,
             __TOKENS: IntoIterator<Item=__TOKEN>,
         >(
             &self,
+            errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
             __tokens0: __TOKENS,
-        ) -> Result<ast::OpPrefix, __lalrpop_util::ParseError<usize, Token, LexicalError>>
+        ) -> Result<ast::OpPrefix, __lalrpop_util::ParseError<usize, Token, ErrorS>>
         {
             let __tokens = __tokens0.into_iter();
             let mut __tokens = __tokens.map(|t| __ToTriple::to_triple(t));
             __state_machine::Parser::drive(
                 __StateMachine {
-                    __phantom: core::marker::PhantomData::<()>,
+                    errors,
+                    __phantom: core::marker::PhantomData::<(&())>,
                 },
                 __tokens,
             )
         }
     }
     fn __accepts<
+        'err,
     >(
         __error_state: Option<i16>,
         __states: &[i16],
         __opt_integer: Option<usize>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> bool
     {
         let mut __states = __states.to_vec();
@@ -1356,7 +1368,7 @@ mod __parse__OpPrefix {
             };
             if __action == 0 { return false; }
             if __action > 0 { return true; }
-            let (__to_pop, __nt) = match __simulate_reduce(-(__action + 1), core::marker::PhantomData::<()>) {
+            let (__to_pop, __nt) = match __simulate_reduce(-(__action + 1), core::marker::PhantomData::<(&())>) {
                 __state_machine::SimulatedReduce::Reduce {
                     states_to_pop, nonterminal_produced
                 } => (states_to_pop, nonterminal_produced),
@@ -1370,505 +1382,507 @@ mod __parse__OpPrefix {
         }
     }
     pub(crate) fn __reduce<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __action: i16,
         __lookahead_start: Option<&usize>,
         __states: &mut alloc::vec::Vec<i16>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
-    ) -> Option<Result<ast::OpPrefix,__lalrpop_util::ParseError<usize, Token, LexicalError>>>
+        _: core::marker::PhantomData<(&'err ())>,
+    ) -> Option<Result<ast::OpPrefix,__lalrpop_util::ParseError<usize, Token, ErrorS>>>
     {
         let (__pop_states, __nonterminal) = match __action {
             0 => {
-                __reduce0(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce0(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             1 => {
-                __reduce1(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce1(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             2 => {
-                __reduce2(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce2(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             3 => {
-                __reduce3(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce3(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             4 => {
-                __reduce4(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce4(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             5 => {
-                __reduce5(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce5(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             6 => {
-                __reduce6(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce6(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             7 => {
-                __reduce7(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce7(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             8 => {
-                __reduce8(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce8(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             9 => {
-                __reduce9(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce9(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             10 => {
-                __reduce10(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce10(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             11 => {
-                __reduce11(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce11(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             12 => {
-                __reduce12(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce12(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             13 => {
-                __reduce13(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce13(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             14 => {
-                __reduce14(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce14(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             15 => {
-                __reduce15(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce15(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             16 => {
-                __reduce16(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce16(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             17 => {
-                __reduce17(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce17(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             18 => {
-                __reduce18(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce18(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             19 => {
-                __reduce19(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce19(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             20 => {
-                __reduce20(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce20(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             21 => {
-                __reduce21(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce21(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             22 => {
-                __reduce22(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce22(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             23 => {
-                __reduce23(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce23(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             24 => {
-                __reduce24(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce24(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             25 => {
-                __reduce25(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce25(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             26 => {
-                __reduce26(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce26(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             27 => {
-                __reduce27(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce27(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             28 => {
-                __reduce28(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce28(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             29 => {
-                __reduce29(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce29(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             30 => {
-                __reduce30(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce30(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             31 => {
-                __reduce31(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce31(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             32 => {
-                __reduce32(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce32(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             33 => {
-                __reduce33(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce33(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             34 => {
-                __reduce34(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce34(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             35 => {
-                __reduce35(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce35(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             36 => {
-                __reduce36(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce36(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             37 => {
-                __reduce37(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce37(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             38 => {
-                __reduce38(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce38(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             39 => {
-                __reduce39(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce39(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             40 => {
-                __reduce40(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce40(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             41 => {
-                __reduce41(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce41(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             42 => {
-                __reduce42(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce42(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             43 => {
-                __reduce43(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce43(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             44 => {
-                __reduce44(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce44(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             45 => {
-                __reduce45(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce45(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             46 => {
-                __reduce46(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce46(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             47 => {
-                __reduce47(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce47(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             48 => {
-                __reduce48(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce48(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             49 => {
-                __reduce49(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce49(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             50 => {
-                __reduce50(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce50(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             51 => {
-                __reduce51(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce51(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             52 => {
-                __reduce52(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce52(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             53 => {
-                __reduce53(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce53(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             54 => {
-                __reduce54(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce54(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             55 => {
-                __reduce55(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce55(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             56 => {
-                __reduce56(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce56(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             57 => {
-                __reduce57(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce57(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             58 => {
-                __reduce58(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce58(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             59 => {
-                __reduce59(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce59(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             60 => {
-                __reduce60(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce60(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             61 => {
-                __reduce61(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce61(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             62 => {
-                __reduce62(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce62(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             63 => {
-                __reduce63(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce63(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             64 => {
-                __reduce64(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce64(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             65 => {
-                __reduce65(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce65(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             66 => {
-                __reduce66(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce66(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             67 => {
-                __reduce67(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce67(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             68 => {
-                __reduce68(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce68(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             69 => {
-                __reduce69(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce69(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             70 => {
-                __reduce70(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce70(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             71 => {
-                __reduce71(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce71(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             72 => {
-                __reduce72(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce72(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             73 => {
-                __reduce73(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce73(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             74 => {
-                __reduce74(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce74(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             75 => {
-                __reduce75(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce75(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             76 => {
-                __reduce76(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce76(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             77 => {
-                __reduce77(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce77(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             78 => {
-                __reduce78(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce78(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             79 => {
-                __reduce79(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce79(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             80 => {
-                __reduce80(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce80(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             81 => {
-                __reduce81(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce81(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             82 => {
-                __reduce82(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce82(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             83 => {
-                __reduce83(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce83(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             84 => {
-                __reduce84(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce84(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             85 => {
-                __reduce85(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce85(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             86 => {
-                __reduce86(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce86(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             87 => {
-                __reduce87(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce87(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             88 => {
-                __reduce88(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce88(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             89 => {
-                __reduce89(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce89(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             90 => {
-                __reduce90(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce90(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             91 => {
-                __reduce91(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce91(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             92 => {
-                __reduce92(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce92(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             93 => {
-                __reduce93(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce93(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             94 => {
-                __reduce94(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce94(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             95 => {
-                __reduce95(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce95(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             96 => {
-                __reduce96(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce96(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             97 => {
-                __reduce97(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce97(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             98 => {
-                __reduce98(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce98(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             99 => {
-                __reduce99(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce99(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             100 => {
-                __reduce100(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce100(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             101 => {
-                __reduce101(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce101(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             102 => {
-                __reduce102(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce102(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             103 => {
-                __reduce103(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce103(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             104 => {
-                __reduce104(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce104(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             105 => {
-                __reduce105(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce105(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             106 => {
-                __reduce106(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce106(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             107 => {
-                __reduce107(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce107(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             108 => {
-                __reduce108(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce108(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             109 => {
-                __reduce109(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce109(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             110 => {
-                __reduce110(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce110(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             111 => {
-                __reduce111(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce111(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             112 => {
-                __reduce112(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce112(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             113 => {
-                __reduce113(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce113(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             114 => {
-                __reduce114(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce114(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             115 => {
-                __reduce115(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce115(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             116 => {
-                __reduce116(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce116(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             117 => {
-                __reduce117(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce117(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             118 => {
-                __reduce118(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce118(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             119 => {
-                __reduce119(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce119(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             120 => {
-                __reduce120(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce120(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             121 => {
-                __reduce121(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce121(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             122 => {
-                __reduce122(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce122(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             123 => {
-                __reduce123(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce123(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             124 => {
-                __reduce124(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce124(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             125 => {
-                __reduce125(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce125(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             126 => {
-                __reduce126(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce126(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             127 => {
-                __reduce127(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce127(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             128 => {
-                __reduce128(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce128(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             129 => {
-                __reduce129(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce129(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             130 => {
-                __reduce130(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce130(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             131 => {
-                __reduce131(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce131(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             132 => {
-                __reduce132(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce132(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             133 => {
-                __reduce133(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce133(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             134 => {
-                __reduce134(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce134(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             135 => {
-                __reduce135(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce135(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             136 => {
-                __reduce136(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce136(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             137 => {
-                __reduce137(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce137(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             138 => {
-                __reduce138(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce138(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             139 => {
-                __reduce139(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce139(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             140 => {
-                __reduce140(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce140(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             141 => {
-                __reduce141(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce141(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             142 => {
-                __reduce142(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce142(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             143 => {
-                __reduce143(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce143(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             144 => {
-                __reduce144(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce144(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             145 => {
-                __reduce145(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce145(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             146 => {
-                __reduce146(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce146(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             147 => {
-                __reduce147(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce147(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             148 => {
-                __reduce148(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce148(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             149 => {
-                __reduce149(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce149(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             150 => {
-                __reduce150(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce150(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             151 => {
-                __reduce151(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce151(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             152 => {
-                __reduce152(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce152(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             153 => {
-                __reduce153(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce153(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             154 => {
-                __reduce154(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce154(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             155 => {
-                __reduce155(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce155(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             156 => {
-                __reduce156(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce156(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             157 => {
-                __reduce157(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce157(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             158 => {
-                __reduce158(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce158(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             159 => {
-                __reduce159(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce159(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             160 => {
                 // __OpPrefix = OpPrefix => ActionFn(1);
                 let __sym0 = __pop_Variant23(__symbols);
                 let __start = __sym0.0;
                 let __end = __sym0.2;
-                let __nt = super::__action1::<>(__sym0);
+                let __nt = super::__action1::<>(errors, __sym0);
                 return Some(Ok(__nt));
             }
             161 => {
-                __reduce161(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce161(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             _ => panic!("invalid action code {}", __action)
         };
@@ -2164,39 +2178,45 @@ mod __parse__OpPrefix {
         }
     }
     pub(crate) fn __reduce0<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ","? = "," => ActionFn(123);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action123::<>(__sym0);
+        let __nt = super::__action123::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant3(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce1<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ","? =  => ActionFn(124);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action124::<>(&__start, &__end);
+        let __nt = super::__action124::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant3(__nt), __end));
         (0, 0)
     }
     pub(crate) fn __reduce2<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>) = ",", ExprS => ActionFn(88);
@@ -2205,44 +2225,50 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action88::<>(__sym0, __sym1);
+        let __nt = super::__action88::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (2, 1)
     }
     pub(crate) fn __reduce3<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>)* =  => ActionFn(86);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action86::<>(&__start, &__end);
+        let __nt = super::__action86::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (0, 2)
     }
     pub(crate) fn __reduce4<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>)* = ("," <ExprS>)+ => ActionFn(87);
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action87::<>(__sym0);
+        let __nt = super::__action87::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 2)
     }
     pub(crate) fn __reduce5<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>)+ = ",", ExprS => ActionFn(150);
@@ -2251,15 +2277,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action150::<>(__sym0, __sym1);
+        let __nt = super::__action150::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (2, 3)
     }
     pub(crate) fn __reduce6<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>)+ = ("," <ExprS>)+, ",", ExprS => ActionFn(151);
@@ -2269,15 +2297,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action151::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action151::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (3, 3)
     }
     pub(crate) fn __reduce7<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>) = ",", Param => ActionFn(91);
@@ -2286,44 +2316,50 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action91::<>(__sym0, __sym1);
+        let __nt = super::__action91::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant6(__nt), __end));
         (2, 4)
     }
     pub(crate) fn __reduce8<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>)* =  => ActionFn(89);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action89::<>(&__start, &__end);
+        let __nt = super::__action89::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant7(__nt), __end));
         (0, 5)
     }
     pub(crate) fn __reduce9<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>)* = ("," <Param>)+ => ActionFn(90);
         let __sym0 = __pop_Variant7(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action90::<>(__sym0);
+        let __nt = super::__action90::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant7(__nt), __end));
         (1, 5)
     }
     pub(crate) fn __reduce10<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>)+ = ",", Param => ActionFn(154);
@@ -2332,15 +2368,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action154::<>(__sym0, __sym1);
+        let __nt = super::__action154::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant7(__nt), __end));
         (2, 6)
     }
     pub(crate) fn __reduce11<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>)+ = ("," <Param>)+, ",", Param => ActionFn(155);
@@ -2350,15 +2388,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant7(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action155::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action155::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant7(__nt), __end));
         (3, 6)
     }
     pub(crate) fn __reduce12<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("->" <Types>) = "->", Types => ActionFn(94);
@@ -2367,15 +2407,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action94::<>(__sym0, __sym1);
+        let __nt = super::__action94::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (2, 7)
     }
     pub(crate) fn __reduce13<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("->" <Types>)? = "->", Types => ActionFn(158);
@@ -2384,29 +2426,33 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action158::<>(__sym0, __sym1);
+        let __nt = super::__action158::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant9(__nt), __end));
         (2, 8)
     }
     pub(crate) fn __reduce14<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("->" <Types>)? =  => ActionFn(93);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action93::<>(&__start, &__end);
+        let __nt = super::__action93::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant9(__nt), __end));
         (0, 8)
     }
     pub(crate) fn __reduce15<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (":" <Types>) = ":", Types => ActionFn(122);
@@ -2415,15 +2461,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action122::<>(__sym0, __sym1);
+        let __nt = super::__action122::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (2, 9)
     }
     pub(crate) fn __reduce16<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (":" <Types>)? = ":", Types => ActionFn(161);
@@ -2432,29 +2480,33 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action161::<>(__sym0, __sym1);
+        let __nt = super::__action161::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant9(__nt), __end));
         (2, 10)
     }
     pub(crate) fn __reduce17<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (":" <Types>)? =  => ActionFn(121);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action121::<>(&__start, &__end);
+        let __nt = super::__action121::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant9(__nt), __end));
         (0, 10)
     }
     pub(crate) fn __reduce18<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("=" <ExprS>) = "=", ExprS => ActionFn(119);
@@ -2463,15 +2515,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action119::<>(__sym0, __sym1);
+        let __nt = super::__action119::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (2, 11)
     }
     pub(crate) fn __reduce19<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("=" <ExprS>)? = "=", ExprS => ActionFn(166);
@@ -2480,102 +2534,116 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action166::<>(__sym0, __sym1);
+        let __nt = super::__action166::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (2, 12)
     }
     pub(crate) fn __reduce20<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("=" <ExprS>)? =  => ActionFn(118);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action118::<>(&__start, &__end);
+        let __nt = super::__action118::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (0, 12)
     }
     pub(crate) fn __reduce21<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // () =  => ActionFn(125);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action125::<>(&__start, &__end);
+        let __nt = super::__action125::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant11(__nt), __end));
         (0, 13)
     }
     pub(crate) fn __reduce22<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>) = SingleField => ActionFn(128);
         let __sym0 = __pop_Variant12(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action128::<>(__sym0);
+        let __nt = super::__action128::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant12(__nt), __end));
         (1, 14)
     }
     pub(crate) fn __reduce23<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>)* =  => ActionFn(126);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action126::<>(&__start, &__end);
+        let __nt = super::__action126::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant13(__nt), __end));
         (0, 15)
     }
     pub(crate) fn __reduce24<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>)* = (<SingleField>)+ => ActionFn(127);
         let __sym0 = __pop_Variant13(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action127::<>(__sym0);
+        let __nt = super::__action127::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant13(__nt), __end));
         (1, 15)
     }
     pub(crate) fn __reduce25<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>)+ = SingleField => ActionFn(174);
         let __sym0 = __pop_Variant12(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action174::<>(__sym0);
+        let __nt = super::__action174::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant13(__nt), __end));
         (1, 16)
     }
     pub(crate) fn __reduce26<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>)+ = (<SingleField>)+, SingleField => ActionFn(175);
@@ -2584,58 +2652,66 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant13(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action175::<>(__sym0, __sym1);
+        let __nt = super::__action175::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant13(__nt), __end));
         (2, 16)
     }
     pub(crate) fn __reduce27<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // @L =  => ActionFn(143);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action143::<>(&__start, &__end);
+        let __nt = super::__action143::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant14(__nt), __end));
         (0, 17)
     }
     pub(crate) fn __reduce28<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // @R =  => ActionFn(142);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action142::<>(&__start, &__end);
+        let __nt = super::__action142::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant14(__nt), __end));
         (0, 18)
     }
     pub(crate) fn __reduce29<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Args = ExprS => ActionFn(152);
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action152::<>(__sym0);
+        let __nt = super::__action152::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant15(__nt), __end));
         (1, 19)
     }
     pub(crate) fn __reduce30<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Args = ExprS, ("," <ExprS>)+ => ActionFn(153);
@@ -2644,89 +2720,101 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action153::<>(__sym0, __sym1);
+        let __nt = super::__action153::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant15(__nt), __end));
         (2, 19)
     }
     pub(crate) fn __reduce31<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Args =  => ActionFn(171);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action171::<>(&__start, &__end);
+        let __nt = super::__action171::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant15(__nt), __end));
         (0, 19)
     }
     pub(crate) fn __reduce32<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Decl = Stmt => ActionFn(4);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action4::<>(__sym0);
+        let __nt = super::__action4::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 20)
     }
     pub(crate) fn __reduce33<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Decl = DeclVar => ActionFn(5);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action5::<>(__sym0);
+        let __nt = super::__action5::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 20)
     }
     pub(crate) fn __reduce34<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Decl = DeclFun => ActionFn(6);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action6::<>(__sym0);
+        let __nt = super::__action6::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 20)
     }
     pub(crate) fn __reduce35<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Decl = DeclStruct => ActionFn(7);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action7::<>(__sym0);
+        let __nt = super::__action7::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 20)
     }
     pub(crate) fn __reduce36<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclFun = "fn", Function => ActionFn(12);
@@ -2735,74 +2823,84 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action12::<>(__sym0, __sym1);
+        let __nt = super::__action12::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (2, 21)
     }
     pub(crate) fn __reduce37<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS = Spanned<Decl> => ActionFn(3);
         let __sym0 = __pop_Variant17(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action3::<>(__sym0);
+        let __nt = super::__action3::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 22)
     }
     pub(crate) fn __reduce38<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS* =  => ActionFn(130);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action130::<>(&__start, &__end);
+        let __nt = super::__action130::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (0, 23)
     }
     pub(crate) fn __reduce39<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS* = DeclS+ => ActionFn(131);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action131::<>(__sym0);
+        let __nt = super::__action131::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 23)
     }
     pub(crate) fn __reduce40<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS+ = DeclS => ActionFn(132);
         let __sym0 = __pop_Variant17(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action132::<>(__sym0);
+        let __nt = super::__action132::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 24)
     }
     pub(crate) fn __reduce41<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS+ = DeclS+, DeclS => ActionFn(133);
@@ -2811,15 +2909,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action133::<>(__sym0, __sym1);
+        let __nt = super::__action133::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (2, 24)
     }
     pub(crate) fn __reduce42<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclStruct = "struct", identifier, StructFields, ";" => ActionFn(8);
@@ -2830,15 +2930,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym3.2;
-        let __nt = super::__action8::<>(__sym0, __sym1, __sym2, __sym3);
+        let __nt = super::__action8::<>(errors, __sym0, __sym1, __sym2, __sym3);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (4, 25)
     }
     pub(crate) fn __reduce43<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclVar = "let", identifier, ":", Types, "=", ExprS, ";" => ActionFn(167);
@@ -2852,15 +2954,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action167::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action167::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 26)
     }
     pub(crate) fn __reduce44<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclVar = "let", identifier, ":", Types, ";" => ActionFn(168);
@@ -2872,15 +2976,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action168::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action168::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 26)
     }
     pub(crate) fn __reduce45<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclVar = "let", identifier, "=", ExprS, ";" => ActionFn(169);
@@ -2892,15 +2998,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action169::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action169::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 26)
     }
     pub(crate) fn __reduce46<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclVar = "let", identifier, ";" => ActionFn(170);
@@ -2910,15 +3018,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action170::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action170::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (3, 26)
     }
     pub(crate) fn __reduce47<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprAssign = identifier, "=", ExprS => ActionFn(42);
@@ -2928,30 +3038,34 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action42::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action42::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 27)
     }
     pub(crate) fn __reduce48<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprAssign = ExprLogicOr => ActionFn(43);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action43::<>(__sym0);
+        let __nt = super::__action43::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 27)
     }
     pub(crate) fn __reduce49<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprCall = Spanned<ExprCall>, "(", Args, ")" => ActionFn(67);
@@ -2962,75 +3076,85 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym3.2;
-        let __nt = super::__action67::<>(__sym0, __sym1, __sym2, __sym3);
+        let __nt = super::__action67::<>(errors, __sym0, __sym1, __sym2, __sym3);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (4, 28)
     }
     pub(crate) fn __reduce50<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprCall = ExprPrimary => ActionFn(68);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action68::<>(__sym0);
+        let __nt = super::__action68::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 28)
     }
     pub(crate) fn __reduce51<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprComparison = ExprInfix<ExprComparison, OpComparison, ExprTerm> => ActionFn(51);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action51::<>(__sym0);
+        let __nt = super::__action51::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 29)
     }
     pub(crate) fn __reduce52<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprEquality = ExprInfix<ExprEquality, OpEquality, ExprComparison> => ActionFn(48);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action48::<>(__sym0);
+        let __nt = super::__action48::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 30)
     }
     pub(crate) fn __reduce53<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprFactor = ExprInfix<ExprFactor, OpFactor, ExprPrefix> => ActionFn(59);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action59::<>(__sym0);
+        let __nt = super::__action59::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 31)
     }
     pub(crate) fn __reduce54<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprComparison, OpComparison, ExprTerm> = Spanned<ExprComparison>, OpComparison, Spanned<ExprTerm> => ActionFn(101);
@@ -3040,30 +3164,34 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action101::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action101::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 32)
     }
     pub(crate) fn __reduce55<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprComparison, OpComparison, ExprTerm> = ExprTerm => ActionFn(102);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action102::<>(__sym0);
+        let __nt = super::__action102::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 32)
     }
     pub(crate) fn __reduce56<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprEquality, OpEquality, ExprComparison> = Spanned<ExprEquality>, OpEquality, Spanned<ExprComparison> => ActionFn(103);
@@ -3073,30 +3201,34 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action103::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action103::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 33)
     }
     pub(crate) fn __reduce57<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprEquality, OpEquality, ExprComparison> = ExprComparison => ActionFn(104);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action104::<>(__sym0);
+        let __nt = super::__action104::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 33)
     }
     pub(crate) fn __reduce58<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprFactor, OpFactor, ExprPrefix> = Spanned<ExprFactor>, OpFactor, Spanned<ExprPrefix> => ActionFn(97);
@@ -3106,30 +3238,34 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action97::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action97::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 34)
     }
     pub(crate) fn __reduce59<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprFactor, OpFactor, ExprPrefix> = ExprPrefix => ActionFn(98);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action98::<>(__sym0);
+        let __nt = super::__action98::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 34)
     }
     pub(crate) fn __reduce60<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprLogicAnd, OpLogicAnd, ExprEquality> = Spanned<ExprLogicAnd>, OpLogicAnd, Spanned<ExprEquality> => ActionFn(105);
@@ -3139,30 +3275,34 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action105::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action105::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 35)
     }
     pub(crate) fn __reduce61<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprLogicAnd, OpLogicAnd, ExprEquality> = ExprEquality => ActionFn(106);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action106::<>(__sym0);
+        let __nt = super::__action106::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 35)
     }
     pub(crate) fn __reduce62<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprLogicOr, OpLogicOr, ExprLogicAnd> = Spanned<ExprLogicOr>, OpLogicOr, Spanned<ExprLogicAnd> => ActionFn(107);
@@ -3172,30 +3312,34 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action107::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action107::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 36)
     }
     pub(crate) fn __reduce63<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprLogicOr, OpLogicOr, ExprLogicAnd> = ExprLogicAnd => ActionFn(108);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action108::<>(__sym0);
+        let __nt = super::__action108::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 36)
     }
     pub(crate) fn __reduce64<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprTerm, OpTerm, ExprFactor> = Spanned<ExprTerm>, OpTerm, Spanned<ExprFactor> => ActionFn(99);
@@ -3205,60 +3349,68 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action99::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action99::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 37)
     }
     pub(crate) fn __reduce65<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprTerm, OpTerm, ExprFactor> = ExprFactor => ActionFn(100);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action100::<>(__sym0);
+        let __nt = super::__action100::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 37)
     }
     pub(crate) fn __reduce66<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprLogicAnd = ExprInfix<ExprLogicAnd, OpLogicAnd, ExprEquality> => ActionFn(46);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action46::<>(__sym0);
+        let __nt = super::__action46::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 38)
     }
     pub(crate) fn __reduce67<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprLogicOr = ExprInfix<ExprLogicOr, OpLogicOr, ExprLogicAnd> => ActionFn(44);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action44::<>(__sym0);
+        let __nt = super::__action44::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 39)
     }
     pub(crate) fn __reduce68<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrefix = OpPrefix, Spanned<ExprPrefix> => ActionFn(65);
@@ -3267,120 +3419,136 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant23(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action65::<>(__sym0, __sym1);
+        let __nt = super::__action65::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (2, 40)
     }
     pub(crate) fn __reduce69<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrefix = ExprCall => ActionFn(66);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action66::<>(__sym0);
+        let __nt = super::__action66::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 40)
     }
     pub(crate) fn __reduce70<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = "nil" => ActionFn(69);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action69::<>(__sym0);
+        let __nt = super::__action69::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce71<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = "false" => ActionFn(70);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action70::<>(__sym0);
+        let __nt = super::__action70::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce72<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = "true" => ActionFn(71);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action71::<>(__sym0);
+        let __nt = super::__action71::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce73<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = string => ActionFn(72);
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action72::<>(__sym0);
+        let __nt = super::__action72::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce74<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = number => ActionFn(73);
         let __sym0 = __pop_Variant2(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action73::<>(__sym0);
+        let __nt = super::__action73::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce75<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = ExprVar => ActionFn(74);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action74::<>(__sym0);
+        let __nt = super::__action74::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce76<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = "(", Expression, ")" => ActionFn(75);
@@ -3390,104 +3558,118 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action75::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action75::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 41)
     }
     pub(crate) fn __reduce77<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprS = Spanned<Expression> => ActionFn(40);
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action40::<>(__sym0);
+        let __nt = super::__action40::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 42)
     }
     pub(crate) fn __reduce78<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprS? = ExprS => ActionFn(110);
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action110::<>(__sym0);
+        let __nt = super::__action110::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (1, 43)
     }
     pub(crate) fn __reduce79<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprS? =  => ActionFn(111);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action111::<>(&__start, &__end);
+        let __nt = super::__action111::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (0, 43)
     }
     pub(crate) fn __reduce80<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprTerm = ExprInfix<ExprTerm, OpTerm, ExprFactor> => ActionFn(56);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action56::<>(__sym0);
+        let __nt = super::__action56::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 44)
     }
     pub(crate) fn __reduce81<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprVar = identifier => ActionFn(85);
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action85::<>(__sym0);
+        let __nt = super::__action85::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 45)
     }
     pub(crate) fn __reduce82<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Expression = ExprAssign => ActionFn(41);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action41::<>(__sym0);
+        let __nt = super::__action41::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 46)
     }
     pub(crate) fn __reduce83<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForCond = ExprS, ";" => ActionFn(212);
@@ -3496,104 +3678,118 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action212::<>(__sym0, __sym1);
+        let __nt = super::__action212::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (2, 47)
     }
     pub(crate) fn __reduce84<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForCond = ";" => ActionFn(213);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action213::<>(__sym0);
+        let __nt = super::__action213::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (1, 47)
     }
     pub(crate) fn __reduce85<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForIncr = ExprS => ActionFn(214);
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action214::<>(__sym0);
+        let __nt = super::__action214::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (1, 48)
     }
     pub(crate) fn __reduce86<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForIncr =  => ActionFn(215);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action215::<>(&__start, &__end);
+        let __nt = super::__action215::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (0, 48)
     }
     pub(crate) fn __reduce87<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForInit = Spanned<DeclVar> => ActionFn(24);
         let __sym0 = __pop_Variant17(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action24::<>(__sym0);
+        let __nt = super::__action24::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant20(__nt), __end));
         (1, 49)
     }
     pub(crate) fn __reduce88<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForInit = Spanned<StmtExpr> => ActionFn(25);
         let __sym0 = __pop_Variant17(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action25::<>(__sym0);
+        let __nt = super::__action25::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant20(__nt), __end));
         (1, 49)
     }
     pub(crate) fn __reduce89<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForInit = ";" => ActionFn(26);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action26::<>(__sym0);
+        let __nt = super::__action26::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant20(__nt), __end));
         (1, 49)
     }
     pub(crate) fn __reduce90<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Function = identifier, "(", Params, ")", "->", Types, StatementBlockIn => ActionFn(159);
@@ -3607,15 +3803,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action159::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action159::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant21(__nt), __end));
         (7, 50)
     }
     pub(crate) fn __reduce91<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Function = identifier, "(", Params, ")", StatementBlockIn => ActionFn(160);
@@ -3627,240 +3825,272 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action160::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action160::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant21(__nt), __end));
         (5, 50)
     }
     pub(crate) fn __reduce92<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpComparison = ">" => ActionFn(52);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action52::<>(__sym0);
+        let __nt = super::__action52::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 51)
     }
     pub(crate) fn __reduce93<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpComparison = ">=" => ActionFn(53);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action53::<>(__sym0);
+        let __nt = super::__action53::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 51)
     }
     pub(crate) fn __reduce94<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpComparison = "<" => ActionFn(54);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action54::<>(__sym0);
+        let __nt = super::__action54::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 51)
     }
     pub(crate) fn __reduce95<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpComparison = "<=" => ActionFn(55);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action55::<>(__sym0);
+        let __nt = super::__action55::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 51)
     }
     pub(crate) fn __reduce96<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpEquality = "==" => ActionFn(49);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action49::<>(__sym0);
+        let __nt = super::__action49::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 52)
     }
     pub(crate) fn __reduce97<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpEquality = "!=" => ActionFn(50);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action50::<>(__sym0);
+        let __nt = super::__action50::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 52)
     }
     pub(crate) fn __reduce98<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpFactor = "*" => ActionFn(60);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action60::<>(__sym0);
+        let __nt = super::__action60::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 53)
     }
     pub(crate) fn __reduce99<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpFactor = "/" => ActionFn(61);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action61::<>(__sym0);
+        let __nt = super::__action61::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 53)
     }
     pub(crate) fn __reduce100<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpFactor = "%" => ActionFn(62);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action62::<>(__sym0);
+        let __nt = super::__action62::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 53)
     }
     pub(crate) fn __reduce101<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpLogicAnd = "and" => ActionFn(47);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action47::<>(__sym0);
+        let __nt = super::__action47::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 54)
     }
     pub(crate) fn __reduce102<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpLogicOr = "or" => ActionFn(45);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action45::<>(__sym0);
+        let __nt = super::__action45::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 55)
     }
     pub(crate) fn __reduce103<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpPrefix = "-" => ActionFn(63);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action63::<>(__sym0);
+        let __nt = super::__action63::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant23(__nt), __end));
         (1, 56)
     }
     pub(crate) fn __reduce104<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpPrefix = "!" => ActionFn(64);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action64::<>(__sym0);
+        let __nt = super::__action64::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant23(__nt), __end));
         (1, 56)
     }
     pub(crate) fn __reduce105<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpTerm = "+" => ActionFn(57);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action57::<>(__sym0);
+        let __nt = super::__action57::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 57)
     }
     pub(crate) fn __reduce106<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpTerm = "-" => ActionFn(58);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action58::<>(__sym0);
+        let __nt = super::__action58::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 57)
     }
     pub(crate) fn __reduce107<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Param = identifier, ":", Types => ActionFn(164);
@@ -3870,45 +4100,51 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action164::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action164::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant6(__nt), __end));
         (3, 58)
     }
     pub(crate) fn __reduce108<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Param = identifier => ActionFn(165);
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action165::<>(__sym0);
+        let __nt = super::__action165::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant6(__nt), __end));
         (1, 58)
     }
     pub(crate) fn __reduce109<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Params = Param => ActionFn(156);
         let __sym0 = __pop_Variant6(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action156::<>(__sym0);
+        let __nt = super::__action156::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant24(__nt), __end));
         (1, 59)
     }
     pub(crate) fn __reduce110<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Params = Param, ("," <Param>)+ => ActionFn(157);
@@ -3917,58 +4153,66 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant6(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action157::<>(__sym0, __sym1);
+        let __nt = super::__action157::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant24(__nt), __end));
         (2, 59)
     }
     pub(crate) fn __reduce111<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Params =  => ActionFn(172);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action172::<>(&__start, &__end);
+        let __nt = super::__action172::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant24(__nt), __end));
         (0, 59)
     }
     pub(crate) fn __reduce112<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Program =  => ActionFn(208);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action208::<>(&__start, &__end);
+        let __nt = super::__action208::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant25(__nt), __end));
         (0, 60)
     }
     pub(crate) fn __reduce113<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Program = DeclS+ => ActionFn(209);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action209::<>(__sym0);
+        let __nt = super::__action209::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant25(__nt), __end));
         (1, 60)
     }
     pub(crate) fn __reduce114<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SingleField = identifier, ":", Types, "," => ActionFn(148);
@@ -3979,15 +4223,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym3.2;
-        let __nt = super::__action148::<>(__sym0, __sym1, __sym2, __sym3);
+        let __nt = super::__action148::<>(errors, __sym0, __sym1, __sym2, __sym3);
         __symbols.push((__start, __Symbol::Variant12(__nt), __end));
         (4, 61)
     }
     pub(crate) fn __reduce115<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SingleField = identifier, ":", Types => ActionFn(149);
@@ -3997,315 +4243,357 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action149::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action149::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant12(__nt), __end));
         (3, 61)
     }
     pub(crate) fn __reduce116<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtExpr => ActionFn(29);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action29::<>(__sym0);
+        let __nt = super::__action29::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce117<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtBlock => ActionFn(30);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action30::<>(__sym0);
+        let __nt = super::__action30::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce118<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtPrint => ActionFn(31);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action31::<>(__sym0);
+        let __nt = super::__action31::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce119<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtPrintLn => ActionFn(32);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action32::<>(__sym0);
+        let __nt = super::__action32::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce120<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtReturn => ActionFn(33);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action33::<>(__sym0);
+        let __nt = super::__action33::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce121<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<Decl> = Decl => ActionFn(193);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action193::<>(__sym0);
+        let __nt = super::__action193::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 63)
     }
     pub(crate) fn __reduce122<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<DeclVar> = DeclVar => ActionFn(194);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action194::<>(__sym0);
+        let __nt = super::__action194::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 64)
     }
     pub(crate) fn __reduce123<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprCall> = ExprCall => ActionFn(195);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action195::<>(__sym0);
+        let __nt = super::__action195::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 65)
     }
     pub(crate) fn __reduce124<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprComparison> = ExprComparison => ActionFn(196);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action196::<>(__sym0);
+        let __nt = super::__action196::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 66)
     }
     pub(crate) fn __reduce125<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprEquality> = ExprEquality => ActionFn(197);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action197::<>(__sym0);
+        let __nt = super::__action197::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 67)
     }
     pub(crate) fn __reduce126<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprFactor> = ExprFactor => ActionFn(198);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action198::<>(__sym0);
+        let __nt = super::__action198::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 68)
     }
     pub(crate) fn __reduce127<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprLogicAnd> = ExprLogicAnd => ActionFn(199);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action199::<>(__sym0);
+        let __nt = super::__action199::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 69)
     }
     pub(crate) fn __reduce128<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprLogicOr> = ExprLogicOr => ActionFn(200);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action200::<>(__sym0);
+        let __nt = super::__action200::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 70)
     }
     pub(crate) fn __reduce129<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprPrefix> = ExprPrefix => ActionFn(201);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action201::<>(__sym0);
+        let __nt = super::__action201::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 71)
     }
     pub(crate) fn __reduce130<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprTerm> = ExprTerm => ActionFn(202);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action202::<>(__sym0);
+        let __nt = super::__action202::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 72)
     }
     pub(crate) fn __reduce131<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<Expression> = Expression => ActionFn(203);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action203::<>(__sym0);
+        let __nt = super::__action203::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 73)
     }
     pub(crate) fn __reduce132<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<Stmt> = Stmt => ActionFn(204);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action204::<>(__sym0);
+        let __nt = super::__action204::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 74)
     }
     pub(crate) fn __reduce133<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<StmtClosed> = StmtClosed => ActionFn(205);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action205::<>(__sym0);
+        let __nt = super::__action205::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 75)
     }
     pub(crate) fn __reduce134<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<StmtExpr> = StmtExpr => ActionFn(206);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action206::<>(__sym0);
+        let __nt = super::__action206::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 76)
     }
     pub(crate) fn __reduce135<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<StmtOpen> = StmtOpen => ActionFn(207);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action207::<>(__sym0);
+        let __nt = super::__action207::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 77)
     }
     pub(crate) fn __reduce136<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StatementBlockIn = "{", "}" => ActionFn(210);
@@ -4314,15 +4602,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action210::<>(__sym0, __sym1);
+        let __nt = super::__action210::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant26(__nt), __end));
         (2, 78)
     }
     pub(crate) fn __reduce137<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StatementBlockIn = "{", DeclS+, "}" => ActionFn(211);
@@ -4332,60 +4622,68 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action211::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action211::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant26(__nt), __end));
         (3, 78)
     }
     pub(crate) fn __reduce138<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Stmt = StmtOpen => ActionFn(14);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action14::<>(__sym0);
+        let __nt = super::__action14::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 79)
     }
     pub(crate) fn __reduce139<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Stmt = StmtClosed => ActionFn(15);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action15::<>(__sym0);
+        let __nt = super::__action15::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 79)
     }
     pub(crate) fn __reduce140<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtBlock = StatementBlockIn => ActionFn(37);
         let __sym0 = __pop_Variant26(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action37::<>(__sym0);
+        let __nt = super::__action37::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 80)
     }
     pub(crate) fn __reduce141<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtClosed = "if", "(", ExprS, ")", Spanned<StmtClosed>, "else", Spanned<StmtClosed> => ActionFn(20);
@@ -4399,15 +4697,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action20::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action20::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 81)
     }
     pub(crate) fn __reduce142<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtClosed = "while", "(", ExprS, ")", Spanned<StmtClosed> => ActionFn(21);
@@ -4419,15 +4719,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action21::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action21::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 81)
     }
     pub(crate) fn __reduce143<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtClosed = "for", "(", ForInit, ForCond, ForIncr, ")", Spanned<StmtClosed> => ActionFn(22);
@@ -4441,30 +4743,34 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action22::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action22::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 81)
     }
     pub(crate) fn __reduce144<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtClosed = SmallStmt => ActionFn(23);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action23::<>(__sym0);
+        let __nt = super::__action23::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 81)
     }
     pub(crate) fn __reduce145<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtExpr = ExprS, ";" => ActionFn(39);
@@ -4473,15 +4779,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action39::<>(__sym0, __sym1);
+        let __nt = super::__action39::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (2, 82)
     }
     pub(crate) fn __reduce146<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtOpen = "for", "(", ForInit, ForCond, ForIncr, ")", Spanned<StmtOpen> => ActionFn(16);
@@ -4495,15 +4803,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action16::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action16::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 83)
     }
     pub(crate) fn __reduce147<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtOpen = "if", "(", ExprS, ")", Spanned<Stmt> => ActionFn(17);
@@ -4515,15 +4825,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action17::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action17::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 83)
     }
     pub(crate) fn __reduce148<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtOpen = "if", "(", ExprS, ")", Spanned<StmtClosed>, "else", Spanned<StmtOpen> => ActionFn(18);
@@ -4537,15 +4849,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action18::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action18::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 83)
     }
     pub(crate) fn __reduce149<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtOpen = "while", "(", ExprS, ")", Spanned<StmtOpen> => ActionFn(19);
@@ -4557,15 +4871,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action19::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action19::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 83)
     }
     pub(crate) fn __reduce150<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtPrint = "print", ExprS, ";" => ActionFn(36);
@@ -4575,15 +4891,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action36::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action36::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (3, 84)
     }
     pub(crate) fn __reduce151<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtPrintLn = "println", ExprS, ";" => ActionFn(35);
@@ -4593,15 +4911,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action35::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action35::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (3, 85)
     }
     pub(crate) fn __reduce152<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtReturn = "return", ExprS, ";" => ActionFn(216);
@@ -4611,15 +4931,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action216::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action216::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (3, 86)
     }
     pub(crate) fn __reduce153<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtReturn = "return", ";" => ActionFn(217);
@@ -4628,15 +4950,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action217::<>(__sym0, __sym1);
+        let __nt = super::__action217::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (2, 86)
     }
     pub(crate) fn __reduce154<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StructFields = "{", "}" => ActionFn(176);
@@ -4645,15 +4969,17 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action176::<>(__sym0, __sym1);
+        let __nt = super::__action176::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant27(__nt), __end));
         (2, 87)
     }
     pub(crate) fn __reduce155<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StructFields = "{", (<SingleField>)+, "}" => ActionFn(177);
@@ -4663,81 +4989,91 @@ mod __parse__OpPrefix {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action177::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action177::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant27(__nt), __end));
         (3, 87)
     }
     pub(crate) fn __reduce156<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StructFields =  => ActionFn(173);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action173::<>(&__start, &__end);
+        let __nt = super::__action173::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant27(__nt), __end));
         (0, 87)
     }
     pub(crate) fn __reduce157<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Types = type_string => ActionFn(82);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action82::<>(__sym0);
+        let __nt = super::__action82::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (1, 88)
     }
     pub(crate) fn __reduce158<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Types = type_int => ActionFn(83);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action83::<>(__sym0);
+        let __nt = super::__action83::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (1, 88)
     }
     pub(crate) fn __reduce159<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Types = "fn" => ActionFn(84);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action84::<>(__sym0);
+        let __nt = super::__action84::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (1, 88)
     }
     pub(crate) fn __reduce161<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // __Program = Program => ActionFn(0);
         let __sym0 = __pop_Variant25(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action0::<>(__sym0);
+        let __nt = super::__action0::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant25(__nt), __end));
         (1, 90)
     }
@@ -4749,11 +5085,12 @@ pub use self::__parse__OpPrefix::OpPrefixParser;
 mod __parse__Program {
 
     use crate::cc_lexer;
-    use crate::cc_lexer::LexicalError;
+    use crate::vm::error::ErrorS;
     use crate::cc_lexer::Token;
     use crate::cc_parser::ast::Expression;
     use crate::cc_parser::ast;
     use hashbrown::HashMap;
+    use lalrpop_util::ParseError;
     #[allow(unused_extern_crates)]
     extern crate lalrpop_util as __lalrpop_util;
     #[allow(unused_imports)]
@@ -5840,29 +6177,31 @@ mod __parse__Program {
         }).collect()
     }
     fn __expected_tokens_from_states<
+        'err,
     >(
         __states: &[i16],
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> alloc::vec::Vec<alloc::string::String>
     {
         __TERMINAL.iter().enumerate().filter_map(|(index, terminal)| {
-            if __accepts(None, __states, Some(index), core::marker::PhantomData::<()>) {
+            if __accepts(None, __states, Some(index), core::marker::PhantomData::<(&())>) {
                 Some(alloc::string::ToString::to_string(terminal))
             } else {
                 None
             }
         }).collect()
     }
-    pub(crate) struct __StateMachine<>
+    pub(crate) struct __StateMachine<'err>
     where 
     {
-        __phantom: core::marker::PhantomData<()>,
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
+        __phantom: core::marker::PhantomData<(&'err ())>,
     }
-    impl<> __state_machine::ParserDefinition for __StateMachine<>
+    impl<'err> __state_machine::ParserDefinition for __StateMachine<'err>
     where 
     {
         type Location = usize;
-        type Error = LexicalError;
+        type Error = ErrorS;
         type Token = Token;
         type TokenIndex = usize;
         type Symbol = __Symbol<>;
@@ -5884,7 +6223,7 @@ mod __parse__Program {
 
         #[inline]
         fn token_to_index(&self, token: &Self::Token) -> Option<usize> {
-            __token_to_integer(token, core::marker::PhantomData::<()>)
+            __token_to_integer(token, core::marker::PhantomData::<(&())>)
         }
 
         #[inline]
@@ -5908,7 +6247,7 @@ mod __parse__Program {
         }
 
         fn token_to_symbol(&self, token_index: usize, token: Self::Token) -> Self::Symbol {
-            __token_to_symbol(token_index, token, core::marker::PhantomData::<()>)
+            __token_to_symbol(token_index, token, core::marker::PhantomData::<(&())>)
         }
 
         fn expected_tokens(&self, state: i16) -> alloc::vec::Vec<alloc::string::String> {
@@ -5916,7 +6255,7 @@ mod __parse__Program {
         }
 
         fn expected_tokens_from_states(&self, states: &[i16]) -> alloc::vec::Vec<alloc::string::String> {
-            __expected_tokens_from_states(states, core::marker::PhantomData::<()>)
+            __expected_tokens_from_states(states, core::marker::PhantomData::<(&())>)
         }
 
         #[inline]
@@ -5940,22 +6279,24 @@ mod __parse__Program {
             symbols: &mut alloc::vec::Vec<__state_machine::SymbolTriple<Self>>,
         ) -> Option<__state_machine::ParseResult<Self>> {
             __reduce(
+                self.errors,
                 action,
                 start_location,
                 states,
                 symbols,
-                core::marker::PhantomData::<()>,
+                core::marker::PhantomData::<(&())>,
             )
         }
 
         fn simulate_reduce(&self, action: i16) -> __state_machine::SimulatedReduce<Self> {
-            __simulate_reduce(action, core::marker::PhantomData::<()>)
+            __simulate_reduce(action, core::marker::PhantomData::<(&())>)
         }
     }
     fn __token_to_integer<
+        'err,
     >(
         __token: &Token,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> Option<usize>
     {
         match *__token {
@@ -6005,10 +6346,11 @@ mod __parse__Program {
         }
     }
     fn __token_to_symbol<
+        'err,
     >(
         __token_index: usize,
         __token: Token,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> __Symbol<>
     {
         match __token_index {
@@ -6025,10 +6367,11 @@ mod __parse__Program {
         }
     }
     fn __simulate_reduce<
+        'err,
     >(
         __reduce_index: i16,
-        _: core::marker::PhantomData<()>,
-    ) -> __state_machine::SimulatedReduce<__StateMachine<>>
+        _: core::marker::PhantomData<(&'err ())>,
+    ) -> __state_machine::SimulatedReduce<__StateMachine<'err>>
     {
         match __reduce_index {
             0 => {
@@ -7014,29 +7357,33 @@ mod __parse__Program {
 
         #[allow(dead_code)]
         pub fn parse<
-            __TOKEN: __ToTriple<>,
+            'err,
+            __TOKEN: __ToTriple<'err, >,
             __TOKENS: IntoIterator<Item=__TOKEN>,
         >(
             &self,
+            errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
             __tokens0: __TOKENS,
-        ) -> Result<ast::Program, __lalrpop_util::ParseError<usize, Token, LexicalError>>
+        ) -> Result<ast::Program, __lalrpop_util::ParseError<usize, Token, ErrorS>>
         {
             let __tokens = __tokens0.into_iter();
             let mut __tokens = __tokens.map(|t| __ToTriple::to_triple(t));
             __state_machine::Parser::drive(
                 __StateMachine {
-                    __phantom: core::marker::PhantomData::<()>,
+                    errors,
+                    __phantom: core::marker::PhantomData::<(&())>,
                 },
                 __tokens,
             )
         }
     }
     fn __accepts<
+        'err,
     >(
         __error_state: Option<i16>,
         __states: &[i16],
         __opt_integer: Option<usize>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> bool
     {
         let mut __states = __states.to_vec();
@@ -7050,7 +7397,7 @@ mod __parse__Program {
             };
             if __action == 0 { return false; }
             if __action > 0 { return true; }
-            let (__to_pop, __nt) = match __simulate_reduce(-(__action + 1), core::marker::PhantomData::<()>) {
+            let (__to_pop, __nt) = match __simulate_reduce(-(__action + 1), core::marker::PhantomData::<(&())>) {
                 __state_machine::SimulatedReduce::Reduce {
                     states_to_pop, nonterminal_produced
                 } => (states_to_pop, nonterminal_produced),
@@ -7064,504 +7411,506 @@ mod __parse__Program {
         }
     }
     pub(crate) fn __reduce<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __action: i16,
         __lookahead_start: Option<&usize>,
         __states: &mut alloc::vec::Vec<i16>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
-    ) -> Option<Result<ast::Program,__lalrpop_util::ParseError<usize, Token, LexicalError>>>
+        _: core::marker::PhantomData<(&'err ())>,
+    ) -> Option<Result<ast::Program,__lalrpop_util::ParseError<usize, Token, ErrorS>>>
     {
         let (__pop_states, __nonterminal) = match __action {
             0 => {
-                __reduce0(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce0(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             1 => {
-                __reduce1(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce1(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             2 => {
-                __reduce2(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce2(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             3 => {
-                __reduce3(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce3(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             4 => {
-                __reduce4(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce4(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             5 => {
-                __reduce5(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce5(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             6 => {
-                __reduce6(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce6(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             7 => {
-                __reduce7(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce7(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             8 => {
-                __reduce8(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce8(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             9 => {
-                __reduce9(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce9(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             10 => {
-                __reduce10(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce10(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             11 => {
-                __reduce11(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce11(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             12 => {
-                __reduce12(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce12(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             13 => {
-                __reduce13(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce13(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             14 => {
-                __reduce14(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce14(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             15 => {
-                __reduce15(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce15(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             16 => {
-                __reduce16(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce16(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             17 => {
-                __reduce17(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce17(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             18 => {
-                __reduce18(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce18(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             19 => {
-                __reduce19(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce19(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             20 => {
-                __reduce20(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce20(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             21 => {
-                __reduce21(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce21(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             22 => {
-                __reduce22(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce22(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             23 => {
-                __reduce23(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce23(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             24 => {
-                __reduce24(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce24(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             25 => {
-                __reduce25(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce25(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             26 => {
-                __reduce26(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce26(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             27 => {
-                __reduce27(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce27(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             28 => {
-                __reduce28(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce28(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             29 => {
-                __reduce29(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce29(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             30 => {
-                __reduce30(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce30(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             31 => {
-                __reduce31(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce31(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             32 => {
-                __reduce32(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce32(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             33 => {
-                __reduce33(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce33(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             34 => {
-                __reduce34(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce34(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             35 => {
-                __reduce35(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce35(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             36 => {
-                __reduce36(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce36(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             37 => {
-                __reduce37(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce37(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             38 => {
-                __reduce38(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce38(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             39 => {
-                __reduce39(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce39(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             40 => {
-                __reduce40(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce40(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             41 => {
-                __reduce41(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce41(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             42 => {
-                __reduce42(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce42(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             43 => {
-                __reduce43(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce43(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             44 => {
-                __reduce44(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce44(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             45 => {
-                __reduce45(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce45(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             46 => {
-                __reduce46(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce46(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             47 => {
-                __reduce47(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce47(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             48 => {
-                __reduce48(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce48(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             49 => {
-                __reduce49(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce49(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             50 => {
-                __reduce50(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce50(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             51 => {
-                __reduce51(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce51(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             52 => {
-                __reduce52(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce52(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             53 => {
-                __reduce53(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce53(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             54 => {
-                __reduce54(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce54(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             55 => {
-                __reduce55(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce55(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             56 => {
-                __reduce56(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce56(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             57 => {
-                __reduce57(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce57(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             58 => {
-                __reduce58(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce58(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             59 => {
-                __reduce59(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce59(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             60 => {
-                __reduce60(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce60(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             61 => {
-                __reduce61(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce61(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             62 => {
-                __reduce62(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce62(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             63 => {
-                __reduce63(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce63(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             64 => {
-                __reduce64(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce64(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             65 => {
-                __reduce65(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce65(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             66 => {
-                __reduce66(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce66(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             67 => {
-                __reduce67(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce67(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             68 => {
-                __reduce68(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce68(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             69 => {
-                __reduce69(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce69(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             70 => {
-                __reduce70(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce70(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             71 => {
-                __reduce71(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce71(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             72 => {
-                __reduce72(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce72(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             73 => {
-                __reduce73(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce73(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             74 => {
-                __reduce74(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce74(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             75 => {
-                __reduce75(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce75(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             76 => {
-                __reduce76(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce76(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             77 => {
-                __reduce77(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce77(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             78 => {
-                __reduce78(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce78(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             79 => {
-                __reduce79(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce79(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             80 => {
-                __reduce80(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce80(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             81 => {
-                __reduce81(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce81(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             82 => {
-                __reduce82(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce82(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             83 => {
-                __reduce83(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce83(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             84 => {
-                __reduce84(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce84(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             85 => {
-                __reduce85(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce85(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             86 => {
-                __reduce86(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce86(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             87 => {
-                __reduce87(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce87(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             88 => {
-                __reduce88(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce88(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             89 => {
-                __reduce89(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce89(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             90 => {
-                __reduce90(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce90(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             91 => {
-                __reduce91(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce91(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             92 => {
-                __reduce92(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce92(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             93 => {
-                __reduce93(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce93(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             94 => {
-                __reduce94(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce94(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             95 => {
-                __reduce95(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce95(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             96 => {
-                __reduce96(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce96(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             97 => {
-                __reduce97(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce97(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             98 => {
-                __reduce98(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce98(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             99 => {
-                __reduce99(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce99(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             100 => {
-                __reduce100(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce100(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             101 => {
-                __reduce101(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce101(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             102 => {
-                __reduce102(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce102(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             103 => {
-                __reduce103(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce103(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             104 => {
-                __reduce104(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce104(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             105 => {
-                __reduce105(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce105(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             106 => {
-                __reduce106(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce106(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             107 => {
-                __reduce107(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce107(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             108 => {
-                __reduce108(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce108(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             109 => {
-                __reduce109(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce109(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             110 => {
-                __reduce110(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce110(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             111 => {
-                __reduce111(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce111(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             112 => {
-                __reduce112(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce112(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             113 => {
-                __reduce113(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce113(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             114 => {
-                __reduce114(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce114(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             115 => {
-                __reduce115(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce115(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             116 => {
-                __reduce116(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce116(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             117 => {
-                __reduce117(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce117(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             118 => {
-                __reduce118(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce118(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             119 => {
-                __reduce119(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce119(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             120 => {
-                __reduce120(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce120(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             121 => {
-                __reduce121(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce121(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             122 => {
-                __reduce122(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce122(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             123 => {
-                __reduce123(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce123(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             124 => {
-                __reduce124(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce124(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             125 => {
-                __reduce125(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce125(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             126 => {
-                __reduce126(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce126(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             127 => {
-                __reduce127(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce127(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             128 => {
-                __reduce128(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce128(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             129 => {
-                __reduce129(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce129(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             130 => {
-                __reduce130(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce130(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             131 => {
-                __reduce131(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce131(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             132 => {
-                __reduce132(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce132(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             133 => {
-                __reduce133(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce133(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             134 => {
-                __reduce134(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce134(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             135 => {
-                __reduce135(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce135(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             136 => {
-                __reduce136(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce136(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             137 => {
-                __reduce137(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce137(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             138 => {
-                __reduce138(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce138(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             139 => {
-                __reduce139(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce139(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             140 => {
-                __reduce140(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce140(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             141 => {
-                __reduce141(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce141(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             142 => {
-                __reduce142(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce142(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             143 => {
-                __reduce143(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce143(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             144 => {
-                __reduce144(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce144(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             145 => {
-                __reduce145(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce145(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             146 => {
-                __reduce146(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce146(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             147 => {
-                __reduce147(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce147(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             148 => {
-                __reduce148(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce148(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             149 => {
-                __reduce149(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce149(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             150 => {
-                __reduce150(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce150(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             151 => {
-                __reduce151(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce151(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             152 => {
-                __reduce152(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce152(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             153 => {
-                __reduce153(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce153(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             154 => {
-                __reduce154(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce154(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             155 => {
-                __reduce155(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce155(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             156 => {
-                __reduce156(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce156(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             157 => {
-                __reduce157(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce157(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             158 => {
-                __reduce158(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce158(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             159 => {
-                __reduce159(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce159(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             160 => {
-                __reduce160(__lookahead_start, __symbols, core::marker::PhantomData::<()>)
+                __reduce160(errors, __lookahead_start, __symbols, core::marker::PhantomData::<(&())>)
             }
             161 => {
                 // __Program = Program => ActionFn(0);
                 let __sym0 = __pop_Variant25(__symbols);
                 let __start = __sym0.0;
                 let __end = __sym0.2;
-                let __nt = super::__action0::<>(__sym0);
+                let __nt = super::__action0::<>(errors, __sym0);
                 return Some(Ok(__nt));
             }
             _ => panic!("invalid action code {}", __action)
@@ -7858,39 +8207,45 @@ mod __parse__Program {
         }
     }
     pub(crate) fn __reduce0<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ","? = "," => ActionFn(123);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action123::<>(__sym0);
+        let __nt = super::__action123::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant3(__nt), __end));
         (1, 0)
     }
     pub(crate) fn __reduce1<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ","? =  => ActionFn(124);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action124::<>(&__start, &__end);
+        let __nt = super::__action124::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant3(__nt), __end));
         (0, 0)
     }
     pub(crate) fn __reduce2<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>) = ",", ExprS => ActionFn(88);
@@ -7899,44 +8254,50 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action88::<>(__sym0, __sym1);
+        let __nt = super::__action88::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (2, 1)
     }
     pub(crate) fn __reduce3<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>)* =  => ActionFn(86);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action86::<>(&__start, &__end);
+        let __nt = super::__action86::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (0, 2)
     }
     pub(crate) fn __reduce4<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>)* = ("," <ExprS>)+ => ActionFn(87);
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action87::<>(__sym0);
+        let __nt = super::__action87::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 2)
     }
     pub(crate) fn __reduce5<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>)+ = ",", ExprS => ActionFn(150);
@@ -7945,15 +8306,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action150::<>(__sym0, __sym1);
+        let __nt = super::__action150::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (2, 3)
     }
     pub(crate) fn __reduce6<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <ExprS>)+ = ("," <ExprS>)+, ",", ExprS => ActionFn(151);
@@ -7963,15 +8326,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action151::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action151::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (3, 3)
     }
     pub(crate) fn __reduce7<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>) = ",", Param => ActionFn(91);
@@ -7980,44 +8345,50 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action91::<>(__sym0, __sym1);
+        let __nt = super::__action91::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant6(__nt), __end));
         (2, 4)
     }
     pub(crate) fn __reduce8<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>)* =  => ActionFn(89);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action89::<>(&__start, &__end);
+        let __nt = super::__action89::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant7(__nt), __end));
         (0, 5)
     }
     pub(crate) fn __reduce9<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>)* = ("," <Param>)+ => ActionFn(90);
         let __sym0 = __pop_Variant7(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action90::<>(__sym0);
+        let __nt = super::__action90::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant7(__nt), __end));
         (1, 5)
     }
     pub(crate) fn __reduce10<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>)+ = ",", Param => ActionFn(154);
@@ -8026,15 +8397,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action154::<>(__sym0, __sym1);
+        let __nt = super::__action154::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant7(__nt), __end));
         (2, 6)
     }
     pub(crate) fn __reduce11<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("," <Param>)+ = ("," <Param>)+, ",", Param => ActionFn(155);
@@ -8044,15 +8417,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant7(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action155::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action155::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant7(__nt), __end));
         (3, 6)
     }
     pub(crate) fn __reduce12<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("->" <Types>) = "->", Types => ActionFn(94);
@@ -8061,15 +8436,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action94::<>(__sym0, __sym1);
+        let __nt = super::__action94::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (2, 7)
     }
     pub(crate) fn __reduce13<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("->" <Types>)? = "->", Types => ActionFn(158);
@@ -8078,29 +8455,33 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action158::<>(__sym0, __sym1);
+        let __nt = super::__action158::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant9(__nt), __end));
         (2, 8)
     }
     pub(crate) fn __reduce14<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("->" <Types>)? =  => ActionFn(93);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action93::<>(&__start, &__end);
+        let __nt = super::__action93::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant9(__nt), __end));
         (0, 8)
     }
     pub(crate) fn __reduce15<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (":" <Types>) = ":", Types => ActionFn(122);
@@ -8109,15 +8490,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action122::<>(__sym0, __sym1);
+        let __nt = super::__action122::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (2, 9)
     }
     pub(crate) fn __reduce16<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (":" <Types>)? = ":", Types => ActionFn(161);
@@ -8126,29 +8509,33 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action161::<>(__sym0, __sym1);
+        let __nt = super::__action161::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant9(__nt), __end));
         (2, 10)
     }
     pub(crate) fn __reduce17<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (":" <Types>)? =  => ActionFn(121);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action121::<>(&__start, &__end);
+        let __nt = super::__action121::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant9(__nt), __end));
         (0, 10)
     }
     pub(crate) fn __reduce18<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("=" <ExprS>) = "=", ExprS => ActionFn(119);
@@ -8157,15 +8544,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action119::<>(__sym0, __sym1);
+        let __nt = super::__action119::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (2, 11)
     }
     pub(crate) fn __reduce19<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("=" <ExprS>)? = "=", ExprS => ActionFn(166);
@@ -8174,102 +8563,116 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action166::<>(__sym0, __sym1);
+        let __nt = super::__action166::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (2, 12)
     }
     pub(crate) fn __reduce20<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ("=" <ExprS>)? =  => ActionFn(118);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action118::<>(&__start, &__end);
+        let __nt = super::__action118::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (0, 12)
     }
     pub(crate) fn __reduce21<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // () =  => ActionFn(125);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action125::<>(&__start, &__end);
+        let __nt = super::__action125::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant11(__nt), __end));
         (0, 13)
     }
     pub(crate) fn __reduce22<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>) = SingleField => ActionFn(128);
         let __sym0 = __pop_Variant12(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action128::<>(__sym0);
+        let __nt = super::__action128::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant12(__nt), __end));
         (1, 14)
     }
     pub(crate) fn __reduce23<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>)* =  => ActionFn(126);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action126::<>(&__start, &__end);
+        let __nt = super::__action126::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant13(__nt), __end));
         (0, 15)
     }
     pub(crate) fn __reduce24<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>)* = (<SingleField>)+ => ActionFn(127);
         let __sym0 = __pop_Variant13(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action127::<>(__sym0);
+        let __nt = super::__action127::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant13(__nt), __end));
         (1, 15)
     }
     pub(crate) fn __reduce25<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>)+ = SingleField => ActionFn(174);
         let __sym0 = __pop_Variant12(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action174::<>(__sym0);
+        let __nt = super::__action174::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant13(__nt), __end));
         (1, 16)
     }
     pub(crate) fn __reduce26<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // (<SingleField>)+ = (<SingleField>)+, SingleField => ActionFn(175);
@@ -8278,58 +8681,66 @@ mod __parse__Program {
         let __sym0 = __pop_Variant13(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action175::<>(__sym0, __sym1);
+        let __nt = super::__action175::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant13(__nt), __end));
         (2, 16)
     }
     pub(crate) fn __reduce27<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // @L =  => ActionFn(143);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action143::<>(&__start, &__end);
+        let __nt = super::__action143::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant14(__nt), __end));
         (0, 17)
     }
     pub(crate) fn __reduce28<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // @R =  => ActionFn(142);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action142::<>(&__start, &__end);
+        let __nt = super::__action142::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant14(__nt), __end));
         (0, 18)
     }
     pub(crate) fn __reduce29<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Args = ExprS => ActionFn(152);
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action152::<>(__sym0);
+        let __nt = super::__action152::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant15(__nt), __end));
         (1, 19)
     }
     pub(crate) fn __reduce30<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Args = ExprS, ("," <ExprS>)+ => ActionFn(153);
@@ -8338,89 +8749,101 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action153::<>(__sym0, __sym1);
+        let __nt = super::__action153::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant15(__nt), __end));
         (2, 19)
     }
     pub(crate) fn __reduce31<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Args =  => ActionFn(171);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action171::<>(&__start, &__end);
+        let __nt = super::__action171::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant15(__nt), __end));
         (0, 19)
     }
     pub(crate) fn __reduce32<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Decl = Stmt => ActionFn(4);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action4::<>(__sym0);
+        let __nt = super::__action4::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 20)
     }
     pub(crate) fn __reduce33<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Decl = DeclVar => ActionFn(5);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action5::<>(__sym0);
+        let __nt = super::__action5::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 20)
     }
     pub(crate) fn __reduce34<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Decl = DeclFun => ActionFn(6);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action6::<>(__sym0);
+        let __nt = super::__action6::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 20)
     }
     pub(crate) fn __reduce35<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Decl = DeclStruct => ActionFn(7);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action7::<>(__sym0);
+        let __nt = super::__action7::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 20)
     }
     pub(crate) fn __reduce36<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclFun = "fn", Function => ActionFn(12);
@@ -8429,74 +8852,84 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action12::<>(__sym0, __sym1);
+        let __nt = super::__action12::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (2, 21)
     }
     pub(crate) fn __reduce37<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS = Spanned<Decl> => ActionFn(3);
         let __sym0 = __pop_Variant17(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action3::<>(__sym0);
+        let __nt = super::__action3::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 22)
     }
     pub(crate) fn __reduce38<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS* =  => ActionFn(130);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action130::<>(&__start, &__end);
+        let __nt = super::__action130::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (0, 23)
     }
     pub(crate) fn __reduce39<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS* = DeclS+ => ActionFn(131);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action131::<>(__sym0);
+        let __nt = super::__action131::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 23)
     }
     pub(crate) fn __reduce40<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS+ = DeclS => ActionFn(132);
         let __sym0 = __pop_Variant17(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action132::<>(__sym0);
+        let __nt = super::__action132::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 24)
     }
     pub(crate) fn __reduce41<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclS+ = DeclS+, DeclS => ActionFn(133);
@@ -8505,15 +8938,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action133::<>(__sym0, __sym1);
+        let __nt = super::__action133::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (2, 24)
     }
     pub(crate) fn __reduce42<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclStruct = "struct", identifier, StructFields, ";" => ActionFn(8);
@@ -8524,15 +8959,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym3.2;
-        let __nt = super::__action8::<>(__sym0, __sym1, __sym2, __sym3);
+        let __nt = super::__action8::<>(errors, __sym0, __sym1, __sym2, __sym3);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (4, 25)
     }
     pub(crate) fn __reduce43<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclVar = "let", identifier, ":", Types, "=", ExprS, ";" => ActionFn(167);
@@ -8546,15 +8983,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action167::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action167::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 26)
     }
     pub(crate) fn __reduce44<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclVar = "let", identifier, ":", Types, ";" => ActionFn(168);
@@ -8566,15 +9005,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action168::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action168::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 26)
     }
     pub(crate) fn __reduce45<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclVar = "let", identifier, "=", ExprS, ";" => ActionFn(169);
@@ -8586,15 +9027,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action169::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action169::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 26)
     }
     pub(crate) fn __reduce46<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // DeclVar = "let", identifier, ";" => ActionFn(170);
@@ -8604,15 +9047,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action170::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action170::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (3, 26)
     }
     pub(crate) fn __reduce47<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprAssign = identifier, "=", ExprS => ActionFn(42);
@@ -8622,30 +9067,34 @@ mod __parse__Program {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action42::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action42::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 27)
     }
     pub(crate) fn __reduce48<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprAssign = ExprLogicOr => ActionFn(43);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action43::<>(__sym0);
+        let __nt = super::__action43::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 27)
     }
     pub(crate) fn __reduce49<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprCall = Spanned<ExprCall>, "(", Args, ")" => ActionFn(67);
@@ -8656,75 +9105,85 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym3.2;
-        let __nt = super::__action67::<>(__sym0, __sym1, __sym2, __sym3);
+        let __nt = super::__action67::<>(errors, __sym0, __sym1, __sym2, __sym3);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (4, 28)
     }
     pub(crate) fn __reduce50<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprCall = ExprPrimary => ActionFn(68);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action68::<>(__sym0);
+        let __nt = super::__action68::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 28)
     }
     pub(crate) fn __reduce51<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprComparison = ExprInfix<ExprComparison, OpComparison, ExprTerm> => ActionFn(51);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action51::<>(__sym0);
+        let __nt = super::__action51::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 29)
     }
     pub(crate) fn __reduce52<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprEquality = ExprInfix<ExprEquality, OpEquality, ExprComparison> => ActionFn(48);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action48::<>(__sym0);
+        let __nt = super::__action48::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 30)
     }
     pub(crate) fn __reduce53<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprFactor = ExprInfix<ExprFactor, OpFactor, ExprPrefix> => ActionFn(59);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action59::<>(__sym0);
+        let __nt = super::__action59::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 31)
     }
     pub(crate) fn __reduce54<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprComparison, OpComparison, ExprTerm> = Spanned<ExprComparison>, OpComparison, Spanned<ExprTerm> => ActionFn(101);
@@ -8734,30 +9193,34 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action101::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action101::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 32)
     }
     pub(crate) fn __reduce55<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprComparison, OpComparison, ExprTerm> = ExprTerm => ActionFn(102);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action102::<>(__sym0);
+        let __nt = super::__action102::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 32)
     }
     pub(crate) fn __reduce56<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprEquality, OpEquality, ExprComparison> = Spanned<ExprEquality>, OpEquality, Spanned<ExprComparison> => ActionFn(103);
@@ -8767,30 +9230,34 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action103::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action103::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 33)
     }
     pub(crate) fn __reduce57<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprEquality, OpEquality, ExprComparison> = ExprComparison => ActionFn(104);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action104::<>(__sym0);
+        let __nt = super::__action104::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 33)
     }
     pub(crate) fn __reduce58<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprFactor, OpFactor, ExprPrefix> = Spanned<ExprFactor>, OpFactor, Spanned<ExprPrefix> => ActionFn(97);
@@ -8800,30 +9267,34 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action97::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action97::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 34)
     }
     pub(crate) fn __reduce59<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprFactor, OpFactor, ExprPrefix> = ExprPrefix => ActionFn(98);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action98::<>(__sym0);
+        let __nt = super::__action98::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 34)
     }
     pub(crate) fn __reduce60<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprLogicAnd, OpLogicAnd, ExprEquality> = Spanned<ExprLogicAnd>, OpLogicAnd, Spanned<ExprEquality> => ActionFn(105);
@@ -8833,30 +9304,34 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action105::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action105::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 35)
     }
     pub(crate) fn __reduce61<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprLogicAnd, OpLogicAnd, ExprEquality> = ExprEquality => ActionFn(106);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action106::<>(__sym0);
+        let __nt = super::__action106::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 35)
     }
     pub(crate) fn __reduce62<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprLogicOr, OpLogicOr, ExprLogicAnd> = Spanned<ExprLogicOr>, OpLogicOr, Spanned<ExprLogicAnd> => ActionFn(107);
@@ -8866,30 +9341,34 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action107::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action107::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 36)
     }
     pub(crate) fn __reduce63<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprLogicOr, OpLogicOr, ExprLogicAnd> = ExprLogicAnd => ActionFn(108);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action108::<>(__sym0);
+        let __nt = super::__action108::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 36)
     }
     pub(crate) fn __reduce64<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprTerm, OpTerm, ExprFactor> = Spanned<ExprTerm>, OpTerm, Spanned<ExprFactor> => ActionFn(99);
@@ -8899,60 +9378,68 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action99::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action99::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 37)
     }
     pub(crate) fn __reduce65<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprInfix<ExprTerm, OpTerm, ExprFactor> = ExprFactor => ActionFn(100);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action100::<>(__sym0);
+        let __nt = super::__action100::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 37)
     }
     pub(crate) fn __reduce66<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprLogicAnd = ExprInfix<ExprLogicAnd, OpLogicAnd, ExprEquality> => ActionFn(46);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action46::<>(__sym0);
+        let __nt = super::__action46::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 38)
     }
     pub(crate) fn __reduce67<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprLogicOr = ExprInfix<ExprLogicOr, OpLogicOr, ExprLogicAnd> => ActionFn(44);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action44::<>(__sym0);
+        let __nt = super::__action44::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 39)
     }
     pub(crate) fn __reduce68<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrefix = OpPrefix, Spanned<ExprPrefix> => ActionFn(65);
@@ -8961,120 +9448,136 @@ mod __parse__Program {
         let __sym0 = __pop_Variant23(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action65::<>(__sym0, __sym1);
+        let __nt = super::__action65::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (2, 40)
     }
     pub(crate) fn __reduce69<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrefix = ExprCall => ActionFn(66);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action66::<>(__sym0);
+        let __nt = super::__action66::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 40)
     }
     pub(crate) fn __reduce70<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = "nil" => ActionFn(69);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action69::<>(__sym0);
+        let __nt = super::__action69::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce71<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = "false" => ActionFn(70);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action70::<>(__sym0);
+        let __nt = super::__action70::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce72<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = "true" => ActionFn(71);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action71::<>(__sym0);
+        let __nt = super::__action71::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce73<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = string => ActionFn(72);
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action72::<>(__sym0);
+        let __nt = super::__action72::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce74<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = number => ActionFn(73);
         let __sym0 = __pop_Variant2(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action73::<>(__sym0);
+        let __nt = super::__action73::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce75<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = ExprVar => ActionFn(74);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action74::<>(__sym0);
+        let __nt = super::__action74::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 41)
     }
     pub(crate) fn __reduce76<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprPrimary = "(", Expression, ")" => ActionFn(75);
@@ -9084,104 +9587,118 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action75::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action75::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (3, 41)
     }
     pub(crate) fn __reduce77<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprS = Spanned<Expression> => ActionFn(40);
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action40::<>(__sym0);
+        let __nt = super::__action40::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 42)
     }
     pub(crate) fn __reduce78<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprS? = ExprS => ActionFn(110);
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action110::<>(__sym0);
+        let __nt = super::__action110::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (1, 43)
     }
     pub(crate) fn __reduce79<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprS? =  => ActionFn(111);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action111::<>(&__start, &__end);
+        let __nt = super::__action111::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (0, 43)
     }
     pub(crate) fn __reduce80<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprTerm = ExprInfix<ExprTerm, OpTerm, ExprFactor> => ActionFn(56);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action56::<>(__sym0);
+        let __nt = super::__action56::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 44)
     }
     pub(crate) fn __reduce81<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ExprVar = identifier => ActionFn(85);
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action85::<>(__sym0);
+        let __nt = super::__action85::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 45)
     }
     pub(crate) fn __reduce82<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Expression = ExprAssign => ActionFn(41);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action41::<>(__sym0);
+        let __nt = super::__action41::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (1, 46)
     }
     pub(crate) fn __reduce83<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForCond = ExprS, ";" => ActionFn(212);
@@ -9190,104 +9707,118 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action212::<>(__sym0, __sym1);
+        let __nt = super::__action212::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (2, 47)
     }
     pub(crate) fn __reduce84<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForCond = ";" => ActionFn(213);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action213::<>(__sym0);
+        let __nt = super::__action213::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (1, 47)
     }
     pub(crate) fn __reduce85<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForIncr = ExprS => ActionFn(214);
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action214::<>(__sym0);
+        let __nt = super::__action214::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (1, 48)
     }
     pub(crate) fn __reduce86<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForIncr =  => ActionFn(215);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action215::<>(&__start, &__end);
+        let __nt = super::__action215::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (0, 48)
     }
     pub(crate) fn __reduce87<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForInit = Spanned<DeclVar> => ActionFn(24);
         let __sym0 = __pop_Variant17(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action24::<>(__sym0);
+        let __nt = super::__action24::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant20(__nt), __end));
         (1, 49)
     }
     pub(crate) fn __reduce88<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForInit = Spanned<StmtExpr> => ActionFn(25);
         let __sym0 = __pop_Variant17(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action25::<>(__sym0);
+        let __nt = super::__action25::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant20(__nt), __end));
         (1, 49)
     }
     pub(crate) fn __reduce89<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // ForInit = ";" => ActionFn(26);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action26::<>(__sym0);
+        let __nt = super::__action26::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant20(__nt), __end));
         (1, 49)
     }
     pub(crate) fn __reduce90<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Function = identifier, "(", Params, ")", "->", Types, StatementBlockIn => ActionFn(159);
@@ -9301,15 +9832,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action159::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action159::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant21(__nt), __end));
         (7, 50)
     }
     pub(crate) fn __reduce91<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Function = identifier, "(", Params, ")", StatementBlockIn => ActionFn(160);
@@ -9321,240 +9854,272 @@ mod __parse__Program {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action160::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action160::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant21(__nt), __end));
         (5, 50)
     }
     pub(crate) fn __reduce92<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpComparison = ">" => ActionFn(52);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action52::<>(__sym0);
+        let __nt = super::__action52::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 51)
     }
     pub(crate) fn __reduce93<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpComparison = ">=" => ActionFn(53);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action53::<>(__sym0);
+        let __nt = super::__action53::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 51)
     }
     pub(crate) fn __reduce94<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpComparison = "<" => ActionFn(54);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action54::<>(__sym0);
+        let __nt = super::__action54::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 51)
     }
     pub(crate) fn __reduce95<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpComparison = "<=" => ActionFn(55);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action55::<>(__sym0);
+        let __nt = super::__action55::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 51)
     }
     pub(crate) fn __reduce96<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpEquality = "==" => ActionFn(49);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action49::<>(__sym0);
+        let __nt = super::__action49::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 52)
     }
     pub(crate) fn __reduce97<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpEquality = "!=" => ActionFn(50);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action50::<>(__sym0);
+        let __nt = super::__action50::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 52)
     }
     pub(crate) fn __reduce98<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpFactor = "*" => ActionFn(60);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action60::<>(__sym0);
+        let __nt = super::__action60::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 53)
     }
     pub(crate) fn __reduce99<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpFactor = "/" => ActionFn(61);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action61::<>(__sym0);
+        let __nt = super::__action61::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 53)
     }
     pub(crate) fn __reduce100<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpFactor = "%" => ActionFn(62);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action62::<>(__sym0);
+        let __nt = super::__action62::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 53)
     }
     pub(crate) fn __reduce101<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpLogicAnd = "and" => ActionFn(47);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action47::<>(__sym0);
+        let __nt = super::__action47::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 54)
     }
     pub(crate) fn __reduce102<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpLogicOr = "or" => ActionFn(45);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action45::<>(__sym0);
+        let __nt = super::__action45::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 55)
     }
     pub(crate) fn __reduce103<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpPrefix = "-" => ActionFn(63);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action63::<>(__sym0);
+        let __nt = super::__action63::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant23(__nt), __end));
         (1, 56)
     }
     pub(crate) fn __reduce104<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpPrefix = "!" => ActionFn(64);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action64::<>(__sym0);
+        let __nt = super::__action64::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant23(__nt), __end));
         (1, 56)
     }
     pub(crate) fn __reduce105<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpTerm = "+" => ActionFn(57);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action57::<>(__sym0);
+        let __nt = super::__action57::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 57)
     }
     pub(crate) fn __reduce106<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // OpTerm = "-" => ActionFn(58);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action58::<>(__sym0);
+        let __nt = super::__action58::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant22(__nt), __end));
         (1, 57)
     }
     pub(crate) fn __reduce107<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Param = identifier, ":", Types => ActionFn(164);
@@ -9564,45 +10129,51 @@ mod __parse__Program {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action164::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action164::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant6(__nt), __end));
         (3, 58)
     }
     pub(crate) fn __reduce108<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Param = identifier => ActionFn(165);
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action165::<>(__sym0);
+        let __nt = super::__action165::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant6(__nt), __end));
         (1, 58)
     }
     pub(crate) fn __reduce109<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Params = Param => ActionFn(156);
         let __sym0 = __pop_Variant6(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action156::<>(__sym0);
+        let __nt = super::__action156::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant24(__nt), __end));
         (1, 59)
     }
     pub(crate) fn __reduce110<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Params = Param, ("," <Param>)+ => ActionFn(157);
@@ -9611,58 +10182,66 @@ mod __parse__Program {
         let __sym0 = __pop_Variant6(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action157::<>(__sym0, __sym1);
+        let __nt = super::__action157::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant24(__nt), __end));
         (2, 59)
     }
     pub(crate) fn __reduce111<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Params =  => ActionFn(172);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action172::<>(&__start, &__end);
+        let __nt = super::__action172::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant24(__nt), __end));
         (0, 59)
     }
     pub(crate) fn __reduce112<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Program =  => ActionFn(208);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action208::<>(&__start, &__end);
+        let __nt = super::__action208::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant25(__nt), __end));
         (0, 60)
     }
     pub(crate) fn __reduce113<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Program = DeclS+ => ActionFn(209);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action209::<>(__sym0);
+        let __nt = super::__action209::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant25(__nt), __end));
         (1, 60)
     }
     pub(crate) fn __reduce114<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SingleField = identifier, ":", Types, "," => ActionFn(148);
@@ -9673,15 +10252,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym3.2;
-        let __nt = super::__action148::<>(__sym0, __sym1, __sym2, __sym3);
+        let __nt = super::__action148::<>(errors, __sym0, __sym1, __sym2, __sym3);
         __symbols.push((__start, __Symbol::Variant12(__nt), __end));
         (4, 61)
     }
     pub(crate) fn __reduce115<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SingleField = identifier, ":", Types => ActionFn(149);
@@ -9691,315 +10272,357 @@ mod __parse__Program {
         let __sym0 = __pop_Variant1(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action149::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action149::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant12(__nt), __end));
         (3, 61)
     }
     pub(crate) fn __reduce116<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtExpr => ActionFn(29);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action29::<>(__sym0);
+        let __nt = super::__action29::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce117<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtBlock => ActionFn(30);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action30::<>(__sym0);
+        let __nt = super::__action30::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce118<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtPrint => ActionFn(31);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action31::<>(__sym0);
+        let __nt = super::__action31::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce119<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtPrintLn => ActionFn(32);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action32::<>(__sym0);
+        let __nt = super::__action32::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce120<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // SmallStmt = StmtReturn => ActionFn(33);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action33::<>(__sym0);
+        let __nt = super::__action33::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 62)
     }
     pub(crate) fn __reduce121<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<Decl> = Decl => ActionFn(193);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action193::<>(__sym0);
+        let __nt = super::__action193::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 63)
     }
     pub(crate) fn __reduce122<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<DeclVar> = DeclVar => ActionFn(194);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action194::<>(__sym0);
+        let __nt = super::__action194::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 64)
     }
     pub(crate) fn __reduce123<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprCall> = ExprCall => ActionFn(195);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action195::<>(__sym0);
+        let __nt = super::__action195::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 65)
     }
     pub(crate) fn __reduce124<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprComparison> = ExprComparison => ActionFn(196);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action196::<>(__sym0);
+        let __nt = super::__action196::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 66)
     }
     pub(crate) fn __reduce125<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprEquality> = ExprEquality => ActionFn(197);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action197::<>(__sym0);
+        let __nt = super::__action197::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 67)
     }
     pub(crate) fn __reduce126<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprFactor> = ExprFactor => ActionFn(198);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action198::<>(__sym0);
+        let __nt = super::__action198::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 68)
     }
     pub(crate) fn __reduce127<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprLogicAnd> = ExprLogicAnd => ActionFn(199);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action199::<>(__sym0);
+        let __nt = super::__action199::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 69)
     }
     pub(crate) fn __reduce128<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprLogicOr> = ExprLogicOr => ActionFn(200);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action200::<>(__sym0);
+        let __nt = super::__action200::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 70)
     }
     pub(crate) fn __reduce129<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprPrefix> = ExprPrefix => ActionFn(201);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action201::<>(__sym0);
+        let __nt = super::__action201::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 71)
     }
     pub(crate) fn __reduce130<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<ExprTerm> = ExprTerm => ActionFn(202);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action202::<>(__sym0);
+        let __nt = super::__action202::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 72)
     }
     pub(crate) fn __reduce131<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<Expression> = Expression => ActionFn(203);
         let __sym0 = __pop_Variant19(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action203::<>(__sym0);
+        let __nt = super::__action203::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant4(__nt), __end));
         (1, 73)
     }
     pub(crate) fn __reduce132<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<Stmt> = Stmt => ActionFn(204);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action204::<>(__sym0);
+        let __nt = super::__action204::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 74)
     }
     pub(crate) fn __reduce133<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<StmtClosed> = StmtClosed => ActionFn(205);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action205::<>(__sym0);
+        let __nt = super::__action205::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 75)
     }
     pub(crate) fn __reduce134<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<StmtExpr> = StmtExpr => ActionFn(206);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action206::<>(__sym0);
+        let __nt = super::__action206::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 76)
     }
     pub(crate) fn __reduce135<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Spanned<StmtOpen> = StmtOpen => ActionFn(207);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action207::<>(__sym0);
+        let __nt = super::__action207::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (1, 77)
     }
     pub(crate) fn __reduce136<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StatementBlockIn = "{", "}" => ActionFn(210);
@@ -10008,15 +10631,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action210::<>(__sym0, __sym1);
+        let __nt = super::__action210::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant26(__nt), __end));
         (2, 78)
     }
     pub(crate) fn __reduce137<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StatementBlockIn = "{", DeclS+, "}" => ActionFn(211);
@@ -10026,60 +10651,68 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action211::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action211::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant26(__nt), __end));
         (3, 78)
     }
     pub(crate) fn __reduce138<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Stmt = StmtOpen => ActionFn(14);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action14::<>(__sym0);
+        let __nt = super::__action14::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 79)
     }
     pub(crate) fn __reduce139<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Stmt = StmtClosed => ActionFn(15);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action15::<>(__sym0);
+        let __nt = super::__action15::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 79)
     }
     pub(crate) fn __reduce140<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtBlock = StatementBlockIn => ActionFn(37);
         let __sym0 = __pop_Variant26(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action37::<>(__sym0);
+        let __nt = super::__action37::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 80)
     }
     pub(crate) fn __reduce141<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtClosed = "if", "(", ExprS, ")", Spanned<StmtClosed>, "else", Spanned<StmtClosed> => ActionFn(20);
@@ -10093,15 +10726,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action20::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action20::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 81)
     }
     pub(crate) fn __reduce142<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtClosed = "while", "(", ExprS, ")", Spanned<StmtClosed> => ActionFn(21);
@@ -10113,15 +10748,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action21::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action21::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 81)
     }
     pub(crate) fn __reduce143<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtClosed = "for", "(", ForInit, ForCond, ForIncr, ")", Spanned<StmtClosed> => ActionFn(22);
@@ -10135,30 +10772,34 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action22::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action22::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 81)
     }
     pub(crate) fn __reduce144<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtClosed = SmallStmt => ActionFn(23);
         let __sym0 = __pop_Variant16(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action23::<>(__sym0);
+        let __nt = super::__action23::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (1, 81)
     }
     pub(crate) fn __reduce145<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtExpr = ExprS, ";" => ActionFn(39);
@@ -10167,15 +10808,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant4(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action39::<>(__sym0, __sym1);
+        let __nt = super::__action39::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (2, 82)
     }
     pub(crate) fn __reduce146<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtOpen = "for", "(", ForInit, ForCond, ForIncr, ")", Spanned<StmtOpen> => ActionFn(16);
@@ -10189,15 +10832,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action16::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action16::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 83)
     }
     pub(crate) fn __reduce147<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtOpen = "if", "(", ExprS, ")", Spanned<Stmt> => ActionFn(17);
@@ -10209,15 +10854,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action17::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action17::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 83)
     }
     pub(crate) fn __reduce148<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtOpen = "if", "(", ExprS, ")", Spanned<StmtClosed>, "else", Spanned<StmtOpen> => ActionFn(18);
@@ -10231,15 +10878,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym6.2;
-        let __nt = super::__action18::<>(__sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
+        let __nt = super::__action18::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4, __sym5, __sym6);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (7, 83)
     }
     pub(crate) fn __reduce149<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtOpen = "while", "(", ExprS, ")", Spanned<StmtOpen> => ActionFn(19);
@@ -10251,15 +10900,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym4.2;
-        let __nt = super::__action19::<>(__sym0, __sym1, __sym2, __sym3, __sym4);
+        let __nt = super::__action19::<>(errors, __sym0, __sym1, __sym2, __sym3, __sym4);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (5, 83)
     }
     pub(crate) fn __reduce150<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtPrint = "print", ExprS, ";" => ActionFn(36);
@@ -10269,15 +10920,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action36::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action36::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (3, 84)
     }
     pub(crate) fn __reduce151<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtPrintLn = "println", ExprS, ";" => ActionFn(35);
@@ -10287,15 +10940,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action35::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action35::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (3, 85)
     }
     pub(crate) fn __reduce152<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtReturn = "return", ExprS, ";" => ActionFn(216);
@@ -10305,15 +10960,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action216::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action216::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (3, 86)
     }
     pub(crate) fn __reduce153<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StmtReturn = "return", ";" => ActionFn(217);
@@ -10322,15 +10979,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action217::<>(__sym0, __sym1);
+        let __nt = super::__action217::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant16(__nt), __end));
         (2, 86)
     }
     pub(crate) fn __reduce154<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StructFields = "{", "}" => ActionFn(176);
@@ -10339,15 +10998,17 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym1.2;
-        let __nt = super::__action176::<>(__sym0, __sym1);
+        let __nt = super::__action176::<>(errors, __sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant27(__nt), __end));
         (2, 87)
     }
     pub(crate) fn __reduce155<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StructFields = "{", (<SingleField>)+, "}" => ActionFn(177);
@@ -10357,162 +11018,199 @@ mod __parse__Program {
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym2.2;
-        let __nt = super::__action177::<>(__sym0, __sym1, __sym2);
+        let __nt = super::__action177::<>(errors, __sym0, __sym1, __sym2);
         __symbols.push((__start, __Symbol::Variant27(__nt), __end));
         (3, 87)
     }
     pub(crate) fn __reduce156<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // StructFields =  => ActionFn(173);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action173::<>(&__start, &__end);
+        let __nt = super::__action173::<>(errors, &__start, &__end);
         __symbols.push((__start, __Symbol::Variant27(__nt), __end));
         (0, 87)
     }
     pub(crate) fn __reduce157<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Types = type_string => ActionFn(82);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action82::<>(__sym0);
+        let __nt = super::__action82::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (1, 88)
     }
     pub(crate) fn __reduce158<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Types = type_int => ActionFn(83);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action83::<>(__sym0);
+        let __nt = super::__action83::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (1, 88)
     }
     pub(crate) fn __reduce159<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // Types = "fn" => ActionFn(84);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action84::<>(__sym0);
+        let __nt = super::__action84::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (1, 88)
     }
     pub(crate) fn __reduce160<
+        'err,
     >(
+        errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
         __lookahead_start: Option<&usize>,
         __symbols: &mut alloc::vec::Vec<(usize,__Symbol<>,usize)>,
-        _: core::marker::PhantomData<()>,
+        _: core::marker::PhantomData<(&'err ())>,
     ) -> (usize, usize)
     {
         // __OpPrefix = OpPrefix => ActionFn(1);
         let __sym0 = __pop_Variant23(__symbols);
         let __start = __sym0.0;
         let __end = __sym0.2;
-        let __nt = super::__action1::<>(__sym0);
+        let __nt = super::__action1::<>(errors, __sym0);
         __symbols.push((__start, __Symbol::Variant23(__nt), __end));
         (1, 89)
     }
 }
 pub use self::__parse__Program::ProgramParser;
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action0<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Program, usize),
 ) -> ast::Program
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action1<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::OpPrefix, usize),
 ) -> ast::OpPrefix
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action2<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, statements, _): (usize, alloc::vec::Vec<ast::Spanned<ast::Statement>>, usize),
 ) -> ast::Program
 {
     ast::Program { statements }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action3<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Spanned<ast::Statement>, usize),
 ) -> ast::Spanned<ast::Statement>
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action4<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action5<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action6<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action7<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action8<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, name, _): (usize, String, usize),
     (_, fields, _): (usize, Vec<ast::Field>, usize),
@@ -10522,9 +11220,12 @@ fn __action8<
     ast::Statement::Struct(ast::StatementStruct { name, fields })
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action9<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, mut fields, _): (usize, alloc::vec::Vec<ast::Field>, usize),
     (_, _, _): (usize, Token, usize),
@@ -10535,18 +11236,24 @@ fn __action9<
     }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action10<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, (), usize),
 ) -> Vec<ast::Field>
 {
     Vec::new()
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action11<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, name, _): (usize, String, usize),
     (_, _, _): (usize, Token, usize),
     (_, type_, _): (usize, ast::Type, usize),
@@ -10556,9 +11263,12 @@ fn __action11<
     ast::Field { name, type_ }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action12<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, function, _): (usize, ast::StatementFun, usize),
 ) -> ast::Statement
@@ -10566,9 +11276,12 @@ fn __action12<
     ast::Statement::Fun(function)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action13<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, name, _): (usize, String, usize),
     (_, type_, _): (usize, core::option::Option<ast::Type>, usize),
@@ -10582,27 +11295,36 @@ fn __action13<
       })
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action14<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action15<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action16<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, _, _): (usize, Token, usize),
     (_, init, _): (usize, Option<ast::StatementS>, usize),
@@ -10615,9 +11337,12 @@ fn __action16<
     ast::Statement::For(Box::new(ast::StatementFor { init, cond, update, body }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action17<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, _, _): (usize, Token, usize),
     (_, cond, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -10628,9 +11353,12 @@ fn __action17<
     ast::Statement::If(Box::new(ast::StatementIf { cond, then_branch, else_branch: None }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action18<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, _, _): (usize, Token, usize),
     (_, cond, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -10643,9 +11371,12 @@ fn __action18<
     ast::Statement::If(Box::new(ast::StatementIf { cond, then_branch, else_branch: Some(else_branch)}))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action19<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, _, _): (usize, Token, usize),
     (_, cond, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -10656,9 +11387,12 @@ fn __action19<
     ast::Statement::While(Box::new(ast::StatementWhile { cond, body }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action20<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, _, _): (usize, Token, usize),
     (_, cond, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -10671,9 +11405,12 @@ fn __action20<
     ast::Statement::If(Box::new(ast::StatementIf { cond, then_branch, else_branch: Some(else_branch) }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action21<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, _, _): (usize, Token, usize),
     (_, cond, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -10684,9 +11421,12 @@ fn __action21<
     ast::Statement::While(Box::new(ast::StatementWhile { cond, body }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action22<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, _, _): (usize, Token, usize),
     (_, init, _): (usize, Option<ast::StatementS>, usize),
@@ -10699,45 +11439,60 @@ fn __action22<
     ast::Statement::For(Box::new(ast::StatementFor { init, cond, update, body }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action23<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action24<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Spanned<ast::Statement>, usize),
 ) -> Option<ast::StatementS>
 {
     Some(__0)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action25<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Spanned<ast::Statement>, usize),
 ) -> Option<ast::StatementS>
 {
     Some(__0)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action26<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> Option<ast::StatementS>
 {
     None
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action27<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, core::option::Option<ast::Spanned<ast::Expression>>, usize),
     (_, _, _): (usize, Token, usize),
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
@@ -10745,63 +11500,84 @@ fn __action27<
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action28<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, core::option::Option<ast::Spanned<ast::Expression>>, usize),
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action29<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action30<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action31<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action32<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action33<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Statement, usize),
 ) -> ast::Statement
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action34<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, value, _): (usize, core::option::Option<ast::Spanned<ast::Expression>>, usize),
     (_, _, _): (usize, Token, usize),
@@ -10810,9 +11586,12 @@ fn __action34<
     ast::Statement::Return(ast::StatementReturn { value })
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action35<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, value, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, _, _): (usize, Token, usize),
@@ -10821,9 +11600,12 @@ fn __action35<
     ast::Statement::PrintLn(ast::StatementPrintLn { value })
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action36<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, value, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, _, _): (usize, Token, usize),
@@ -10832,18 +11614,24 @@ fn __action36<
     ast::Statement::Print(ast::StatementPrint { value })
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action37<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::StatementBlock, usize),
 ) -> ast::Statement
 {
     ast::Statement::Block(__0)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action38<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, statements, _): (usize, alloc::vec::Vec<ast::Spanned<ast::Statement>>, usize),
     (_, _, _): (usize, Token, usize),
@@ -10852,9 +11640,12 @@ fn __action38<
     ast::StatementBlock { statements }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action39<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, expr, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, _, _): (usize, Token, usize),
 ) -> ast::Statement
@@ -10862,27 +11653,36 @@ fn __action39<
     ast::Statement::Expression(ast::StatementExpr { expr })
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action40<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Spanned<ast::Expression>, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action41<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action42<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, name, _): (usize, String, usize),
     (_, _, _): (usize, Token, usize),
     (_, value, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -10894,207 +11694,276 @@ fn __action42<
         }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action43<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action44<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action45<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::LogicOr
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action46<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action47<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::LogicAnd
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action48<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action49<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::Equal
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action50<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::NotEqual
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action51<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action52<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::Greater
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action53<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::GreaterEqual
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action54<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::Less
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action55<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::LessEqual
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action56<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action57<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::Add
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action58<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::Sub
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action59<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action60<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::Mul
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action61<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::Div
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action62<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpInfix
 {
     ast::OpInfix::Modulo
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action63<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpPrefix
 {
     ast::OpPrefix::Negate
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action64<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::OpPrefix
 {
     ast::OpPrefix::Not
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action65<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, op, _): (usize, ast::OpPrefix, usize),
     (_, rt, _): (usize, ast::Spanned<ast::Expression>, usize),
 ) -> ast::Expression
@@ -11102,18 +11971,24 @@ fn __action65<
     ast::Expression::Prefix(Box::new(ast::ExprPrefix { op, rt }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action66<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action67<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, callee, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, _, _): (usize, Token, usize),
     (_, args, _): (usize, Vec<ast::ExprS>, usize),
@@ -11123,72 +11998,96 @@ fn __action67<
     ast::Expression::Call(Box::new(ast::ExprCall { callee, args }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action68<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action69<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::Expression
 {
     ast::Expression::Literal(ast::ExprLiteral::Nil)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action70<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::Expression
 {
     ast::Expression::Literal(ast::ExprLiteral::Bool(false))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action71<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::Expression
 {
     ast::Expression::Literal(ast::ExprLiteral::Bool(true))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action72<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, String, usize),
 ) -> ast::Expression
 {
     ast::Expression::Literal(ast::ExprLiteral::String(__0))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action73<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, f64, usize),
 ) -> ast::Expression
 {
     ast::Expression::Literal(ast::ExprLiteral::Number(__0))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action74<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action75<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, __0, _): (usize, ast::Expression, usize),
     (_, _, _): (usize, Token, usize),
@@ -11197,9 +12096,12 @@ fn __action75<
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action76<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, name, _): (usize, String, usize),
     (_, _, _): (usize, Token, usize),
     (_, params, _): (usize, HashMap<String, Option<ast::Type>>, usize),
@@ -11211,9 +12113,12 @@ fn __action76<
     ast::StatementFun { name, params, return_type, body }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action77<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, first, _): (usize, (String, Option<ast::Type>), usize),
     (_, mut params, _): (usize, alloc::vec::Vec<(String, Option<ast::Type>)>, usize),
 ) -> HashMap<String, Option<ast::Type>>
@@ -11229,18 +12134,24 @@ fn __action77<
     }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action78<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, (), usize),
 ) -> HashMap<String, Option<ast::Type>>
 {
     HashMap::new()
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action79<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, string_, _): (usize, String, usize),
     (_, type_, _): (usize, core::option::Option<ast::Type>, usize),
 ) -> (String, Option<ast::Type>)
@@ -11248,9 +12159,12 @@ fn __action79<
     (string_,type_)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action80<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, first, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, mut args, _): (usize, alloc::vec::Vec<ast::Spanned<ast::Expression>>, usize),
 ) -> Vec<ast::ExprS>
@@ -11261,54 +12175,72 @@ fn __action80<
     }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action81<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, (), usize),
 ) -> Vec<ast::ExprS>
 {
     Vec::new()
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action82<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::Type
 {
     ast::Type::String
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action83<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::Type
 {
     ast::Type::Int
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action84<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> ast::Type
 {
     ast::Type::Fn
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action85<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, name, _): (usize, String, usize),
 ) -> ast::Expression
 {
     ast::Expression::Var(ast::ExprVar { var: ast::Var {name, type_: None} })
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action86<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> alloc::vec::Vec<ast::Spanned<ast::Expression>>
@@ -11316,18 +12248,24 @@ fn __action86<
     alloc::vec![]
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action87<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, v, _): (usize, alloc::vec::Vec<ast::Spanned<ast::Expression>>, usize),
 ) -> alloc::vec::Vec<ast::Spanned<ast::Expression>>
 {
     v
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action88<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, __0, _): (usize, ast::Spanned<ast::Expression>, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -11335,9 +12273,12 @@ fn __action88<
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action89<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> alloc::vec::Vec<(String, Option<ast::Type>)>
@@ -11345,18 +12286,24 @@ fn __action89<
     alloc::vec![]
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action90<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, v, _): (usize, alloc::vec::Vec<(String, Option<ast::Type>)>, usize),
 ) -> alloc::vec::Vec<(String, Option<ast::Type>)>
 {
     v
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action91<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, __0, _): (usize, (String, Option<ast::Type>), usize),
 ) -> (String, Option<ast::Type>)
@@ -11364,18 +12311,24 @@ fn __action91<
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action92<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Type, usize),
 ) -> core::option::Option<ast::Type>
 {
     Some(__0)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action93<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> core::option::Option<ast::Type>
@@ -11383,9 +12336,12 @@ fn __action93<
     None
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action94<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, __0, _): (usize, ast::Type, usize),
 ) -> ast::Type
@@ -11393,9 +12349,12 @@ fn __action94<
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action95<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Expression, usize),
     (_, r, _): (usize, usize, usize),
@@ -11404,9 +12363,12 @@ fn __action95<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action96<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Expression, usize),
     (_, r, _): (usize, usize, usize),
@@ -11415,9 +12377,12 @@ fn __action96<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action97<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, lhs, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, op, _): (usize, ast::OpInfix, usize),
     (_, rhs, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -11426,18 +12391,24 @@ fn __action97<
     ast::Expression::Infix(Box::new(ast::ExprInfix { lhs, op, rhs }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action98<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action99<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, lhs, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, op, _): (usize, ast::OpInfix, usize),
     (_, rhs, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -11446,18 +12417,24 @@ fn __action99<
     ast::Expression::Infix(Box::new(ast::ExprInfix { lhs, op, rhs }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action100<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action101<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, lhs, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, op, _): (usize, ast::OpInfix, usize),
     (_, rhs, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -11466,18 +12443,24 @@ fn __action101<
     ast::Expression::Infix(Box::new(ast::ExprInfix { lhs, op, rhs }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action102<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action103<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, lhs, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, op, _): (usize, ast::OpInfix, usize),
     (_, rhs, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -11486,18 +12469,24 @@ fn __action103<
     ast::Expression::Infix(Box::new(ast::ExprInfix { lhs, op, rhs }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action104<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action105<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, lhs, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, op, _): (usize, ast::OpInfix, usize),
     (_, rhs, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -11506,18 +12495,24 @@ fn __action105<
     ast::Expression::Infix(Box::new(ast::ExprInfix { lhs, op, rhs }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action106<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action107<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, lhs, _): (usize, ast::Spanned<ast::Expression>, usize),
     (_, op, _): (usize, ast::OpInfix, usize),
     (_, rhs, _): (usize, ast::Spanned<ast::Expression>, usize),
@@ -11526,18 +12521,24 @@ fn __action107<
     ast::Expression::Infix(Box::new(ast::ExprInfix { lhs, op, rhs }))
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action108<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Expression, usize),
 ) -> ast::Expression
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action109<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Expression, usize),
     (_, r, _): (usize, usize, usize),
@@ -11546,18 +12547,24 @@ fn __action109<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action110<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Spanned<ast::Expression>, usize),
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
 {
     Some(__0)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action111<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
@@ -11565,9 +12572,12 @@ fn __action111<
     None
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action112<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Statement, usize),
     (_, r, _): (usize, usize, usize),
@@ -11576,9 +12586,12 @@ fn __action112<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action113<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Statement, usize),
     (_, r, _): (usize, usize, usize),
@@ -11587,9 +12600,12 @@ fn __action113<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action114<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Statement, usize),
     (_, r, _): (usize, usize, usize),
@@ -11598,9 +12614,12 @@ fn __action114<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action115<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Statement, usize),
     (_, r, _): (usize, usize, usize),
@@ -11609,9 +12628,12 @@ fn __action115<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action116<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Statement, usize),
     (_, r, _): (usize, usize, usize),
@@ -11620,18 +12642,24 @@ fn __action116<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action117<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Spanned<ast::Expression>, usize),
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
 {
     Some(__0)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action118<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
@@ -11639,9 +12667,12 @@ fn __action118<
     None
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action119<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, __0, _): (usize, ast::Spanned<ast::Expression>, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -11649,18 +12680,24 @@ fn __action119<
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action120<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Type, usize),
 ) -> core::option::Option<ast::Type>
 {
     Some(__0)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action121<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> core::option::Option<ast::Type>
@@ -11668,9 +12705,12 @@ fn __action121<
     None
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action122<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, _, _): (usize, Token, usize),
     (_, __0, _): (usize, ast::Type, usize),
 ) -> ast::Type
@@ -11678,18 +12718,24 @@ fn __action122<
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action123<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, Token, usize),
 ) -> core::option::Option<Token>
 {
     Some(__0)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action124<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> core::option::Option<Token>
@@ -11697,18 +12743,24 @@ fn __action124<
     None
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action125<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 )
 {
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action126<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> alloc::vec::Vec<ast::Field>
@@ -11716,27 +12768,36 @@ fn __action126<
     alloc::vec![]
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action127<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, v, _): (usize, alloc::vec::Vec<ast::Field>, usize),
 ) -> alloc::vec::Vec<ast::Field>
 {
     v
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action128<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Field, usize),
 ) -> ast::Field
 {
     __0
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action129<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Statement, usize),
     (_, r, _): (usize, usize, usize),
@@ -11745,9 +12806,12 @@ fn __action129<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action130<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> alloc::vec::Vec<ast::Spanned<ast::Statement>>
@@ -11755,27 +12819,36 @@ fn __action130<
     alloc::vec![]
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action131<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, v, _): (usize, alloc::vec::Vec<ast::Spanned<ast::Statement>>, usize),
 ) -> alloc::vec::Vec<ast::Spanned<ast::Statement>>
 {
     v
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action132<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Spanned<ast::Statement>, usize),
 ) -> alloc::vec::Vec<ast::Spanned<ast::Statement>>
 {
     alloc::vec![__0]
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action133<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, v, _): (usize, alloc::vec::Vec<ast::Spanned<ast::Statement>>, usize),
     (_, e, _): (usize, ast::Spanned<ast::Statement>, usize),
 ) -> alloc::vec::Vec<ast::Spanned<ast::Statement>>
@@ -11783,18 +12856,24 @@ fn __action133<
     { let mut v = v; v.push(e); v }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action134<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Field, usize),
 ) -> alloc::vec::Vec<ast::Field>
 {
     alloc::vec![__0]
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action135<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, v, _): (usize, alloc::vec::Vec<ast::Field>, usize),
     (_, e, _): (usize, ast::Field, usize),
 ) -> alloc::vec::Vec<ast::Field>
@@ -11802,9 +12881,12 @@ fn __action135<
     { let mut v = v; v.push(e); v }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action136<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Expression, usize),
     (_, r, _): (usize, usize, usize),
@@ -11813,9 +12895,12 @@ fn __action136<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action137<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Expression, usize),
     (_, r, _): (usize, usize, usize),
@@ -11824,9 +12909,12 @@ fn __action137<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action138<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Expression, usize),
     (_, r, _): (usize, usize, usize),
@@ -11835,9 +12923,12 @@ fn __action138<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action139<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Expression, usize),
     (_, r, _): (usize, usize, usize),
@@ -11846,9 +12937,12 @@ fn __action139<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action140<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Expression, usize),
     (_, r, _): (usize, usize, usize),
@@ -11857,9 +12951,12 @@ fn __action140<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action141<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, l, _): (usize, usize, usize),
     (_, t, _): (usize, ast::Expression, usize),
     (_, r, _): (usize, usize, usize),
@@ -11868,8 +12965,11 @@ fn __action141<
     (t, l..r)
 }
 
+#[allow(unused_variables)]
 fn __action142<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> usize
@@ -11877,8 +12977,11 @@ fn __action142<
     *__lookbehind
 }
 
+#[allow(unused_variables)]
 fn __action143<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> usize
@@ -11886,18 +12989,24 @@ fn __action143<
     *__lookahead
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action144<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, (String, Option<ast::Type>), usize),
 ) -> alloc::vec::Vec<(String, Option<ast::Type>)>
 {
     alloc::vec![__0]
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action145<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, v, _): (usize, alloc::vec::Vec<(String, Option<ast::Type>)>, usize),
     (_, e, _): (usize, (String, Option<ast::Type>), usize),
 ) -> alloc::vec::Vec<(String, Option<ast::Type>)>
@@ -11905,18 +13014,24 @@ fn __action145<
     { let mut v = v; v.push(e); v }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action146<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, __0, _): (usize, ast::Spanned<ast::Expression>, usize),
 ) -> alloc::vec::Vec<ast::Spanned<ast::Expression>>
 {
     alloc::vec![__0]
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action147<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     (_, v, _): (usize, alloc::vec::Vec<ast::Spanned<ast::Expression>>, usize),
     (_, e, _): (usize, ast::Spanned<ast::Expression>, usize),
 ) -> alloc::vec::Vec<ast::Spanned<ast::Expression>>
@@ -11924,9 +13039,12 @@ fn __action147<
     { let mut v = v; v.push(e); v }
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action148<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
     __2: (usize, ast::Type, usize),
@@ -11936,10 +13054,12 @@ fn __action148<
     let __start0 = __3.0;
     let __end0 = __3.2;
     let __temp0 = __action123(
+        errors,
         __3,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action11(
+        errors,
         __0,
         __1,
         __2,
@@ -11947,9 +13067,12 @@ fn __action148<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action149<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
     __2: (usize, ast::Type, usize),
@@ -11958,11 +13081,13 @@ fn __action149<
     let __start0 = __2.2;
     let __end0 = __2.2;
     let __temp0 = __action124(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action11(
+        errors,
         __0,
         __1,
         __2,
@@ -11970,9 +13095,12 @@ fn __action149<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action150<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, ast::Spanned<ast::Expression>, usize),
 ) -> alloc::vec::Vec<ast::Spanned<ast::Expression>>
@@ -11980,18 +13108,23 @@ fn __action150<
     let __start0 = __0.0;
     let __end0 = __1.2;
     let __temp0 = __action88(
+        errors,
         __0,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action146(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action151<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, alloc::vec::Vec<ast::Spanned<ast::Expression>>, usize),
     __1: (usize, Token, usize),
     __2: (usize, ast::Spanned<ast::Expression>, usize),
@@ -12000,38 +13133,48 @@ fn __action151<
     let __start0 = __1.0;
     let __end0 = __2.2;
     let __temp0 = __action88(
+        errors,
         __1,
         __2,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action147(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action152<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Spanned<ast::Expression>, usize),
 ) -> Vec<ast::ExprS>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action86(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action80(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action153<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Spanned<ast::Expression>, usize),
     __1: (usize, alloc::vec::Vec<ast::Spanned<ast::Expression>>, usize),
 ) -> Vec<ast::ExprS>
@@ -12039,18 +13182,23 @@ fn __action153<
     let __start0 = __1.0;
     let __end0 = __1.2;
     let __temp0 = __action87(
+        errors,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action80(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action154<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, (String, Option<ast::Type>), usize),
 ) -> alloc::vec::Vec<(String, Option<ast::Type>)>
@@ -12058,18 +13206,23 @@ fn __action154<
     let __start0 = __0.0;
     let __end0 = __1.2;
     let __temp0 = __action91(
+        errors,
         __0,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action144(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action155<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, alloc::vec::Vec<(String, Option<ast::Type>)>, usize),
     __1: (usize, Token, usize),
     __2: (usize, (String, Option<ast::Type>), usize),
@@ -12078,38 +13231,48 @@ fn __action155<
     let __start0 = __1.0;
     let __end0 = __2.2;
     let __temp0 = __action91(
+        errors,
         __1,
         __2,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action145(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action156<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, (String, Option<ast::Type>), usize),
 ) -> HashMap<String, Option<ast::Type>>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action89(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action77(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action157<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, (String, Option<ast::Type>), usize),
     __1: (usize, alloc::vec::Vec<(String, Option<ast::Type>)>, usize),
 ) -> HashMap<String, Option<ast::Type>>
@@ -12117,18 +13280,23 @@ fn __action157<
     let __start0 = __1.0;
     let __end0 = __1.2;
     let __temp0 = __action90(
+        errors,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action77(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action158<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, ast::Type, usize),
 ) -> core::option::Option<ast::Type>
@@ -12136,18 +13304,23 @@ fn __action158<
     let __start0 = __0.0;
     let __end0 = __1.2;
     let __temp0 = __action94(
+        errors,
         __0,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action92(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action159<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
     __2: (usize, HashMap<String, Option<ast::Type>>, usize),
@@ -12160,11 +13333,13 @@ fn __action159<
     let __start0 = __4.0;
     let __end0 = __5.2;
     let __temp0 = __action158(
+        errors,
         __4,
         __5,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action76(
+        errors,
         __0,
         __1,
         __2,
@@ -12174,9 +13349,12 @@ fn __action159<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action160<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
     __2: (usize, HashMap<String, Option<ast::Type>>, usize),
@@ -12187,11 +13365,13 @@ fn __action160<
     let __start0 = __3.2;
     let __end0 = __4.0;
     let __temp0 = __action93(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action76(
+        errors,
         __0,
         __1,
         __2,
@@ -12201,9 +13381,12 @@ fn __action160<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action161<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, ast::Type, usize),
 ) -> core::option::Option<ast::Type>
@@ -12211,18 +13394,23 @@ fn __action161<
     let __start0 = __0.0;
     let __end0 = __1.2;
     let __temp0 = __action122(
+        errors,
         __0,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action120(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action162<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
     __2: (usize, Token, usize),
@@ -12234,11 +13422,13 @@ fn __action162<
     let __start0 = __2.0;
     let __end0 = __3.2;
     let __temp0 = __action161(
+        errors,
         __2,
         __3,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action13(
+        errors,
         __0,
         __1,
         __temp0,
@@ -12247,9 +13437,12 @@ fn __action162<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action163<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
     __2: (usize, core::option::Option<ast::Spanned<ast::Expression>>, usize),
@@ -12259,11 +13452,13 @@ fn __action163<
     let __start0 = __1.2;
     let __end0 = __2.0;
     let __temp0 = __action121(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action13(
+        errors,
         __0,
         __1,
         __temp0,
@@ -12272,9 +13467,12 @@ fn __action163<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action164<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
     __2: (usize, ast::Type, usize),
@@ -12283,38 +13481,48 @@ fn __action164<
     let __start0 = __1.0;
     let __end0 = __2.2;
     let __temp0 = __action161(
+        errors,
         __1,
         __2,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action79(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action165<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, String, usize),
 ) -> (String, Option<ast::Type>)
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action121(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action79(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action166<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, ast::Spanned<ast::Expression>, usize),
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
@@ -12322,18 +13530,23 @@ fn __action166<
     let __start0 = __0.0;
     let __end0 = __1.2;
     let __temp0 = __action119(
+        errors,
         __0,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action117(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action167<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
     __2: (usize, Token, usize),
@@ -12346,11 +13559,13 @@ fn __action167<
     let __start0 = __4.0;
     let __end0 = __5.2;
     let __temp0 = __action166(
+        errors,
         __4,
         __5,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action162(
+        errors,
         __0,
         __1,
         __2,
@@ -12360,9 +13575,12 @@ fn __action167<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action168<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
     __2: (usize, Token, usize),
@@ -12373,11 +13591,13 @@ fn __action168<
     let __start0 = __3.2;
     let __end0 = __4.0;
     let __temp0 = __action118(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action162(
+        errors,
         __0,
         __1,
         __2,
@@ -12387,9 +13607,12 @@ fn __action168<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action169<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
     __2: (usize, Token, usize),
@@ -12400,11 +13623,13 @@ fn __action169<
     let __start0 = __2.0;
     let __end0 = __3.2;
     let __temp0 = __action166(
+        errors,
         __2,
         __3,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action163(
+        errors,
         __0,
         __1,
         __temp0,
@@ -12412,9 +13637,12 @@ fn __action169<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action170<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
     __2: (usize, Token, usize),
@@ -12423,11 +13651,13 @@ fn __action170<
     let __start0 = __1.2;
     let __end0 = __2.0;
     let __temp0 = __action118(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action163(
+        errors,
         __0,
         __1,
         __temp0,
@@ -12435,9 +13665,12 @@ fn __action170<
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action171<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> Vec<ast::ExprS>
@@ -12445,18 +13678,23 @@ fn __action171<
     let __start0 = *__lookbehind;
     let __end0 = *__lookahead;
     let __temp0 = __action125(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action81(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action172<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> HashMap<String, Option<ast::Type>>
@@ -12464,18 +13702,23 @@ fn __action172<
     let __start0 = *__lookbehind;
     let __end0 = *__lookahead;
     let __temp0 = __action125(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action78(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action173<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> Vec<ast::Field>
@@ -12483,35 +13726,45 @@ fn __action173<
     let __start0 = *__lookbehind;
     let __end0 = *__lookahead;
     let __temp0 = __action125(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action10(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action174<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Field, usize),
 ) -> alloc::vec::Vec<ast::Field>
 {
     let __start0 = __0.0;
     let __end0 = __0.2;
     let __temp0 = __action128(
+        errors,
         __0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action134(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action175<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, alloc::vec::Vec<ast::Field>, usize),
     __1: (usize, ast::Field, usize),
 ) -> alloc::vec::Vec<ast::Field>
@@ -12519,18 +13772,23 @@ fn __action175<
     let __start0 = __1.0;
     let __end0 = __1.2;
     let __temp0 = __action128(
+        errors,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action135(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action176<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, Token, usize),
 ) -> Vec<ast::Field>
@@ -12538,20 +13796,25 @@ fn __action176<
     let __start0 = __0.2;
     let __end0 = __1.0;
     let __temp0 = __action126(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action9(
+        errors,
         __0,
         __temp0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action177<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, alloc::vec::Vec<ast::Field>, usize),
     __2: (usize, Token, usize),
@@ -12560,19 +13823,24 @@ fn __action177<
     let __start0 = __1.0;
     let __end0 = __1.2;
     let __temp0 = __action127(
+        errors,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action9(
+        errors,
         __0,
         __temp0,
         __2,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action178<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Statement>
@@ -12580,20 +13848,25 @@ fn __action178<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action129(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action179<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Statement>
@@ -12601,20 +13874,25 @@ fn __action179<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action113(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action180<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -12622,20 +13900,25 @@ fn __action180<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action95(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action181<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -12643,20 +13926,25 @@ fn __action181<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action139(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action182<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -12664,20 +13952,25 @@ fn __action182<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action138(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action183<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -12685,20 +13978,25 @@ fn __action183<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action141(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action184<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -12706,20 +14004,25 @@ fn __action184<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action137(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action185<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -12727,20 +14030,25 @@ fn __action185<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action136(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action186<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -12748,20 +14056,25 @@ fn __action186<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action96(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action187<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -12769,20 +14082,25 @@ fn __action187<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action140(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action188<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Expression>
@@ -12790,20 +14108,25 @@ fn __action188<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action109(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action189<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Statement>
@@ -12811,20 +14134,25 @@ fn __action189<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action115(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action190<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Statement>
@@ -12832,20 +14160,25 @@ fn __action190<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action114(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action191<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Statement>
@@ -12853,20 +14186,25 @@ fn __action191<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action112(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action192<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
     __1: (usize, usize, usize),
 ) -> ast::Spanned<ast::Statement>
@@ -12874,305 +14212,385 @@ fn __action192<
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action143(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action116(
+        errors,
         __temp0,
         __0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action193<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
 ) -> ast::Spanned<ast::Statement>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action178(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action194<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
 ) -> ast::Spanned<ast::Statement>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action179(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action195<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action180(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action196<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action181(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action197<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action182(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action198<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action183(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action199<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action184(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action200<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action185(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action201<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action186(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action202<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action187(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action203<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Expression, usize),
 ) -> ast::Spanned<ast::Expression>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action188(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action204<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
 ) -> ast::Spanned<ast::Statement>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action189(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action205<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
 ) -> ast::Spanned<ast::Statement>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action190(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action206<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
 ) -> ast::Spanned<ast::Statement>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action191(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action207<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Statement, usize),
 ) -> ast::Spanned<ast::Statement>
 {
     let __start0 = __0.2;
     let __end0 = __0.2;
     let __temp0 = __action142(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action192(
+        errors,
         __0,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action208<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> ast::Program
@@ -13180,35 +14598,45 @@ fn __action208<
     let __start0 = *__lookbehind;
     let __end0 = *__lookahead;
     let __temp0 = __action130(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action2(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action209<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, alloc::vec::Vec<ast::Spanned<ast::Statement>>, usize),
 ) -> ast::Program
 {
     let __start0 = __0.0;
     let __end0 = __0.2;
     let __temp0 = __action131(
+        errors,
         __0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action2(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action210<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, Token, usize),
 ) -> ast::StatementBlock
@@ -13216,20 +14644,25 @@ fn __action210<
     let __start0 = __0.2;
     let __end0 = __1.0;
     let __temp0 = __action130(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action38(
+        errors,
         __0,
         __temp0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action211<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, alloc::vec::Vec<ast::Spanned<ast::Statement>>, usize),
     __2: (usize, Token, usize),
@@ -13238,19 +14671,24 @@ fn __action211<
     let __start0 = __1.0;
     let __end0 = __1.2;
     let __temp0 = __action131(
+        errors,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action38(
+        errors,
         __0,
         __temp0,
         __2,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action212<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Spanned<ast::Expression>, usize),
     __1: (usize, Token, usize),
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
@@ -13258,54 +14696,69 @@ fn __action212<
     let __start0 = __0.0;
     let __end0 = __0.2;
     let __temp0 = __action110(
+        errors,
         __0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action27(
+        errors,
         __temp0,
         __1,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action213<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
 {
     let __start0 = __0.0;
     let __end0 = __0.0;
     let __temp0 = __action111(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action27(
+        errors,
         __temp0,
         __0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action214<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, ast::Spanned<ast::Expression>, usize),
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
 {
     let __start0 = __0.0;
     let __end0 = __0.2;
     let __temp0 = __action110(
+        errors,
         __0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action28(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action215<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> core::option::Option<ast::Spanned<ast::Expression>>
@@ -13313,18 +14766,23 @@ fn __action215<
     let __start0 = *__lookbehind;
     let __end0 = *__lookahead;
     let __temp0 = __action111(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action28(
+        errors,
         __temp0,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action216<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, ast::Spanned<ast::Expression>, usize),
     __2: (usize, Token, usize),
@@ -13333,19 +14791,24 @@ fn __action216<
     let __start0 = __1.0;
     let __end0 = __1.2;
     let __temp0 = __action110(
+        errors,
         __1,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action34(
+        errors,
         __0,
         __temp0,
         __2,
     )
 }
 
+#[allow(unused_variables)]
 #[allow(clippy::too_many_arguments)]
 fn __action217<
+    'err,
 >(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>,
     __0: (usize, Token, usize),
     __1: (usize, Token, usize),
 ) -> ast::Statement
@@ -13353,11 +14816,13 @@ fn __action217<
     let __start0 = __0.2;
     let __end0 = __1.0;
     let __temp0 = __action111(
+        errors,
         &__start0,
         &__end0,
     );
     let __temp0 = (__start0, __temp0, __end0);
     __action34(
+        errors,
         __0,
         __temp0,
         __1,
@@ -13365,20 +14830,20 @@ fn __action217<
 }
 #[allow(clippy::type_complexity)]
 
-pub trait __ToTriple<>
+pub trait __ToTriple<'err, >
 {
-    fn to_triple(value: Self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, LexicalError>>;
+    fn to_triple(value: Self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, ErrorS>>;
 }
 
-impl<> __ToTriple<> for (usize, Token, usize)
+impl<'err, > __ToTriple<'err, > for (usize, Token, usize)
 {
-    fn to_triple(value: Self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, LexicalError>> {
+    fn to_triple(value: Self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, ErrorS>> {
         Ok(value)
     }
 }
-impl<> __ToTriple<> for Result<(usize, Token, usize), LexicalError>
+impl<'err, > __ToTriple<'err, > for Result<(usize, Token, usize), ErrorS>
 {
-    fn to_triple(value: Self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, LexicalError>> {
+    fn to_triple(value: Self) -> Result<(usize,Token,usize), __lalrpop_util::ParseError<usize, Token, ErrorS>> {
         match value {
             Ok(v) => Ok(v),
             Err(error) => Err(__lalrpop_util::ParseError::User { error }),

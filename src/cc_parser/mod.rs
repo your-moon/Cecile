@@ -1,9 +1,76 @@
 pub mod ast;
-use lalrpop_util::lalrpop_mod;
+use lalrpop_util::{lalrpop_mod, ParseError};
 lalrpop_mod!(pub grammar, "/src/cc_parser/grammar.rs");
 
 // write test
-use crate::cc_lexer as lexer;
+use crate::{
+    cc_lexer::{self as lexer, Lexer},
+    vm::error::{Error, ErrorS, SyntaxError},
+};
+
+use self::ast::Program;
+
+pub fn parse(source: &str) -> Result<Program, Vec<ErrorS>> {
+    let lexer = Lexer::new(source).map(|token| match token {
+        Ok((l, token, r)) => {
+            println!("{:?}", token);
+            return Ok((l, token, r));
+        }
+        Err((err, span)) => {
+            return Err((err, span));
+        }
+    });
+    let parser = grammar::ProgramParser::new();
+
+    let mut errors = Vec::new();
+    let mut parse_errors = Vec::new();
+    let mut program = match parser.parse(&mut parse_errors, lexer) {
+        Ok(program) => program,
+        Err(err) => {
+            parse_errors.push(err);
+            Program::default()
+        }
+    };
+    for (statement, _range) in &program.statements {
+        println!("{:?}", statement);
+    }
+    errors.extend(parse_errors.into_iter().map(|err| match err {
+        ParseError::ExtraToken {
+            token: (start, _, end),
+        } => (
+            Error::SyntaxError(SyntaxError::ExtraToken {
+                token: source[start..end].to_string(),
+            }),
+            start..end,
+        ),
+        ParseError::InvalidToken { location } => (
+            Error::SyntaxError(SyntaxError::InvalidToken),
+            location..location,
+        ),
+        ParseError::UnrecognizedEof { location, expected } => (
+            Error::SyntaxError(SyntaxError::UnrecognizedEOF { expected }),
+            location..location,
+        ),
+        ParseError::UnrecognizedToken {
+            token: (start, _, end),
+            expected,
+        } => (
+            Error::SyntaxError(SyntaxError::UnrecognizedToken {
+                token: source[start..end].to_string(),
+                expected,
+            }),
+            start..end,
+        ),
+        ParseError::User { error } => error,
+    }));
+
+    if errors.is_empty() {
+        Ok(program)
+    } else {
+        Err(errors)
+    }
+}
+
 #[cfg(test)]
 
 mod tests {
@@ -22,7 +89,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -59,7 +127,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -86,7 +155,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -115,7 +185,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             println!("STATEMENT {:?}", statement);
             assert_eq!(
@@ -200,7 +271,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -228,7 +300,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -256,7 +329,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -275,7 +349,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -304,7 +379,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -328,7 +404,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -362,7 +439,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,
@@ -396,7 +474,8 @@ mod tests {
             Err(_) => todo!("Error handling"),
         });
         let parser = grammar::ProgramParser::new();
-        let program = parser.parse(lexer).unwrap();
+        let mut parse_errors = Vec::new();
+        let program = parser.parse(&mut parse_errors, lexer).unwrap();
         for (statement, _range) in &program.statements {
             assert_eq!(
                 statement,

@@ -1,11 +1,14 @@
 use crate::cc_lexer;
-use crate::cc_lexer::LexicalError;
+use crate::vm::error::ErrorS;
 use crate::cc_lexer::Token;
 use crate::cc_parser::ast::Expression;
 use crate::cc_parser::ast;
 use hashbrown::HashMap;
+use lalrpop_util::ParseError;
 
-grammar;
+grammar<'err>(
+    errors: &'err mut Vec<ParseError<usize, cc_lexer::Token, ErrorS>>
+);
 
 Spanned<T>: ast::Spanned<T> = <l:@L> <t:T> <r:@R> => (t, l..r);
 
@@ -255,7 +258,7 @@ ExprInfix<Lhs, Op, Rhs>: ast::Expression =  {
 
 extern {
   type Location = usize;
-  type Error = LexicalError;
+  type Error = ErrorS;
 
   enum Token {
     // Keywords

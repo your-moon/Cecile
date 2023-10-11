@@ -5,16 +5,20 @@ use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
 
 use crate::{
     allocator::allocation::CeAllocation,
-    cc_parser::ast::{
-        ExprAssign, ExprCall, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix,
-        OpPrefix, Program, Span, Statement, StatementBlock, StatementExpr, StatementFor,
-        StatementFun, StatementIf, StatementPrint, StatementPrintLn, StatementReturn, StatementVar,
-        StatementWhile, Type,
+    cc_parser::{
+        ast::{
+            ExprAssign, ExprCall, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, OpInfix,
+            OpPrefix, Program, Span, Statement, StatementBlock, StatementExpr, StatementFor,
+            StatementFun, StatementIf, StatementPrint, StatementPrintLn, StatementReturn,
+            StatementVar, StatementWhile, Type,
+        },
+        parse,
     },
 };
 
 use super::{
     chunk::Chunk,
+    error::ErrorS,
     object::{ObjectFunction, StringObject},
     op,
     value::Value,
@@ -128,10 +132,12 @@ impl Compiler {
     }
     pub fn compile(
         &mut self,
-        source: &mut Program,
+        source: &str,
         allocator: &mut CeAllocation,
-    ) -> *mut ObjectFunction {
-        for statement in &source.statements {
+    ) -> Result<*mut ObjectFunction, Vec<ErrorS>> {
+        let program = parse(source)?;
+
+        for statement in &program.statements {
             self.compile_statement(statement, allocator);
         }
 
@@ -142,7 +148,7 @@ impl Compiler {
                 .chunk
                 .disassemble("script")
         };
-        self.current_compiler.function
+        Ok(self.current_compiler.function)
     }
 
     fn compile_statement(
@@ -226,10 +232,11 @@ impl Compiler {
                             Some(t) => {
                                 todo!("function return type mismatch type must be {t}");
                             }
-                            _ => todo!("unreachable case"),
+                            _ => {
+                                self.emit_u8(op::NIL, &range);
+                                self.emit_u8(op::RETURN, &range);
+                            }
                         }
-                        self.emit_u8(op::NIL, &range);
-                        self.emit_u8(op::RETURN, &range);
                         return Type::UnInitialized;
                     }
                 }
@@ -540,10 +547,13 @@ impl Compiler {
         (var, range): (&StatementVar, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Type {
+        // Variable declaration left hand side expression, if it's not have expression variable
+        // type is UnInitialized
         let var_type = var.value.as_ref().map_or(Type::UnInitialized, |value| {
             self.compile_expression(value, allocator)
         });
 
+        //Check if variable type is declared
         match &var.var.type_ {
             Some(t) => match t {
                 Type::String | Type::Int => {
@@ -565,6 +575,7 @@ impl Compiler {
             None => {
                 let name = &var.var.name;
                 let string = allocator.alloc(name);
+                //If variable type is not declared, left hand side expression type will be variable type
                 if self.is_global() {
                     self.current_compiler
                         .globals
@@ -572,6 +583,7 @@ impl Compiler {
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
                     self.write_constant(Value::String(string), &range);
                 } else {
+                    //If variable type is not declared, left hand side expression type will be variable type
                     self.declare_local(name, &var_type, &range);
                 }
             }

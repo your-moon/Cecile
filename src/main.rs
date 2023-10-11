@@ -1,8 +1,13 @@
+use anyhow::bail;
+use cc_parser::ast::Program;
+use lalrpop_util::ParseError;
+
 use crate::allocator::allocation::CeAllocation;
-use crate::cc_lexer::Lexer;
+use crate::cc_lexer::{Lexer, Token};
 use crate::cc_parser::grammar;
 use crate::vm::chunk::Chunk;
 use crate::vm::compiler::Compiler;
+use core::result::Result::Ok;
 mod allocator;
 mod cc_lexer;
 mod cc_parser;
@@ -25,24 +30,14 @@ fn main() {
     // print b;
     // "#;
     let input = r#"
-    println "Hello, World!";
+    lt a;
+    lt x;
     "#;
-    let lexer = Lexer::new(input).map(|token| match token {
-        Ok((l, token, r)) => {
-            // println!("{:?}", token);
-            return (l, token, r);
-        }
-        Err(_) => todo!("Error handling"),
-    });
-    let parser = grammar::ProgramParser::new();
-    let mut program = parser.parse(lexer).unwrap();
-    for (statement, _range) in &program.statements {
-        println!("{:?}", statement);
-    }
-
     let mut allocator = CeAllocation::new();
     let mut vm = vm::VM::new(&mut allocator);
-    vm.run(&mut program);
+    if let Err(e) = vm.run(input) {
+        println!("error: {:?}", e);
+    }
 
     // let mut stdout = StandardStream::stdout(ColorChoice::Always);
     // stdout.set_color(ColorSpec::new().set_fg(Some(Color::Magenta)));

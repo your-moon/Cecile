@@ -13,9 +13,11 @@ use std::hash::BuildHasherDefault;
 use std::{mem, ptr};
 
 use self::compiler::Compiler;
+use self::error::ErrorS;
 use self::object::{ClosureObject, Native, ObjectFunction, ObjectNative, UpvalueObject};
 pub mod chunk;
 pub mod compiler;
+pub mod error;
 pub mod object;
 pub mod op;
 pub mod value;
@@ -58,12 +60,13 @@ impl<'a> VM<'a> {
         }
     }
 
-    pub fn run(&mut self, program: &mut Program) {
+    pub fn run(&mut self, source: &str) -> Result<(), Vec<ErrorS>> {
         let mut compiler = Compiler::new(self.allocator);
-        let function = compiler.compile(program, self.allocator);
+        let function = compiler.compile(source, self.allocator)?;
         // println!("{:?}", self.allocator);
         // println!("{:?}", unsafe { (*function).chunk.disassemble("script") });
         self.run_function(function);
+        Ok(())
     }
 
     pub fn run_function(&mut self, function: *mut ObjectFunction) {
@@ -284,7 +287,6 @@ impl<'a> VM<'a> {
 
     fn get_local(&mut self) {
         let stack_idx = self.read_constant();
-        println!("get local stack_idx: {:?}", stack_idx);
         match stack_idx {
             Value::Number(stack_idx) => {
                 let value = unsafe { *self.frame.stack.add(stack_idx as usize) };

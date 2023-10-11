@@ -1,9 +1,11 @@
 use std::{fmt, num::ParseFloatError};
 
+use crate::vm::error::{Error, ErrorS, SyntaxError};
 use logos::{Logos, SpannedIter};
 
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\n\f]+")] // Зай болон мөр алгасах тэмдэгийг алгасанa.
+#[logos(skip r"//.*")]
 pub enum Token {
     // Төрөл
     #[token("String")]
@@ -114,7 +116,6 @@ pub enum Token {
     Less,
     #[token("<=")]
     LessEqual,
-
     Error,
 }
 
@@ -132,11 +133,6 @@ fn cecile_number(lexer: &mut logos::Lexer<Token>) -> Option<f64> {
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
-#[derive(Debug, PartialEq)]
-pub enum LexicalError {
-    InvalidToken,
-}
-
 pub struct Lexer<'input> {
     token_stream: SpannedIter<'input, Token>,
 }
@@ -151,15 +147,17 @@ impl<'input> Lexer<'input> {
 }
 
 impl<'input> Iterator for Lexer<'input> {
-    type Item = Result<(usize, Token, usize), LexicalError>;
+    type Item = Result<(usize, Token, usize), ErrorS>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.token_stream.next().map(|(token, span)| {
-            match token.as_ref().unwrap() {
-                // an invalid token was met
-                Token::Error => Err(LexicalError::InvalidToken),
-                _ => Ok((span.start, token.unwrap(), span.end)),
-            }
+        self.token_stream.next().map(|(token, span)| match token {
+            Ok(token) => Ok((span.start, token, span.end)),
+            Err(_) => Err((
+                Error::SyntaxError(SyntaxError::UnexpectedInput {
+                    token: self.token_stream.source()[span.start..span.end].to_string(),
+                }),
+                span,
+            )),
         })
     }
 }
@@ -175,6 +173,20 @@ mod tests {
     use crate::cc_parser::ast;
 
     use super::*;
+
+    #[test]
+    fn test_comment() {
+        let input = r#"
+        // this is comment 
+        let 
+        "#;
+        let expected_tokens = [];
+        let lexer = Token::lexer(input);
+
+        for (token, expected_token) in lexer.zip(expected_tokens.iter()) {
+            assert_eq!(token.unwrap(), *expected_token);
+        }
+    }
 
     #[test]
     fn test_lexer() {
