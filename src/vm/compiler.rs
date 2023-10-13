@@ -1,16 +1,16 @@
 use std::{fmt::Display, hash::BuildHasherDefault, mem, ops::Range};
 
 use arrayvec::ArrayVec;
-use hashbrown::{hash_map::DefaultHashBuilder, HashMap};
+use hashbrown::HashMap;
 
 use crate::{
     allocator::allocation::CeAllocation,
     cc_parser::{
         ast::{
             ExprAssign, ExprCall, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, Fn,
-            OpInfix, OpPrefix, Program, Span, Statement, StatementBlock, StatementExpr,
-            StatementFor, StatementFun, StatementIf, StatementPrint, StatementPrintLn,
-            StatementReturn, StatementVar, StatementWhile, Type,
+            OpInfix, OpPrefix, Span, Statement, StatementBlock, StatementFor, StatementFun,
+            StatementIf, StatementPrint, StatementPrintLn, StatementReturn, StatementVar,
+            StatementWhile, Type,
         },
         parse,
     },
@@ -18,9 +18,8 @@ use crate::{
 };
 
 use super::{
-    chunk::Chunk,
     error::{Error, ErrorS, Result, SyntaxError},
-    object::{ObjectFunction, StringObject},
+    object::ObjectFunction,
     op,
     value::Value,
 };
@@ -609,7 +608,6 @@ impl Compiler {
             Expression::Literal(value) => self.compile_literal((value, range), allocator),
             Expression::Var(var) => self.compile_expression_var((var, range), allocator),
             Expression::Call(call) => self.compile_call((call, range), allocator),
-            _ => todo!("expression not implemented"),
         }
     }
 

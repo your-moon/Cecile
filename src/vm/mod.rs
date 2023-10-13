@@ -2,7 +2,6 @@ use arrayvec::ArrayVec;
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
 
-use crate::cc_parser::ast::Program;
 use crate::vm::value::Value;
 use crate::{
     allocator::allocation::{CeAlloc, CeAllocation},
@@ -26,10 +25,8 @@ const FRAMES_MAX: usize = 64;
 const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
 const STACK_MAX_PER_FRAME: usize = u8::MAX as usize + 1;
 
-#[derive(Debug)]
 pub struct VM<'a> {
-    ip: usize,
-    stack: Box<[Value; 256]>,
+    stack: Box<[Value; STACK_MAX]>,
     frames: ArrayVec<CallFrame, FRAMES_MAX>,
     frame: CallFrame,
     stack_top: *mut Value,
@@ -45,8 +42,7 @@ impl<'a> VM<'a> {
         let clock_native = allocator.alloc(ObjectNative::new(Native::Clock));
         globals.insert(clock_string, Value::Native(clock_native));
         VM {
-            ip: 0,
-            stack: Box::new([Value::Number(0.0); 256]),
+            stack: Box::new([Value::Number(0.0); STACK_MAX]),
             stack_top: ptr::null_mut(),
             allocator,
             globals,
@@ -80,9 +76,9 @@ impl<'a> VM<'a> {
         };
 
         loop {
-            let function = unsafe { &mut *(*self.frame.closure).function };
-            let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
-            (*function).chunk.disassemble_instruction(idx as usize);
+            // let function = unsafe { &mut *(*self.frame.closure).function };
+            // let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
+            // (*function).chunk.disassemble_instruction(idx as usize);
             match self.read_u8() {
                 op::GET_UPVALUE => self.get_upvalue(),
                 op::CLOSURE => self.closure(),
@@ -142,13 +138,13 @@ impl<'a> VM<'a> {
                 _ => todo!(),
             }
             // print top of stack element
-            print!("    ");
-            let mut stack_ptr = self.frame.stack;
-            while stack_ptr < self.stack_top {
-                eprint!("[ {:?} ]", unsafe { *stack_ptr });
-                stack_ptr = unsafe { stack_ptr.add(1) };
-            }
-            println!();
+            // print!("    ");
+            // let mut stack_ptr = self.frame.stack;
+            // while stack_ptr < self.stack_top {
+            //     eprint!("[ {:?} ]", unsafe { *stack_ptr });
+            //     stack_ptr = unsafe { stack_ptr.add(1) };
+            // }
+            // println!();
         }
     }
 
