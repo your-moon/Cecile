@@ -2,6 +2,9 @@ use std::{fmt::Display, hash::BuildHasherDefault, mem, ops::Range};
 
 use arrayvec::ArrayVec;
 use hashbrown::HashMap;
+use std::fmt::Write;
+use termcolor::WriteColor;
+use termcolor::{Color, ColorSpec, StandardStream};
 
 use crate::{
     allocator::allocation::CeAllocation,
@@ -58,7 +61,6 @@ pub struct Upvalue {
 pub struct CompilerCell {
     pub function: *mut ObjectFunction,
     type_: FunctionType,
-    pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
     locals: ArrayVec<Local, 256>,
     scope_depth: usize,
     parent: Option<Box<CompilerCell>>,
@@ -112,6 +114,7 @@ impl CompilerCell {
 }
 
 pub struct Compiler {
+    pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
     pub current_compiler: CompilerCell,
 }
 
@@ -122,18 +125,19 @@ impl Compiler {
             current_compiler: CompilerCell {
                 function: allocator.alloc(ObjectFunction::new(name, 0, None)),
                 type_: FunctionType::Script,
-                globals: HashMap::default(),
                 locals: ArrayVec::new(),
                 scope_depth: 0,
                 parent: None,
                 upvalues: Vec::new(),
             },
+            globals: HashMap::default(),
         }
     }
     pub fn compile(
         &mut self,
         source: &str,
         allocator: &mut CeAllocation,
+        stdout: &mut StandardStream,
     ) -> Result<*mut ObjectFunction, Vec<ErrorS>> {
         let program = parse(source)?;
 
@@ -151,6 +155,10 @@ impl Compiler {
                 .chunk
                 .disassemble("script")
         };
+        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Cyan)));
+        println!("|--------------Virtual Machine--------------|");
+        //reset color
+        stdout.reset();
         Ok(self.current_compiler.function)
     }
 
@@ -184,7 +192,7 @@ impl Compiler {
                 // println!("compiled func return type: {:?}", func_type);
                 if self.is_global() {
                     let name = allocator.alloc(&func.name);
-                    self.current_compiler.globals.insert(
+                    self.globals.insert(
                         func.name.clone(),
                         Type::Fn(Fn {
                             return_type: Box::new(func.return_type.clone()),
@@ -316,7 +324,6 @@ impl Compiler {
                 func.return_type.clone(),
             )),
             type_: FunctionType::Function,
-            globals: HashMap::default(),
             locals: ArrayVec::new(),
             scope_depth: self.current_compiler.scope_depth + 1,
             parent: None,
@@ -326,7 +333,7 @@ impl Compiler {
 
         match type_ {
             FunctionType::Script => {
-                self.current_compiler.globals.insert(
+                self.globals.insert(
                     func.name.clone(),
                     Type::Fn(Fn {
                         return_type: Box::new(func.return_type.clone()),
@@ -454,6 +461,7 @@ impl Compiler {
             if let Err(e) = result {
                 return (incr_type, Err(e));
             }
+            //TODO: figure out why this one extra pop from stack
             self.emit_u8(op::POP, &range);
         }
         self.emit_loop(loop_start, &range);
@@ -633,7 +641,6 @@ impl Compiler {
             callee_type
         };
 
-        println!("callee type: {:?}", callee_type);
         if let Err(e) = result {
             return (callee_type, Err(e));
         }
@@ -710,14 +717,13 @@ impl Compiler {
                     let name = &var.var.name;
                     if self.is_global() {
                         let string = allocator.alloc(name);
-                        self.current_compiler
-                            .globals
-                            .insert(name.clone(), t.clone());
+                        self.globals.insert(name.clone(), t.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
                         self.write_constant(Value::String(string), &range);
                         return (Type::String, Ok(()));
                     } else {
                         self.declare_local(name, &var_type, &range);
+                        self.define_local();
                     }
                 }
                 _ => todo!("type not implemented"),
@@ -727,14 +733,13 @@ impl Compiler {
                 let string = allocator.alloc(name);
                 //If variable type is not declared, left hand side expression type will be variable type
                 if self.is_global() {
-                    self.current_compiler
-                        .globals
-                        .insert(name.clone(), var_type.clone());
+                    self.globals.insert(name.clone(), var_type.clone());
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
                     self.write_constant(Value::String(string), &range);
                 } else {
                     //If variable type is not declared, left hand side expression type will be variable type
                     self.declare_local(name, &var_type, &range);
+                    self.define_local();
                 }
             }
         }
@@ -775,10 +780,11 @@ impl Compiler {
             self.write_constant(Value::Number(upvalue.into()), &range);
             return (Type::UnInitialized, Ok(()));
         } else {
+            let global_var_name = &prefix.var.name;
             let string = allocator.alloc(name);
             self.emit_u8(op::GET_GLOBAL, &range);
             self.write_constant(Value::String(string), &range);
-            let type_ = self.current_compiler.globals.get(&*name);
+            let type_ = self.globals.get(global_var_name);
             let expr_var_type = match type_ {
                 Some(t) => t.clone(),
                 None => Type::UnInitialized,

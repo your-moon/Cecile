@@ -1,6 +1,8 @@
 use arrayvec::ArrayVec;
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
+use rand::Rng;
+use termcolor::StandardStream;
 
 use crate::vm::value::Value;
 use crate::{
@@ -39,8 +41,11 @@ impl<'a> VM<'a> {
     pub fn new(allocator: &'a mut CeAllocation) -> VM {
         let mut globals = HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
         let clock_string = allocator.alloc("clock");
+        let random_number = allocator.alloc("random_number");
         let clock_native = allocator.alloc(ObjectNative::new(Native::Clock));
+        let random_number_native = allocator.alloc(ObjectNative::new(Native::RandomNumber));
         globals.insert(clock_string, Value::Native(clock_native));
+        globals.insert(random_number, Value::Native(random_number_native));
         VM {
             stack: Box::new([Value::Number(0.0); STACK_MAX]),
             stack_top: ptr::null_mut(),
@@ -56,9 +61,9 @@ impl<'a> VM<'a> {
         }
     }
 
-    pub fn run(&mut self, source: &str) -> Result<(), Vec<ErrorS>> {
+    pub fn run(&mut self, source: &str, stdout: &mut StandardStream) -> Result<(), Vec<ErrorS>> {
         let mut compiler = Compiler::new(self.allocator);
-        let function = compiler.compile(source, self.allocator)?;
+        let function = compiler.compile(source, self.allocator, stdout)?;
         // println!("{:?}", self.allocator);
         // println!("{:?}", unsafe { (*function).chunk.disassemble("script") });
         self.run_function(function);
@@ -76,9 +81,9 @@ impl<'a> VM<'a> {
         };
 
         loop {
-            // let function = unsafe { &mut *(*self.frame.closure).function };
-            // let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
-            // (*function).chunk.disassemble_instruction(idx as usize);
+            let function = unsafe { &mut *(*self.frame.closure).function };
+            let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
+            (*function).chunk.disassemble_instruction(idx as usize);
             match self.read_u8() {
                 op::GET_UPVALUE => self.get_upvalue(),
                 op::CLOSURE => self.closure(),
@@ -138,13 +143,13 @@ impl<'a> VM<'a> {
                 _ => todo!(),
             }
             // print top of stack element
-            // print!("    ");
-            // let mut stack_ptr = self.frame.stack;
-            // while stack_ptr < self.stack_top {
-            //     eprint!("[ {:?} ]", unsafe { *stack_ptr });
-            //     stack_ptr = unsafe { stack_ptr.add(1) };
-            // }
-            // println!();
+            print!("    ");
+            let mut stack_ptr = self.frame.stack;
+            while stack_ptr < self.stack_top {
+                eprint!("[ {:?} ]", unsafe { *stack_ptr });
+                stack_ptr = unsafe { stack_ptr.add(1) };
+            }
+            println!();
         }
     }
 
@@ -210,6 +215,11 @@ impl<'a> VM<'a> {
                         let seconds = duration.as_secs() as f64;
                         let nanos = duration.subsec_nanos() as f64 / 1_000_000_000.0;
                         Value::Number(seconds + nanos)
+                    }
+                    Native::RandomNumber => {
+                        let mut rng = rand::thread_rng();
+                        let number: f64 = rng.gen();
+                        Value::Number(number)
                     }
                 };
                 self.stack_top = unsafe { self.stack_top.sub(arg_count as usize) };
@@ -304,7 +314,7 @@ impl<'a> VM<'a> {
     }
 
     fn set_global(&mut self) {
-        let value = self.pop();
+        let value = unsafe { *self.peek(0) };
         let name = self.read_constant();
         match name {
             Value::String(ptr_string) => match self.globals.entry(ptr_string) {
@@ -462,11 +472,6 @@ impl<'a> VM<'a> {
 #[derive(Debug)]
 pub struct CallFrame {
     closure: *mut ClosureObject,
-    /// Instruction pointer for the current Chunk.
-    ///
-    /// Accessing `ip` without bounds checking is safe, assuming that the
-    /// compiler always outputs correct code. The program stops execution
-    /// when it reaches `op::RETURN`.
     ip: *const u8,
     stack: *mut Value,
 }

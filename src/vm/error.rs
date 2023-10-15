@@ -12,7 +12,12 @@ pub enum Error {
     SyntaxError(SyntaxError),
     #[error("TypeError: {0}")]
     TypeError(TypeError),
+    #[error("IoError: {0}")]
+    IoError(IoError),
 }
+
+#[derive(Debug, Error, Eq, PartialEq)]
+pub enum IoError {}
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum SyntaxError {

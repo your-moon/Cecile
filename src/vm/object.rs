@@ -114,12 +114,14 @@ impl ObjectNative {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Native {
     Clock,
+    RandomNumber,
 }
 
 impl Display for Native {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Native::Clock => write!(f, "{}", "clock"),
+            Native::RandomNumber => write!(f, "{}", "random_number"),
         }
     }
 }
