@@ -14,6 +14,46 @@ pub enum Error {
     TypeError(TypeError),
     #[error("IoError: {0}")]
     IoError(IoError),
+    #[error("NameError {0}")]
+    NameError(NameError),
+    #[error("OverflowError {0}")]
+    OverflowError(OverflowError),
+}
+
+macro_rules! impl_from_error {
+    ($($error:tt),+) => {$(
+        impl From<$error> for Error {
+            fn from(e: $error) -> Self {
+                Error::$error(e)
+            }
+        }
+    )+};
+}
+
+impl_from_error!(IoError, NameError, OverflowError, SyntaxError, TypeError);
+
+#[derive(Debug, Error, Eq, PartialEq)]
+pub enum OverflowError {
+    #[error("jump body is too large")]
+    JumpTooLarge,
+    #[error("stack overflow")]
+    StackOverflow,
+    #[error("cannot use more than 256 arguments in a function")]
+    TooManyArgs,
+    #[error("cannot define more than 256 constants in a function")]
+    TooManyConstants,
+    #[error("cannot define more than 256 local variables in a function")]
+    TooManyLocals,
+    #[error("cannot define more than 256 parameters in a function")]
+    TooManyParams,
+    #[error("cannot use more than 256 closure variables in a function")]
+    TooManyUpvalues,
+}
+
+#[derive(Debug, Error, Eq, PartialEq)]
+pub enum NameError {
+    #[error("can't access local variable {name} in its own initializer")]
+    AccessInsideInitializer { name: String },
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]

@@ -154,7 +154,8 @@ impl<'a> VM<'a> {
     }
 
     fn get_upvalue(&mut self) {
-        let upvalue_idx = self.read_u8();
+        let upvalue_idx = self.read_constant().as_number();
+        println!("upvalue_idx: {}", upvalue_idx);
         let upvalue = unsafe {
             *(*self.frame.closure)
                 .upvalues

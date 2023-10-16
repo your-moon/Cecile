@@ -6,6 +6,7 @@ use std::fmt::Write;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
+use crate::vm::error::NameError;
 use crate::{
     allocator::allocation::CeAllocation,
     cc_parser::{
@@ -20,6 +21,7 @@ use crate::{
     vm::error::TypeError,
 };
 
+use super::error::OverflowError;
 use super::{
     error::{Error, ErrorS, Result, SyntaxError},
     object::ObjectFunction,
@@ -64,11 +66,11 @@ pub struct CompilerCell {
     locals: ArrayVec<Local, 256>,
     scope_depth: usize,
     parent: Option<Box<CompilerCell>>,
-    upvalues: Vec<Upvalue>,
+    upvalues: ArrayVec<Upvalue, 256>,
 }
 
 impl CompilerCell {
-    pub fn resolve_local(&mut self, name: &str, span: &Span) -> Option<u8> {
+    pub fn resolve_local(&mut self, name: &str, span: &Span) -> Result<Option<u8>> {
         match self
             .locals
             .iter_mut()
@@ -77,39 +79,65 @@ impl CompilerCell {
         {
             Some((idx, local)) => {
                 if local.is_initialized {
-                    Some(idx.try_into().expect("local index overflow"))
+                    Ok(Some(idx.try_into().expect("local index overflow")))
                 } else {
-                    todo!("local used before initialization")
+                    Err((
+                        Error::NameError(NameError::AccessInsideInitializer {
+                            name: name.to_string(),
+                        }),
+                        span.clone(),
+                    ))
                 }
             }
-            None => None,
+            None => Ok(None),
         }
     }
 
-    pub fn resolve_upvalue(&mut self, name: &str, span: &Span) -> Option<u8> {
-        if let Some(parent) = &mut self.parent {
-            if let Some(local) = parent.resolve_local(name, span) {
-                return Some(self.add_upvalue(local, true));
-            }
-            if let Some(upvalue) = parent.resolve_upvalue(name, span) {
-                return Some(self.add_upvalue(upvalue, false));
-            }
-        }
-        None
+    pub fn resolve_upvalue(&mut self, name: &str, span: &Span) -> Result<Option<u8>> {
+        let local_idx = match &mut self.parent {
+            Some(parent) => parent.resolve_local(name, span)?,
+            None => return Ok(None),
+        };
+
+        if let Some(local_idx) = local_idx {
+            let upvalue_idx = self.add_upvalue(local_idx, true, span)?;
+            return Ok(Some(upvalue_idx));
+        };
+
+        let upvalue_idx = match &mut self.parent {
+            Some(parent) => parent.resolve_upvalue(name, span)?,
+            None => return Ok(None),
+        };
+
+        if let Some(upvalue_idx) = upvalue_idx {
+            let upvalue_idx = self.add_upvalue(upvalue_idx, false, span)?;
+            return Ok(Some(upvalue_idx));
+        };
+
+        Ok(None)
     }
 
-    pub fn add_upvalue(&mut self, index: u8, is_local: bool) -> u8 {
-        let upvalue = Upvalue { index, is_local };
+    fn add_upvalue(&mut self, idx: u8, is_local: bool, span: &Span) -> Result<u8> {
+        let upvalue = Upvalue {
+            index: idx,
+            is_local,
+        };
         let upvalue_idx = match self.upvalues.iter().position(|u| u == &upvalue) {
-            Some(idx) => idx,
+            Some(upvalue_idx) => upvalue_idx,
             None => {
-                self.upvalues.push(upvalue);
-                let upvalue_cnt = self.upvalues.len();
-                unsafe { (*self.function).upvalue_count = upvalue_cnt as u16 };
-                upvalue_cnt - 1
+                self.upvalues
+                    .try_push(upvalue)
+                    .map_err(|_| (OverflowError::TooManyUpvalues.into(), span.clone()))?;
+                let upvalues = self.upvalues.len();
+                unsafe {
+                    (*self.function).upvalue_count =
+                        upvalues.try_into().expect("upvalue index overflow")
+                };
+                upvalues - 1
             }
         };
-        upvalue_idx as u8
+
+        Ok(upvalue_idx.try_into().expect("upvalue index overflow"))
     }
 }
 
@@ -128,7 +156,7 @@ impl Compiler {
                 locals: ArrayVec::new(),
                 scope_depth: 0,
                 parent: None,
-                upvalues: Vec::new(),
+                upvalues: ArrayVec::new(),
             },
             globals: HashMap::default(),
         }
@@ -243,6 +271,7 @@ impl Compiler {
                             "return type: {:?} func_return_type:{:?}",
                             return_type, func_type_
                         );
+                        println!("compiler upvalues {:?}", self.current_compiler.upvalues);
                         match func_type_ {
                             Some(t) => {
                                 //if function that return function else check return type and
@@ -327,7 +356,7 @@ impl Compiler {
             locals: ArrayVec::new(),
             scope_depth: self.current_compiler.scope_depth + 1,
             parent: None,
-            upvalues: Vec::new(),
+            upvalues: ArrayVec::new(),
         };
         self.begin_cell(cell);
 
@@ -410,7 +439,7 @@ impl Compiler {
         self.current_compiler.parent = Some(Box::new(cell));
     }
 
-    fn end_cell(&mut self) -> (*mut ObjectFunction, Vec<Upvalue>) {
+    fn end_cell(&mut self) -> (*mut ObjectFunction, ArrayVec<Upvalue, 256>) {
         let parent = self
             .current_compiler
             .parent
@@ -668,13 +697,13 @@ impl Compiler {
         if let Err(e) = result {
             return (var_type, Err(e));
         }
-        if let Some(local_index) = self
+        if let Ok(Some(local_index)) = self
             .current_compiler
             .resolve_local(&assign.lhs.name, &range)
         {
             self.emit_u8(op::SET_LOCAL, &range);
             self.write_constant(Value::Number(local_index.into()), &range);
-        } else if let Some(upvalue) = self
+        } else if let Ok(Some(upvalue)) = self
             .current_compiler
             .resolve_upvalue(&assign.lhs.name, &range)
         {
@@ -761,7 +790,7 @@ impl Compiler {
         //         }
         //     }
         // }
-        if let Some(local_index) = self
+        if let Ok(Some(local_index)) = self
             .current_compiler
             .resolve_local(&prefix.var.name, &range)
         {
@@ -775,7 +804,8 @@ impl Compiler {
                 expr_var_type, &prefix.var.name
             );
             return (expr_var_type, Ok(()));
-        } else if let Some(upvalue) = self.current_compiler.resolve_upvalue(name, &range) {
+        } else if let Ok(Some(upvalue)) = self.current_compiler.resolve_upvalue(name, &range) {
+            println!("upvalue: {:?}", upvalue);
             self.emit_u8(op::GET_UPVALUE, &range);
             self.write_constant(Value::Number(upvalue.into()), &range);
             return (Type::UnInitialized, Ok(()));

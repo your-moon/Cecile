@@ -26,6 +26,12 @@ impl Value {
             _ => todo!(),
         }
     }
+    pub fn as_number(&self) -> f64 {
+        match self {
+            Value::Number(n) => *n,
+            _ => todo!(),
+        }
+    }
 }
 
 impl Debug for Value {
