@@ -805,7 +805,7 @@ impl Compiler {
             );
             return (expr_var_type, Ok(()));
         } else if let Ok(Some(upvalue)) = self.current_compiler.resolve_upvalue(name, &range) {
-            println!("upvalue: {:?}", upvalue);
+            println!("compiler upvalues {:?}", self.current_compiler.upvalues);
             self.emit_u8(op::GET_UPVALUE, &range);
             self.write_constant(Value::Number(upvalue.into()), &range);
             return (Type::UnInitialized, Ok(()));

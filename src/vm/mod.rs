@@ -85,6 +85,7 @@ impl<'a> VM<'a> {
             let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
             (*function).chunk.disassemble_instruction(idx as usize);
             match self.read_u8() {
+                op::SET_UPVALUE => self.set_upvalue(),
                 op::GET_UPVALUE => self.get_upvalue(),
                 op::CLOSURE => self.closure(),
                 op::MODULO => self.modulo(),
@@ -153,9 +154,19 @@ impl<'a> VM<'a> {
         }
     }
 
+    fn set_upvalue(&mut self) {
+        let upvalue_idx = self.read_constant().as_number();
+        let upvalue = unsafe {
+            *(*self.frame.closure)
+                .upvalues
+                .get_unchecked(upvalue_idx as usize)
+        };
+        let value = self.peek(0);
+        unsafe { (*upvalue).value = *value };
+    }
+
     fn get_upvalue(&mut self) {
         let upvalue_idx = self.read_constant().as_number();
-        println!("upvalue_idx: {}", upvalue_idx);
         let upvalue = unsafe {
             *(*self.frame.closure)
                 .upvalues

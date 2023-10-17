@@ -10,15 +10,18 @@ mod vm;
 fn main() {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     let input = r#"
-    {
     let c: Int = 5;
     let d: Int = 6;
     fn add(a:Int, b:Int) {
-        print a + b + c + d;
+        c = 7;
+        d = 8;
+        println a + b + c + d;
     }
-    add(3,4);
+    let answer:Int = 0;
+    for(let i = 0; i<10;i = i + 1) {
+        answer = answer + add(3,4);
     }
-    "#;
+        "#;
     let mut allocator = CeAllocation::new();
     let mut vm = vm::VM::new(&mut allocator);
     if let Err(e) = vm.run(input, &mut stdout) {

@@ -32,7 +32,8 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
-            op::GET_UPVALUE => self.code_byte("GET_UPVALUE", offset),
+            op::SET_UPVALUE => self.constant_instruction("SET_UPVALUE", offset),
+            op::GET_UPVALUE => self.constant_instruction("GET_UPVALUE", offset),
             op::CLOSURE => {
                 let mut idx = offset + 1;
                 let constant_idx = self.code[idx];
