@@ -422,18 +422,21 @@ impl<'a> VM<'a> {
         let lhs = self.pop();
         match (lhs, rhs) {
             (value::Value::Number(lhs), value::Value::Number(rhs)) => {
-                // println!(" adding {} + {}", lhs, rhs);
                 self.push_to_stack(Value::Number(lhs + rhs));
             }
             (value::Value::String(lhs), value::Value::String(rhs)) => {
                 let lhs = unsafe { (*lhs).value.clone() };
                 let rhs = unsafe { (*rhs).value.clone() };
                 let string = lhs.to_string() + &rhs.to_string();
-                // let static_str: &'static str = Box::leak(string.into_boxed_str());
-                // let string_obj = StringObject::new(static_str);
                 let ptr_string = self.alloc(string);
-                let string = Value::String(ptr_string);
+                let string = ptr_string.into();
                 self.push_to_stack(string);
+            }
+            (value::Value::Number(_lhs), value::Value::Nil) => {
+                todo!("trying to add number and nil")
+            }
+            (value::Value::Nil, value::Value::Number(_rhs)) => {
+                todo!("trying to add nil and number")
             }
             _ => todo!(),
         }
@@ -442,38 +445,38 @@ impl<'a> VM<'a> {
     fn sub(&mut self) {
         let rhs = self.pop();
         let lhs = self.pop();
-        self.push_to_stack(lhs.sub(rhs));
+        self.push_to_stack(lhs - rhs);
     }
 
     fn mul(&mut self) {
         let rhs = self.pop();
         let lhs = self.pop();
-        self.push_to_stack(lhs.mul(rhs));
+        self.push_to_stack(lhs * rhs);
     }
 
     fn div(&mut self) {
         let rhs = self.pop();
         let lhs = self.pop();
-        self.push_to_stack(lhs.div(rhs));
+        self.push_to_stack(lhs / rhs);
     }
 
     fn equal(&mut self) {
         let rhs = self.pop();
         let lhs = self.pop();
-        self.push_to_stack(Value::Bool(rhs == lhs));
+        self.push_to_stack((rhs == lhs).into());
     }
 
     fn not_equal(&mut self) {
         let rhs = self.pop();
         let lhs = self.pop();
 
-        self.push_to_stack(Value::Bool(rhs != lhs));
+        self.push_to_stack((rhs != lhs).into());
     }
 
     fn negate(&mut self) {
         let value: value::Value = self.pop();
         // Value to f64
-        self.push_to_stack(value.neg());
+        self.push_to_stack(-value);
     }
 
     fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {

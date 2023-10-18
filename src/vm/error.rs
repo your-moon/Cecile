@@ -86,6 +86,9 @@ pub enum SyntaxError {
     },
     #[error("unterminated string")]
     UnterminatedString,
+
+    #[error("already declared in this scope: {name}")]
+    AlreadyDeclared { name: String },
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]

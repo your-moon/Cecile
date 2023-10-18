@@ -1,6 +1,7 @@
-use std::fmt::{Debug, Display};
-
+use crate::allocator::allocation::CeAllocation;
 use crate::vm::object::ObjectType;
+use std::fmt::{Debug, Display};
+use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
 use super::{
     compiler::Upvalue,
@@ -85,37 +86,72 @@ impl From<f64> for Value {
     }
 }
 
-impl Value {
-    pub fn modulo(&self, other: Value) -> Value {
-        match (self, other) {
-            (Value::Number(a), Value::Number(b)) => Value::Number(a % b),
-            _ => todo!(),
-        }
+impl From<bool> for Value {
+    fn from(b: bool) -> Self {
+        Value::Bool(b)
     }
-    pub fn add(&self, other: Value) -> Value {
-        match (self, other) {
-            (Value::Number(a), Value::Number(b)) => Value::Number(a + b),
-            _ => todo!(),
-        }
-    }
+}
 
-    pub fn sub(&self, other: Value) -> Value {
-        match (self, other) {
+impl From<*mut StringObject> for Value {
+    fn from(s: *mut StringObject) -> Self {
+        Value::String(s)
+    }
+}
+
+impl Sub for Value {
+    type Output = Value;
+    fn sub(self, rhs: Self) -> Value {
+        match (self, rhs) {
             (Value::Number(a), Value::Number(b)) => Value::Number(a - b),
             _ => todo!(),
         }
     }
+}
 
-    pub fn mul(&self, other: Value) -> Value {
-        match (self, other) {
+impl Mul for Value {
+    type Output = Value;
+    fn mul(self, rhs: Self) -> Value {
+        match (self, rhs) {
             (Value::Number(a), Value::Number(b)) => Value::Number(a * b),
             _ => todo!(),
         }
     }
+}
 
-    pub fn div(&self, other: Value) -> Value {
-        match (self, other) {
+impl Div for Value {
+    type Output = Value;
+    fn div(self, rhs: Self) -> Value {
+        match (self, rhs) {
             (Value::Number(a), Value::Number(b)) => Value::Number(a / b),
+            _ => todo!(),
+        }
+    }
+}
+
+impl Rem for Value {
+    type Output = Value;
+    fn rem(self, rhs: Self) -> Value {
+        match (self, rhs) {
+            (Value::Number(a), Value::Number(b)) => Value::Number(a % b),
+            _ => todo!(),
+        }
+    }
+}
+
+impl Neg for Value {
+    type Output = Value;
+    fn neg(self) -> Value {
+        match self {
+            Value::Number(n) => Value::Number(-n),
+            _ => todo!(),
+        }
+    }
+}
+
+impl Value {
+    pub fn modulo(&self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Number(a), Value::Number(b)) => Value::Number(a % b),
             _ => todo!(),
         }
     }
@@ -144,13 +180,6 @@ impl Value {
     pub fn less_equal(&self, other: Value) -> Value {
         match (self, other) {
             (Value::Number(a), Value::Number(b)) => Value::Bool(a <= &b),
-            _ => todo!(),
-        }
-    }
-
-    pub fn neg(&self) -> Value {
-        match self {
-            Value::Number(n) => Value::Number(-n),
             _ => todo!(),
         }
     }
