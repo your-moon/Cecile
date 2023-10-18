@@ -10,14 +10,14 @@ mod vm;
 fn main() -> std::io::Result<()> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     let input = r#"
-    let c: Int = 5;
-    let d: Int = 6;
+    let c = 5;
+    let d = 6;
     fn add(a:Int, b:Int) -> Int {
         c = 7;
         d = 8;
         return a + b + c + d;
     }
-    let answer: Int = 0;
+    let answer = 0;
     for(let i = 0; i < 10; i = i + 1) {
         answer = answer + add(3, 4);
     }
