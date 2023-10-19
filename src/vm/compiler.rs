@@ -439,6 +439,7 @@ impl Compiler {
             let compile_init = self.compile_statement(&init, allocator)?;
             compiled_type = Some(compile_init);
         }
+
         let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
         let mut exit_jump = None;
         if let Some(cond) = &for_.cond {
@@ -457,7 +458,6 @@ impl Compiler {
         self.compile_statement(&for_.body, allocator)?;
         if let Some(increment) = &for_.update {
             self.compile_expression(increment, allocator)?;
-            //TODO: figure out why this one extra pop from stack
             self.emit_u8(op::POP, &range);
         }
         self.emit_loop(loop_start, &range);

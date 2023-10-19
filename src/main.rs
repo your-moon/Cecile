@@ -9,22 +9,18 @@ mod cc_parser;
 mod vm;
 fn main() -> std::io::Result<()> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
+
     let input = r#"
-    let c = 5;
-    let d = 6;
-    fn add(a:Int, b:Int) -> Int {
-        c = 7;
-        d = 8;
-        return a + b + c + d;
+    fn add(a: Int, b: Int) {
+        println a + b;
     }
-    let answer = 0;
-    for(let i = 0; i < 10; i = i + 1) {
-        answer = answer + add(3, 4);
-    }
-    println answer;
+    add(1, "s");
         "#;
+
     let mut allocator = CeAllocation::new();
+
     let mut vm = vm::VM::new(&mut allocator);
+
     if let Err(e) = vm.run(input, &mut stdout) {
         stdout.set_color(ColorSpec::new().set_fg(Some(Color::Yellow)))?;
         writeln!(&mut stdout, "Error: {:?}", e).expect("Failed to write to stdout");
