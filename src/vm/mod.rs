@@ -124,6 +124,7 @@ impl<'a> VM<'a> {
                 op::TRUE => self.op_true(),
                 op::FALSE => self.op_false(),
                 op::NIL => self.op_nil(),
+                op::CLOSE_UPVALUE => self.close_upvalue(),
                 op::POP => {
                     self.pop();
                 }
@@ -154,6 +155,20 @@ impl<'a> VM<'a> {
         }
     }
 
+    fn close_upvalue(&mut self) {
+        let value = self.pop();
+        let mut idx = 0;
+        while idx < self.open_upvalues.len() {
+            let upvalue = unsafe { *self.open_upvalues.get_unchecked(idx) };
+            if unsafe { (*upvalue).value } >= value {
+                unsafe { (*upvalue).value = value };
+                idx += 1;
+            } else {
+                self.open_upvalues.remove(idx);
+            }
+        }
+    }
+
     fn set_upvalue(&mut self) {
         let upvalue_idx = self.read_constant().as_number();
         let upvalue = unsafe {
@@ -172,6 +187,8 @@ impl<'a> VM<'a> {
                 .upvalues
                 .get_unchecked(upvalue_idx as usize)
         };
+        // TODO: figure out why upvalue location is not working
+        // let value = unsafe { *(*upvalue).location };
         let value = unsafe { (*upvalue).value };
         self.push_to_stack(value);
     }
@@ -187,8 +204,9 @@ impl<'a> VM<'a> {
             let is_local = self.read_u8();
             let index = self.read_u8() as usize;
             let upvalue = if is_local == 1 {
-                let stack_ptr = unsafe { *self.frame.stack.add(index as usize) };
-                self.capture_upvalue(stack_ptr)
+                let stack_ptr = unsafe { self.frame.stack.add(index as usize) };
+                let value = unsafe { *stack_ptr };
+                self.capture_upvalue(value, stack_ptr)
             } else {
                 let upvalue = unsafe { *(*self.frame.closure).upvalues.get_unchecked(index) };
                 upvalue
@@ -241,7 +259,7 @@ impl<'a> VM<'a> {
         }
     }
 
-    fn capture_upvalue(&mut self, value: Value) -> *mut UpvalueObject {
+    fn capture_upvalue(&mut self, value: Value, location: *mut Value) -> *mut UpvalueObject {
         match self
             .open_upvalues
             .iter()
@@ -249,7 +267,7 @@ impl<'a> VM<'a> {
         {
             Some(&upvalue) => upvalue,
             None => {
-                let upvalue = self.alloc(UpvalueObject::new(value));
+                let upvalue = self.alloc(UpvalueObject::new(value, location));
                 self.open_upvalues.push(upvalue);
                 upvalue
             }

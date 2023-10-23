@@ -200,17 +200,19 @@ impl ClosureObject {
 pub struct UpvalueObject {
     pub common: MainObject,
     pub value: Value,
+    pub location: *mut Value,
     pub closed: Value,
 }
 
 impl UpvalueObject {
-    pub fn new(value: Value) -> Self {
+    pub fn new(value: Value, location: *mut Value) -> Self {
         Self {
             common: MainObject {
                 type_: ObjectType::Upvalue,
             },
             value,
             closed: Value::Nil,
+            location,
         }
     }
 }

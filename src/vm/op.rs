@@ -35,9 +35,8 @@ iota! {
     CALL,
     CLOSURE,
     GET_UPVALUE,
-    SET_UPVALUE
-
-
+    SET_UPVALUE,
+    CLOSE_UPVALUE
 
 
 }

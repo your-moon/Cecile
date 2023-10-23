@@ -11,10 +11,22 @@ fn main() -> std::io::Result<()> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
     let input = r#"
-    fn add(a: Int, b: Int) {
-        println a + b;
+fn outer() -> fn {
+  let a = 1;
+  let b = 2;
+  fn middle() -> fn {
+    let c = 3;
+    let d = 4;
+    fn inner() {
+      println a + c + b + d;
     }
-    add(1, "s");
+    return inner;
+  }
+  return middle;
+}
+let mid = outer();
+let inner = mid();
+inner();
         "#;
 
     let mut allocator = CeAllocation::new();

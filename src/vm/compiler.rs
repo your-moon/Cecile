@@ -42,6 +42,7 @@ struct Local {
     type_: Type,
     depth: usize,
     is_initialized: bool,
+    is_captured: bool,
 }
 
 impl Display for Local {
@@ -70,7 +71,7 @@ pub struct CompilerCell {
 }
 
 impl CompilerCell {
-    pub fn resolve_local(&mut self, name: &str, span: &Span) -> Result<Option<u8>> {
+    pub fn resolve_local(&mut self, name: &str, capture: bool, span: &Span) -> Result<Option<u8>> {
         match self
             .locals
             .iter_mut()
@@ -79,6 +80,9 @@ impl CompilerCell {
         {
             Some((idx, local)) => {
                 if local.is_initialized {
+                    if capture {
+                        local.is_captured = true;
+                    }
                     Ok(Some(idx.try_into().expect("local index overflow")))
                 } else {
                     Err((
@@ -95,7 +99,7 @@ impl CompilerCell {
 
     pub fn resolve_upvalue(&mut self, name: &str, span: &Span) -> Result<Option<u8>> {
         let local_idx = match &mut self.parent {
-            Some(parent) => parent.resolve_local(name, span)?,
+            Some(parent) => parent.resolve_local(name, true, span)?,
             None => return Ok(None),
         };
 
@@ -389,7 +393,6 @@ impl Compiler {
         }
 
         if unsafe { (*self.current_compiler.function).chunk.code.last().unwrap() } != &op::RETURN {
-            println!("COMES FROM HERE");
             let stmt = (
                 Statement::Return(StatementReturn { value: None }),
                 range.clone(),
@@ -631,9 +634,9 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let var_type = self.compile_expression(&assign.rhs, allocator)?;
-        if let Ok(Some(local_index)) = self
-            .current_compiler
-            .resolve_local(&assign.lhs.name, &range)
+        if let Ok(Some(local_index)) =
+            self.current_compiler
+                .resolve_local(&assign.lhs.name, false, &range)
         {
             self.emit_u8(op::SET_LOCAL, &range);
             self.write_constant(Value::Number(local_index.into()), &range);
@@ -717,9 +720,9 @@ impl Compiler {
         //         }
         //     }
         // }
-        if let Ok(Some(local_index)) = self
-            .current_compiler
-            .resolve_local(&prefix.var.name, &range)
+        if let Ok(Some(local_index)) =
+            self.current_compiler
+                .resolve_local(&prefix.var.name, false, &range)
         {
             self.emit_u8(op::GET_LOCAL, &range);
             self.write_constant(Value::Number(local_index.into()), &range);
@@ -887,12 +890,19 @@ impl Compiler {
 
     fn end_scope(&mut self, span: Range<usize>) {
         self.current_compiler.scope_depth -= 1;
-        while !self.current_compiler.locals.is_empty()
-            && self.current_compiler.locals.last().unwrap().depth
-                > self.current_compiler.scope_depth
-        {
-            self.current_compiler.locals.pop();
-            self.emit_u8(op::POP, &span);
+
+        // Remove all locals that are no longer in scope.
+        while let Some(local) = self.current_compiler.locals.last() {
+            if local.depth > self.current_compiler.scope_depth {
+                if local.is_captured {
+                    self.emit_u8(op::CLOSE_UPVALUE, &span);
+                } else {
+                    self.emit_u8(op::POP, &span);
+                }
+                self.current_compiler.locals.pop();
+            } else {
+                break;
+            }
         }
     }
 
@@ -920,6 +930,7 @@ impl Compiler {
             type_: type_.clone(),
             depth: self.current_compiler.scope_depth,
             is_initialized,
+            is_captured: false,
         };
         self.current_compiler.locals.push(local);
         Ok(())

@@ -32,6 +32,7 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
+            op::CLOSE_UPVALUE => self.simple_instruction("CLOSE_UPVALUE", offset),
             op::SET_UPVALUE => self.constant_instruction("SET_UPVALUE", offset),
             op::GET_UPVALUE => self.constant_instruction("GET_UPVALUE", offset),
             op::CLOSURE => {

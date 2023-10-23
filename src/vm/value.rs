@@ -8,7 +8,7 @@ use super::{
     object::{ClosureObject, Object, ObjectFunction, ObjectNative, StringObject, UpvalueObject},
 };
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, PartialOrd)]
 pub enum Value {
     Number(f64),
     String(*mut StringObject),
