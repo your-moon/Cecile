@@ -12,11 +12,11 @@ fn main() -> std::io::Result<()> {
 
     let input = r#"
 fn outer() -> fn {
-  let a = 1;
-  let b = 2;
+  let a = "1";
+  let b = "2";
   fn middle() -> fn {
-    let c = 3;
-    let d = 4;
+    let c = "3";
+    let d = "4";
     fn inner() {
       println a + c + b + d;
     }
@@ -38,7 +38,6 @@ inner();
         writeln!(&mut stdout, "Error: {:?}", e).expect("Failed to write to stdout");
     }
 
-    println!("allocations: {:?}", allocator);
     stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
     writeln!(&mut stdout, "Program exited successfully")?;
     return Ok(());

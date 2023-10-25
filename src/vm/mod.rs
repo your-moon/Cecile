@@ -4,6 +4,7 @@ use hashbrown::HashMap;
 use rand::Rng;
 use termcolor::StandardStream;
 
+use crate::allocator::GLOBAL;
 use crate::vm::value::Value;
 use crate::{
     allocator::allocation::{CeAlloc, CeAllocation},
@@ -33,6 +34,8 @@ pub struct VM<'a> {
     frame: CallFrame,
     stack_top: *mut Value,
     allocator: &'a mut CeAllocation,
+    next_gc: usize,
+
     globals: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
     open_upvalues: Vec<*mut UpvalueObject>,
 }
@@ -58,6 +61,7 @@ impl<'a> VM<'a> {
                 stack: ptr::null_mut(),
             },
             open_upvalues: Vec::new(),
+            next_gc: 1024 * 1024,
         }
     }
 
@@ -203,10 +207,10 @@ impl<'a> VM<'a> {
         for _ in 0..(*function).upvalue_count {
             let is_local = self.read_u8();
             let index = self.read_u8() as usize;
-            let upvalue = if is_local == 1 {
-                let stack_ptr = unsafe { self.frame.stack.add(index as usize) };
-                let value = unsafe { *stack_ptr };
-                self.capture_upvalue(value, stack_ptr)
+            let upvalue = if is_local != 0 {
+                let value = unsafe { *self.frame.stack.add(index as usize) };
+                println!("capturing upvalue: {:?}", value);
+                self.capture_upvalue(value)
             } else {
                 let upvalue = unsafe { *(*self.frame.closure).upvalues.get_unchecked(index) };
                 upvalue
@@ -259,7 +263,7 @@ impl<'a> VM<'a> {
         }
     }
 
-    fn capture_upvalue(&mut self, value: Value, location: *mut Value) -> *mut UpvalueObject {
+    fn capture_upvalue(&mut self, value: Value) -> *mut UpvalueObject {
         match self
             .open_upvalues
             .iter()
@@ -267,7 +271,8 @@ impl<'a> VM<'a> {
         {
             Some(&upvalue) => upvalue,
             None => {
-                let upvalue = self.alloc(UpvalueObject::new(value, location));
+                let upvalue_obj = UpvalueObject::new(value);
+                let upvalue = self.alloc(upvalue_obj);
                 self.open_upvalues.push(upvalue);
                 upvalue
             }
@@ -498,6 +503,9 @@ impl<'a> VM<'a> {
     }
 
     fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {
+        if GLOBAL.allocated_bytes() > self.next_gc {
+            //self.allocator.collect();
+        }
         self.allocator.alloc(object)
     }
 }
