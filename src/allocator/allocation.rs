@@ -1,6 +1,7 @@
 use std::mem;
 
-use crate::vm::object::{Object, StringObject};
+use crate::vm::object::{Object, ObjectType, StringObject};
+use crate::vm::value::Value;
 use hashbrown::hash_map::RawEntryMut;
 use hashbrown::HashMap;
 
@@ -8,6 +9,7 @@ use hashbrown::HashMap;
 pub struct CeAllocation {
     pub strings: HashMap<String, *mut StringObject>,
     pub objects: Vec<Object>,
+    pub gray_objects: Vec<Object>,
 }
 
 impl CeAllocation {
@@ -15,10 +17,39 @@ impl CeAllocation {
         Self {
             strings: HashMap::new(),
             objects: Vec::new(),
+            gray_objects: Vec::new(),
         }
     }
     pub fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {
         object.alloc(self)
+    }
+
+    pub fn mark(&mut self, object: impl GcMark) {
+        object.mark(self);
+    }
+
+    pub fn trace(&mut self) {
+        while let Some(object) = self.gray_objects.pop() {
+            match unsafe { (*(object.main)).type_ } {
+                ObjectType::Function => {
+                    let function = unsafe { &mut *object.function };
+                    function.name.mark(self);
+                    for constant in &function.chunk.constants {
+                        self.mark(*constant);
+                    }
+                }
+                ObjectType::String => {}
+                ObjectType::Native => {}
+                ObjectType::Upvalue => {}
+                ObjectType::Closure => {
+                    let closure = unsafe { &mut *object.closure };
+                    self.mark(unsafe { (*closure).function });
+                    for &upvalue in unsafe { &(*closure.upvalues) } {
+                        self.mark(upvalue);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -30,6 +61,28 @@ impl Drop for CeAllocation {
         }
         for &string in self.strings.values() {
             unsafe { Box::from_raw(string) };
+        }
+    }
+}
+
+pub trait GcMark {
+    fn mark(self, allocator: &mut CeAllocation);
+}
+
+impl<T: Into<Object>> GcMark for T {
+    fn mark(self, allocator: &mut CeAllocation) {
+        let object: Object = self.into();
+        if unsafe { (*(object.main)).is_marked } {
+            unsafe { (*(object.main)).is_marked = true };
+            allocator.gray_objects.push(object);
+        }
+    }
+}
+
+impl GcMark for Value {
+    fn mark(self, allocator: &mut CeAllocation) {
+        if self.is_object() {
+            (unsafe { *self.as_object() }).mark(allocator);
         }
     }
 }

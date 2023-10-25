@@ -68,8 +68,6 @@ impl<'a> VM<'a> {
     pub fn run(&mut self, source: &str, stdout: &mut StandardStream) -> Result<(), Vec<ErrorS>> {
         let mut compiler = Compiler::new(self.allocator);
         let function = compiler.compile(source, self.allocator, stdout)?;
-        // println!("{:?}", self.allocator);
-        // println!("{:?}", unsafe { (*function).chunk.disassemble("script") });
         self.run_function(function);
         Ok(())
     }
@@ -208,7 +206,7 @@ impl<'a> VM<'a> {
             let is_local = self.read_u8();
             let index = self.read_u8() as usize;
             let upvalue = if is_local != 0 {
-                let value = unsafe { *self.frame.stack.add(index as usize) };
+                let value = unsafe { *self.frame.stack.add(index) };
                 println!("capturing upvalue: {:?}", value);
                 self.capture_upvalue(value)
             } else {
@@ -271,8 +269,7 @@ impl<'a> VM<'a> {
         {
             Some(&upvalue) => upvalue,
             None => {
-                let upvalue_obj = UpvalueObject::new(value);
-                let upvalue = self.alloc(upvalue_obj);
+                let upvalue = self.alloc(UpvalueObject::new(value));
                 self.open_upvalues.push(upvalue);
                 upvalue
             }

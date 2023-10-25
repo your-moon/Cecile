@@ -33,6 +33,28 @@ impl Value {
             _ => todo!(),
         }
     }
+
+    pub fn as_object(&self) -> *mut Object {
+        match self {
+            Value::String(ptr) => *ptr as *mut Object,
+            Value::Function(ptr) => *ptr as *mut Object,
+            Value::Closure(ptr) => *ptr as *mut Object,
+            Value::Upvalue(ptr) => *ptr as *mut Object,
+            Value::Native(ptr) => *ptr as *mut Object,
+            _ => todo!(),
+        }
+    }
+
+    pub fn is_object(&self) -> bool {
+        match self {
+            Value::String(_) => true,
+            Value::Function(_) => true,
+            Value::Closure(_) => true,
+            Value::Upvalue(_) => true,
+            Value::Native(_) => true,
+            _ => false,
+        }
+    }
 }
 
 impl Debug for Value {

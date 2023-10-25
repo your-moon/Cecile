@@ -601,7 +601,7 @@ impl Compiler {
     ) -> Result<Type> {
         let arg_count = call.args.len();
         if arg_count > u8::MAX as usize {
-            todo!("Too many arguments, Can't call more than 255 arguments");
+            Err((Error::OverflowError(OverflowError::TooManyArguments), range.clone()))?;
         }
         let callee_type = self.compile_expression(&call.callee, allocator)?;
         let callee_type = if callee_type.is_fn() {

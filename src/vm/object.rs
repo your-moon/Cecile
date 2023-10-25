@@ -105,6 +105,7 @@ impl ObjectNative {
         Self {
             common: MainObject {
                 type_: ObjectType::Native,
+                is_marked: false,
             },
             native,
         }
@@ -139,6 +140,7 @@ pub struct ObjectFunction {
 impl ObjectFunction {
     pub fn new(name: *mut StringObject, arity_count: u8, return_type: Option<Type>) -> Self {
         let common = MainObject {
+            is_marked: false,
             type_: ObjectType::Function,
         };
         Self {
@@ -156,6 +158,7 @@ impl ObjectFunction {
 #[repr(C)]
 pub struct MainObject {
     pub type_: ObjectType,
+    pub is_marked: bool,
 }
 
 #[repr(C)]
@@ -169,6 +172,7 @@ impl StringObject {
         StringObject {
             main: MainObject {
                 type_: ObjectType::String,
+                is_marked: false,
             },
             value,
         }
@@ -188,6 +192,7 @@ impl ClosureObject {
         Self {
             main: MainObject {
                 type_: ObjectType::Closure,
+                is_marked: false,
             },
             function,
             upvalues,
@@ -208,6 +213,7 @@ impl UpvalueObject {
         Self {
             common: MainObject {
                 type_: ObjectType::Upvalue,
+                is_marked: false,
             },
             closed: Value::Nil,
             value,

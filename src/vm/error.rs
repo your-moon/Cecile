@@ -48,6 +48,9 @@ pub enum OverflowError {
     TooManyParams,
     #[error("cannot use more than 256 closure variables in a function")]
     TooManyUpvalues,
+    #[error("cannot use more than 256 arguments in a function")]
+    TooManyArguments
+
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]
