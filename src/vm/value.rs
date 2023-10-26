@@ -9,6 +9,7 @@ use super::{
 };
 
 #[derive(PartialEq, Clone, Copy, PartialOrd)]
+#[repr(C)]
 pub enum Value {
     Number(f64),
     String(*mut StringObject),
@@ -34,17 +35,6 @@ impl Value {
         }
     }
 
-    pub fn as_object(&self) -> *mut Object {
-        match self {
-            Value::String(ptr) => *ptr as *mut Object,
-            Value::Function(ptr) => *ptr as *mut Object,
-            Value::Closure(ptr) => *ptr as *mut Object,
-            Value::Upvalue(ptr) => *ptr as *mut Object,
-            Value::Native(ptr) => *ptr as *mut Object,
-            _ => todo!(),
-        }
-    }
-
     pub fn is_object(&self) -> bool {
         match self {
             Value::String(_) => true,
@@ -54,6 +44,66 @@ impl Value {
             Value::Native(_) => true,
             _ => false,
         }
+    }
+
+    pub fn as_object(&self) -> Object {
+        match self {
+            Value::String(ptr) => {
+                let object = unsafe { **ptr };
+                object.into()
+            }
+            Value::Function(ptr) => {
+                let object = unsafe { &**ptr };
+                object.into()
+            }
+            Value::Closure(ptr) => {
+                let object = unsafe { &**ptr };
+                object.into()
+            }
+            Value::Upvalue(ptr) => {
+                let object = unsafe { &**ptr };
+                object.into()
+            }
+            Value::Native(ptr) => {
+                let object = unsafe { &**ptr };
+                object.into()
+            }
+            _ => todo!(),
+        }
+    }
+}
+
+#[cfg(test)]
+
+mod tests {
+    use super::*;
+    use crate::vm::object::ObjectFunction;
+    use std::mem::size_of;
+
+    #[test]
+    fn test_value_size() {
+        assert_eq!(size_of::<Value>(), 16);
+    }
+
+    #[test]
+    fn test_value_as_object() {
+        let mut allocation = CeAllocation::new();
+        let string = allocation.alloc(StringObject::new("Hello, world!"));
+        let value = Value::String(string);
+        let object = value.as_object();
+        assert_eq!(object.type_(), ObjectType::String);
+        assert_eq!(unsafe { (*object.string).value }, "Hello, world!");
+    }
+
+    #[test]
+    fn test_value_as_function() {
+        let mut allocation = CeAllocation::new();
+        let string = allocation.alloc(StringObject::new("Hello, world!"));
+        let function = allocation.alloc(ObjectFunction::new(string, 123, None));
+        let value = Value::Function(function);
+        let object = value.as_object();
+        assert_eq!(object.type_(), ObjectType::Function);
+        assert_eq!(unsafe { (*object.function).arity_count }, 123);
     }
 }
 

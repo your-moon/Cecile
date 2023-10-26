@@ -95,9 +95,19 @@ pub enum ObjectType {
     Upvalue,
 }
 
+#[derive(Debug, Clone)]
+#[repr(C)]
 pub struct ObjectNative {
     pub common: MainObject,
     pub native: Native,
+}
+
+impl Into<Object> for &ObjectNative {
+    fn into(self) -> Object {
+        Object {
+            native: Box::into_raw(Box::new(self.clone())),
+        }
+    }
 }
 
 impl ObjectNative {
@@ -127,6 +137,7 @@ impl Display for Native {
     }
 }
 
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct ObjectFunction {
     pub common: MainObject,
@@ -135,6 +146,14 @@ pub struct ObjectFunction {
     pub upvalue_count: u16,
     pub chunk: Chunk,
     pub return_type: Option<Type>,
+}
+
+impl Into<Object> for &ObjectFunction {
+    fn into(self) -> Object {
+        Object {
+            function: Box::into_raw(Box::new(self.clone())),
+        }
+    }
 }
 
 impl ObjectFunction {
@@ -154,13 +173,14 @@ impl ObjectFunction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct MainObject {
     pub type_: ObjectType,
     pub is_marked: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct StringObject {
     pub main: MainObject,
@@ -179,12 +199,28 @@ impl StringObject {
     }
 }
 
-#[derive(Debug)]
+impl Into<Object> for StringObject {
+    fn into(self) -> Object {
+        Object {
+            string: Box::into_raw(Box::new(self)),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct ClosureObject {
     pub main: MainObject,
     pub function: *mut ObjectFunction,
     pub upvalues: Vec<*mut UpvalueObject>,
+}
+
+impl Into<Object> for &ClosureObject {
+    fn into(self) -> Object {
+        Object {
+            closure: Box::into_raw(Box::new(self.clone())),
+        }
+    }
 }
 
 impl ClosureObject {
@@ -200,12 +236,20 @@ impl ClosureObject {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct UpvalueObject {
     pub common: MainObject,
     pub value: Value,
     pub closed: Value,
+}
+
+impl Into<Object> for &UpvalueObject {
+    fn into(self) -> Object {
+        Object {
+            upvalue: Box::into_raw(Box::new(self.clone())),
+        }
+    }
 }
 
 impl UpvalueObject {
@@ -218,5 +262,26 @@ impl UpvalueObject {
             closed: Value::Nil,
             value,
         }
+    }
+}
+
+#[cfg(test)]
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_string_object_to_value() {
+        let object: Object = StringObject::new("test").into();
+        assert_eq!(object.type_(), ObjectType::String);
+        assert_eq!(unsafe { (*object.string).value }, "test");
+    }
+
+    #[test]
+    fn test_function_object_to_value() {
+        let string_ptr: Object = StringObject::new("test").into();
+        let object: Object = (&ObjectFunction::new(unsafe { string_ptr.string }, 123, None)).into();
+        assert_eq!(object.type_(), ObjectType::Function);
+        assert_eq!(unsafe { (*object.function).arity_count }, 123);
     }
 }

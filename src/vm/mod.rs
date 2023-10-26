@@ -4,6 +4,7 @@ use hashbrown::HashMap;
 use rand::Rng;
 use termcolor::StandardStream;
 
+use crate::allocator::allocation::GcMark;
 use crate::allocator::GLOBAL;
 use crate::vm::value::Value;
 use crate::{
@@ -77,7 +78,9 @@ impl<'a> VM<'a> {
 
         self.frames.clear();
         self.frame = CallFrame {
-            closure: self.alloc(ClosureObject::new(function, Vec::new())),
+            closure: self
+                .allocator
+                .alloc(ClosureObject::new(function, Vec::new())),
             ip: unsafe { (*function).chunk.code.as_ptr() },
             stack: self.stack_top,
         };
@@ -500,10 +503,44 @@ impl<'a> VM<'a> {
     }
 
     fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {
-        if GLOBAL.allocated_bytes() > self.next_gc {
-            //self.allocator.collect();
+        let allc = self.allocator.alloc(object);
+        // self.gc();
+        allc
+    }
+
+    fn gc(&mut self) {
+        println!("--- gc start");
+        let mut stack_ptr = self.stack_top;
+        while stack_ptr < self.stack.as_mut_ptr() {
+            self.allocator.mark(unsafe { *stack_ptr });
+            stack_ptr = unsafe { stack_ptr.add(1) };
         }
-        self.allocator.alloc(object)
+
+        for (&name, &value) in &self.globals {
+            self.allocator.mark(name);
+            self.allocator.mark(value);
+        }
+
+        //BUG
+        println!("closure: {:?}", self.frame.closure);
+        if !self.frame.closure.is_null() {
+            self.allocator.mark(self.frame.closure);
+        }
+
+        for frame in &self.frames {
+            self.allocator.mark(frame.closure);
+        }
+
+        for upvalue in &self.open_upvalues {
+            self.allocator.mark(*upvalue);
+        }
+
+        self.allocator.trace();
+        self.allocator.sweep();
+
+        self.next_gc = GLOBAL.allocated_bytes() * 2;
+        println!("globals {:?}", self.globals);
+        println!("--- gc end");
     }
 }
 

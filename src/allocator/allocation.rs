@@ -1,13 +1,16 @@
+use std::hash::BuildHasherDefault;
 use std::mem;
 
 use crate::vm::object::{Object, ObjectType, StringObject};
 use crate::vm::value::Value;
+
 use hashbrown::hash_map::RawEntryMut;
 use hashbrown::HashMap;
+use rustc_hash::FxHasher;
 
 #[derive(Debug)]
 pub struct CeAllocation {
-    pub strings: HashMap<String, *mut StringObject>,
+    pub strings: HashMap<String, *mut StringObject, BuildHasherDefault<FxHasher>>,
     pub objects: Vec<Object>,
     pub gray_objects: Vec<Object>,
 }
@@ -15,7 +18,7 @@ pub struct CeAllocation {
 impl CeAllocation {
     pub fn new() -> Self {
         Self {
-            strings: HashMap::new(),
+            strings: HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default()),
             objects: Vec::new(),
             gray_objects: Vec::new(),
         }
@@ -51,6 +54,25 @@ impl CeAllocation {
             }
         }
     }
+
+    pub fn sweep(&mut self) {
+        for idx in (0..self.objects.len()).rev() {
+            let object = *unsafe { self.objects.get_unchecked(idx) };
+            if !mem::take(unsafe { &mut (*object.main).is_marked }) {
+                self.objects.swap_remove(idx);
+                object.free();
+            }
+        }
+
+        self.strings.retain(|_, &mut string| {
+            if mem::take(unsafe { &mut (*string).main.is_marked }) {
+                true
+            } else {
+                unsafe { Box::from_raw(string) };
+                false
+            }
+        });
+    }
 }
 
 impl Drop for CeAllocation {
@@ -71,8 +93,8 @@ pub trait GcMark {
 
 impl<T: Into<Object>> GcMark for T {
     fn mark(self, allocator: &mut CeAllocation) {
-        let object: Object = self.into();
-        if unsafe { (*(object.main)).is_marked } {
+        let object = self.into();
+        if !unsafe { (*(object.main)).is_marked } {
             unsafe { (*(object.main)).is_marked = true };
             allocator.gray_objects.push(object);
         }
@@ -82,7 +104,7 @@ impl<T: Into<Object>> GcMark for T {
 impl GcMark for Value {
     fn mark(self, allocator: &mut CeAllocation) {
         if self.is_object() {
-            (unsafe { *self.as_object() }).mark(allocator);
+            self.as_object().mark(allocator);
         }
     }
 }

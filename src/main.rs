@@ -11,8 +11,8 @@ fn main() -> std::io::Result<()> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
     let input = r#"
-    let a = 1;
-    let b = 2;
+    let a = "1";
+    let b = "2";
     println a + b;
         "#;
 
