@@ -1,6 +1,3 @@
-use std::ops::Range;
-
-use crate::allocator::allocation::CeAllocation;
 use crate::cc_parser::ast::Span;
 use crate::vm::op;
 use crate::vm::value::Value;
@@ -33,18 +30,18 @@ impl Chunk {
         print!("{:04} ", offset);
         match self.code[offset] {
             op::CLOSE_UPVALUE => self.simple_instruction("CLOSE_UPVALUE", offset),
-            op::SET_UPVALUE => self.constant_instruction("SET_UPVALUE", offset),
-            op::GET_UPVALUE => self.constant_instruction("GET_UPVALUE", offset),
+            op::SET_UPVALUE => self.code_byte("SET_UPVALUE", offset),
+            op::GET_UPVALUE => self.code_byte("GET_UPVALUE", offset),
             op::CLOSURE => {
                 let mut idx = offset + 1;
                 let constant_idx = self.code[idx];
                 let constant = &self.constants[constant_idx as usize];
-                println!(
+                eprintln!(
                     "{name:16} {constant_idx:>4} '{constant}'",
                     name = "OP_CLOSURE"
                 );
 
-                let function = unsafe { constant.as_function() };
+                let function = unsafe { constant.as_object().function };
                 for _ in 0..unsafe { (*function).upvalue_count } {
                     let offset = idx;
 
@@ -55,7 +52,7 @@ impl Chunk {
                     idx += 1;
                     let upvalue_idx = self.code[idx];
 
-                    println!("{offset:04} |                     {label} {upvalue_idx}");
+                    eprintln!("{offset:04} |                     {label} {upvalue_idx}");
                 }
 
                 idx + 1
@@ -67,8 +64,8 @@ impl Chunk {
             op::JUMP => self.jump_instruction("JUMP", offset),
             op::JUMP_IF_FALSE => self.jump_instruction("JUMP_IF_FALSE", offset),
             op::POP => self.simple_instruction("POP", offset),
-            op::GET_LOCAL => self.constant_instruction("GET_LOCAL", offset),
-            op::SET_LOCAL => self.constant_instruction("SET_LOCAL", offset),
+            op::GET_LOCAL => self.code_byte("GET_LOCAL", offset),
+            op::SET_LOCAL => self.code_byte("SET_LOCAL", offset),
             op::SET_GLOBAL => self.constant_instruction("SET_GLOBAL", offset),
             op::DEFINE_GLOBAL => self.constant_instruction("DEFINE_GLOBAL", offset),
             op::GET_GLOBAL => self.constant_instruction("GET_GLOBAL", offset),
@@ -126,18 +123,21 @@ impl Chunk {
     }
 
     fn constant_instruction(&self, name: &str, offset: usize) -> usize {
-        let constant = self.code[offset + 1];
-        println!(
-            "{:16} {:4} '{}'",
-            name, constant, self.constants[constant as usize]
-        );
+        let constant_idx = self.code[offset + 1];
+        let constant = &self.constants[constant_idx as usize];
+        println!("{name:16} {constant_idx:>4} '{constant}'");
         offset + 2
     }
+
     pub fn emit_u8(&mut self, byte: u8, span: &Span) {
         self.code.push(byte);
         self.spans.push(span.clone());
     }
 
+    /// Emit a two byte instruction_byte
+    /// Emit CECILE_CONSTANT instruction_byte, followed by the index of the constant
+    /// index is the index of the constant in the chunk's constant table
+    /// [CECILE_CONSTANT, index]
     pub fn emit_constant(&mut self, value: Value, span: &Span) {
         let index = self.constants.len() as u8;
         self.emit_u8(op::CECILE_CONSTANT, span);

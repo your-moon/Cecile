@@ -118,10 +118,15 @@ where
     *mut T: Into<Object>,
 {
     fn alloc(self, allocation: &mut CeAllocation) -> *mut T {
-        let ptr = Box::into_raw(Box::new(self));
-        let object = ptr.into();
+        // let ptr = Box::into_raw(Box::new(self));
+        // let object = ptr.into();
+        // allocation.objects.push(object);
+        // ptr
+        let object_ptr = Box::into_raw(Box::new(self));
+        let object = object_ptr.into();
+
         allocation.objects.push(object);
-        ptr
+        object_ptr
     }
 }
 

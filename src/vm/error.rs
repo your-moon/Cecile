@@ -49,8 +49,7 @@ pub enum OverflowError {
     #[error("cannot use more than 256 closure variables in a function")]
     TooManyUpvalues,
     #[error("cannot use more than 256 arguments in a function")]
-    TooManyArguments
-
+    TooManyArguments,
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]
@@ -98,6 +97,14 @@ pub enum SyntaxError {
 pub enum TypeError {
     #[error("unsupported operand type for {op}: {rt_type:?}")]
     UnsupportedOperandPrefix { op: String, rt_type: String },
+
+    #[error("unsupported operand type for {op}: {lt_type:?} and {rt_type:?}")]
+    UnsupportedOperandInfix {
+        op: String,
+        lt_type: String,
+        rt_type: String,
+    },
+
     #[error("loop must be boolean")]
     LoopMustBeBoolean,
     #[error("if must be boolean")]

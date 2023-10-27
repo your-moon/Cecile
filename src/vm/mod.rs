@@ -15,9 +15,11 @@ use rustc_hash::FxHasher;
 use std::hash::BuildHasherDefault;
 use std::{mem, ptr};
 
-use self::compiler::Compiler;
-use self::error::ErrorS;
-use self::object::{ClosureObject, Native, ObjectFunction, ObjectNative, UpvalueObject};
+use self::compiler::{Compiler, Upvalue};
+use self::error::{ErrorS, TypeError};
+use self::object::{
+    ClosureObject, Native, ObjectFunction, ObjectNative, ObjectType, UpvalueObject,
+};
 pub mod chunk;
 pub mod compiler;
 pub mod error;
@@ -48,10 +50,10 @@ impl<'a> VM<'a> {
         let random_number = allocator.alloc("random_number");
         let clock_native = allocator.alloc(ObjectNative::new(Native::Clock));
         let random_number_native = allocator.alloc(ObjectNative::new(Native::RandomNumber));
-        globals.insert(clock_string, Value::Native(clock_native));
-        globals.insert(random_number, Value::Native(random_number_native));
+        globals.insert(clock_string, clock_native.into());
+        globals.insert(random_number, random_number_native.into());
         VM {
-            stack: Box::new([Value::Number(0.0); STACK_MAX]),
+            stack: Box::new([Value::default(); STACK_MAX]),
             stack_top: ptr::null_mut(),
             allocator,
             globals,
@@ -129,7 +131,7 @@ impl<'a> VM<'a> {
                 op::TRUE => self.op_true(),
                 op::FALSE => self.op_false(),
                 op::NIL => self.op_nil(),
-                op::CLOSE_UPVALUE => self.close_upvalue(),
+                // op::CLOSE_UPVALUE => self.close_upvalue(),
                 op::POP => {
                     self.pop();
                 }
@@ -153,29 +155,28 @@ impl<'a> VM<'a> {
             print!("    ");
             let mut stack_ptr = self.frame.stack;
             while stack_ptr < self.stack_top {
-                eprint!("[ {:?} ]", unsafe { *stack_ptr });
+                print!("[ {} ]", unsafe { *stack_ptr });
                 stack_ptr = unsafe { stack_ptr.add(1) };
             }
             println!();
         }
     }
 
-    fn close_upvalue(&mut self) {
-        let value = self.pop();
+    fn close_upvalue(&mut self, last: Value) {
         let mut idx = 0;
         while idx < self.open_upvalues.len() {
             let upvalue = unsafe { *self.open_upvalues.get_unchecked(idx) };
-            if unsafe { (*upvalue).value } >= value {
-                unsafe { (*upvalue).value = value };
-                idx += 1;
-            } else {
+            if unsafe { (*upvalue).value } >= last {
+                unsafe { (*upvalue).value = (*upvalue).value };
                 self.open_upvalues.remove(idx);
+            } else {
+                idx += 1;
             }
         }
     }
 
     fn set_upvalue(&mut self) {
-        let upvalue_idx = self.read_constant().as_number();
+        let upvalue_idx = self.read_u8();
         let upvalue = unsafe {
             *(*self.frame.closure)
                 .upvalues
@@ -186,93 +187,84 @@ impl<'a> VM<'a> {
     }
 
     fn get_upvalue(&mut self) {
-        let upvalue_idx = self.read_constant().as_number();
-        let upvalue = unsafe {
-            *(*self.frame.closure)
-                .upvalues
-                .get_unchecked(upvalue_idx as usize)
-        };
-        // TODO: figure out why upvalue location is not working
-        // let value = unsafe { *(*upvalue).location };
-        let value = unsafe { (*upvalue).value };
+        let upvalue_idx = self.read_u8() as usize;
+        let object = *unsafe { (*self.frame.closure).upvalues.get_unchecked(upvalue_idx) };
+        let value = unsafe { (*object).value };
         self.push_to_stack(value);
     }
 
     fn closure(&mut self) {
-        let function = self.read_constant();
-        let function = match function {
-            Value::Function(ptr_function) => unsafe { &mut *ptr_function },
-            _ => todo!(),
-        };
-        let mut upvalues = Vec::new();
-        for _ in 0..(*function).upvalue_count {
+        let function = unsafe { self.read_constant().as_object().function };
+
+        let upvalue_count = unsafe { (*function).upvalue_count } as usize;
+        let mut upvalues = Vec::with_capacity(upvalue_count);
+
+        for _ in 0..upvalue_count {
             let is_local = self.read_u8();
-            let index = self.read_u8() as usize;
+            let upvalue_idx = self.read_u8() as usize;
+
             let upvalue = if is_local != 0 {
-                let value = unsafe { *self.frame.stack.add(index) };
-                println!("capturing upvalue: {:?}", value);
-                self.capture_upvalue(value)
+                let location = unsafe { *self.frame.stack.add(upvalue_idx) };
+                self.capture_upvalue(location)
             } else {
-                let upvalue = unsafe { *(*self.frame.closure).upvalues.get_unchecked(index) };
-                upvalue
+                let upvalue_ =
+                    unsafe { *(*self.frame.closure).upvalues.get_unchecked(upvalue_idx) };
+                upvalue_
             };
             upvalues.push(upvalue);
         }
+
         let closure = self.alloc(ClosureObject::new(function, upvalues));
-        self.push_to_stack(Value::Closure(closure));
+        self.push_to_stack(closure.into());
     }
 
     fn call(&mut self) {
-        let arg_count = self.read_u8();
+        let arg_count = self.read_u8() as usize;
+        let callee = self.peek(arg_count);
+        self.call_value(unsafe { *callee }, arg_count as usize);
+    }
 
-        let function = self.peek(arg_count as usize);
-        match unsafe { *function } {
-            Value::Closure(closure) => {
-                let frame = CallFrame {
-                    closure,
-                    ip: unsafe { (*(*closure).function).chunk.code.as_ptr() },
-                    stack: self.peek(arg_count as usize),
-                };
-                unsafe {
-                    self.frames
-                        .push_unchecked(mem::replace(&mut self.frame, frame))
-                }
+    fn call_value(&mut self, callee: Value, arg_count: usize) {
+        if callee.is_object() {
+            let object = callee.as_object();
+            match object.type_() {
+                ObjectType::Closure => self.call_closure(unsafe { object.closure }, arg_count),
+                // ObjectType::Native => self.call_native(object, arg_count),
+                _ => todo!(),
             }
-            Value::Native(ptr_native) => {
-                self.pop();
-                let native = unsafe { &mut *ptr_native };
-                let result = match native.native {
-                    Native::Clock => {
-                        let now = std::time::SystemTime::now();
-                        let duration = now
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("Time went backwards");
-                        let seconds = duration.as_secs() as f64;
-                        let nanos = duration.subsec_nanos() as f64 / 1_000_000_000.0;
-                        Value::Number(seconds + nanos)
-                    }
-                    Native::RandomNumber => {
-                        let mut rng = rand::thread_rng();
-                        let number: f64 = rng.gen();
-                        Value::Number(number)
-                    }
-                };
-                self.stack_top = unsafe { self.stack_top.sub(arg_count as usize) };
-                self.push_to_stack(result);
-            }
-            _ => todo!(),
+        } else {
+            todo!()
         }
     }
 
-    fn capture_upvalue(&mut self, value: Value) -> *mut UpvalueObject {
+    fn call_closure(&mut self, closure: *mut ClosureObject, arg_count: usize) {
+        let function = unsafe { &mut *(*closure).function };
+        if arg_count != unsafe { (*function).arity_count.into() } {
+            todo!()
+        }
+        if self.frames.len() == FRAMES_MAX {
+            todo!()
+        }
+        let frame = CallFrame {
+            closure,
+            ip: unsafe { (*function).chunk.code.as_ptr() },
+            stack: self.peek(arg_count as usize),
+        };
+        unsafe {
+            self.frames
+                .push_unchecked(mem::replace(&mut self.frame, frame))
+        };
+    }
+
+    fn capture_upvalue(&mut self, location: Value) -> *mut UpvalueObject {
         match self
             .open_upvalues
             .iter()
-            .find(|&&upvalue| unsafe { (*upvalue).value } == value)
+            .find(|&&upvalue| unsafe { (*upvalue).value } == location)
         {
             Some(&upvalue) => upvalue,
             None => {
-                let upvalue = self.alloc(UpvalueObject::new(value));
+                let upvalue = self.alloc(UpvalueObject::new(location));
                 self.open_upvalues.push(upvalue);
                 upvalue
             }
@@ -280,27 +272,19 @@ impl<'a> VM<'a> {
     }
 
     fn greater(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push_to_stack(lhs.greater(rhs));
+        self.binary_op_number(|a, b| Value::from(a > b));
     }
 
     fn greater_equal(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push_to_stack(lhs.greater_equal(rhs));
+        self.binary_op_number(|a, b| Value::from(a >= b));
     }
 
     fn less(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push_to_stack(lhs.less(rhs));
+        self.binary_op_number(|a, b| Value::from(a < b));
     }
 
     fn less_equal(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push_to_stack(lhs.less_equal(rhs));
+        self.binary_op_number(|a, b| Value::from(a <= b));
     }
 
     fn loop_(&mut self) {
@@ -316,90 +300,57 @@ impl<'a> VM<'a> {
     fn jump_if_false(&mut self) {
         let offset = self.read_u16() as usize;
         let value = self.peek(0);
-        match unsafe { *value } {
-            Value::Bool(value) => {
-                if !value {
-                    self.frame.ip = unsafe { self.frame.ip.add(offset) };
-                }
-            }
-            _ => todo!(),
+        if !unsafe { *value }.to_bool() {
+            self.frame.ip = unsafe { self.frame.ip.add(offset) };
         }
     }
 
     fn get_local(&mut self) {
-        let stack_idx = self.read_constant();
-        match stack_idx {
-            Value::Number(stack_idx) => {
-                let value = unsafe { *self.frame.stack.add(stack_idx as usize) };
-                self.push_to_stack(value);
-            }
-            _ => todo!(),
-        }
+        let stack_idx = self.read_u8() as usize;
+        let local = unsafe { *self.frame.stack.add(stack_idx) };
+        self.push_to_stack(local);
     }
 
     fn set_local(&mut self) {
-        let stack_idx = self.read_constant();
-        match stack_idx {
-            Value::Number(stack_idx) => {
-                let value = self.peek(0);
-                unsafe { *self.frame.stack.add(stack_idx as usize) = *value };
-            }
-            _ => todo!(),
-        }
+        let stack_idx = self.read_u8() as usize;
+        let local = unsafe { self.frame.stack.add(stack_idx) };
+        let value = self.peek(0);
+        unsafe { *local = *value };
     }
 
     fn set_global(&mut self) {
+        let name = unsafe { self.read_constant().as_object().string };
         let value = unsafe { *self.peek(0) };
-        let name = self.read_constant();
-        match name {
-            Value::String(ptr_string) => match self.globals.entry(ptr_string) {
-                Entry::Occupied(mut entry) => {
-                    entry.insert(value);
-                }
-                Entry::Vacant(_entry) => {
-                    todo!();
-                }
-            },
-            _ => todo!(),
-        };
+        match self.globals.entry(name) {
+            Entry::Occupied(mut entry) => {
+                entry.insert(value);
+            }
+            Entry::Vacant(_) => todo!(),
+        }
     }
 
     fn get_global(&mut self) {
-        let name = self.read_constant();
-        match name {
-            Value::String(ptr_string) => {
-                let value = *self.globals.get(&ptr_string).unwrap();
-                self.push_to_stack(value);
-            }
-            _ => todo!(),
-        };
+        let name = unsafe { self.read_constant().as_object().string };
+        let value = self.globals.get(&name).unwrap();
+        self.push_to_stack(*value);
     }
 
     fn define_global(&mut self) {
-        let name = self.read_constant();
+        let name = unsafe { self.read_constant().as_object().string };
         let value = self.pop();
-        match name {
-            Value::String(ptr_string) => {
-                self.globals.insert(ptr_string, value);
-            }
-            Value::Function(ptr_func) => {
-                let func_name = unsafe { (*ptr_func).name };
-                self.globals.insert(func_name, name);
-            }
-            _ => todo!(),
-        };
+        self.globals.insert(name, value);
     }
 
     fn op_nil(&mut self) {
-        self.push_to_stack(value::Value::Nil);
+        self.push_to_stack(Value::NIL);
     }
 
     fn op_true(&mut self) {
-        self.push_to_stack(Value::Bool(true));
+        self.push_to_stack(Value::TRUE);
     }
 
     fn op_false(&mut self) {
-        self.push_to_stack(Value::Bool(false));
+        self.push_to_stack(Value::FALSE);
     }
 
     fn push_to_stack(&mut self, value: Value) {
@@ -435,52 +386,74 @@ impl<'a> VM<'a> {
     }
 
     fn modulo(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push_to_stack(lhs.modulo(rhs));
-    }
+        let b = self.pop();
+        let a = self.pop();
 
-    fn add(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        match (lhs, rhs) {
-            (value::Value::Number(lhs), value::Value::Number(rhs)) => {
-                self.push_to_stack(Value::Number(lhs + rhs));
-            }
-            (value::Value::String(lhs), value::Value::String(rhs)) => {
-                let lhs = unsafe { (*lhs).value.clone() };
-                let rhs = unsafe { (*rhs).value.clone() };
-                let string = lhs.to_string() + &rhs.to_string();
-                let ptr_string = self.alloc(string);
-                let string = ptr_string.into();
-                self.push_to_stack(string);
-            }
-            (value::Value::Number(_lhs), value::Value::Nil) => {
-                todo!("trying to add number and nil")
-            }
-            (value::Value::Nil, value::Value::Number(_rhs)) => {
-                todo!("trying to add nil and number")
-            }
-            _ => todo!(),
+        if a.is_number() && b.is_number() {
+            self.push_to_stack((a.as_number() % b.as_number()).into());
+        } else {
+            // Err(TypeError::UnsupportedOperandInfix {
+            //     op: "%".to_string(),
+            //     lt_type: a.type_().to_string(),
+            //     rt_type: b.type_().to_string(),
+            // })
+            todo!()
         }
     }
 
+    fn add(&mut self) {
+        let b = self.pop();
+        let a = self.pop();
+
+        if a.is_number() && b.is_number() {
+            self.push_to_stack((a.as_number() + b.as_number()).into());
+        }
+
+        if a.is_object() && b.is_object() {
+            let a = a.as_object();
+            let b = b.as_object();
+
+            if a.type_() == ObjectType::String && b.type_() == ObjectType::String {
+                let result = unsafe { [(*a.string).value, (*b.string).value] }.concat();
+                let result = Value::from(self.alloc(result));
+                self.push_to_stack(result);
+            }
+        }
+
+        // self.err(TypeError::UnsupportedOperandInfix {
+        //     op: "+".to_string(),
+        //     lt_type: a.type_().to_string(),
+        //     rt_type: b.type_().to_string(),
+        // })
+    }
+
     fn sub(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push_to_stack(lhs - rhs);
+        self.binary_op_number(|a, b| Value::from(a - b))
     }
 
     fn mul(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push_to_stack(lhs * rhs);
+        self.binary_op_number(|a, b| Value::from(a * b))
     }
 
     fn div(&mut self) {
-        let rhs = self.pop();
-        let lhs = self.pop();
-        self.push_to_stack(lhs / rhs);
+        self.binary_op_number(|a, b| Value::from(a / b))
+    }
+
+    fn binary_op_number(&mut self, op: fn(f64, f64) -> Value) {
+        let b = self.pop();
+        let a = self.pop();
+
+        if a.is_number() && b.is_number() {
+            let value = op(a.as_number(), b.as_number());
+            self.push_to_stack(value);
+        } else {
+            // Err(TypeError::UnsupportedOperandInfix {
+            //     op: op_str.to_string(),
+            //     lt_type: a.type_().to_string(),
+            //     rt_type: b.type_().to_string(),
+            // })
+            todo!()
+        }
     }
 
     fn equal(&mut self) {
@@ -498,8 +471,7 @@ impl<'a> VM<'a> {
 
     fn negate(&mut self) {
         let value: value::Value = self.pop();
-        // Value to f64
-        self.push_to_stack(-value);
+        self.push_to_stack(Value::from(-(value.as_number())));
     }
 
     fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {

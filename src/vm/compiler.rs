@@ -217,7 +217,7 @@ impl Compiler {
                     self.compile_statement_fun((func, range), FunctionType::Function, allocator)?;
                 // println!("compiled func return type: {:?}", func_type);
                 if self.is_global() {
-                    let name = allocator.alloc(&func.name);
+                    let name = allocator.alloc(&func.name).into();
                     self.globals.insert(
                         func.name.clone(),
                         Type::Fn(Fn {
@@ -225,7 +225,7 @@ impl Compiler {
                         }),
                     );
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
-                    self.write_constant(Value::String(name), &range);
+                    self.write_constant(name, &range);
                 } else {
                     self.declare_local(
                         &func.name,
@@ -402,8 +402,9 @@ impl Compiler {
 
         let (function, upvalues) = self.end_cell();
         unsafe { (*function).chunk.disassemble((*name).value) };
+        let function = function.into();
         self.emit_u8(op::CLOSURE, &range);
-        self.write_constant(Value::Function(function), &range);
+        self.write_constant(function, &range);
         for upvalue in &upvalues {
             self.emit_u8(upvalue.is_local.into(), &range);
             self.emit_u8(upvalue.index, &range);
@@ -601,7 +602,10 @@ impl Compiler {
     ) -> Result<Type> {
         let arg_count = call.args.len();
         if arg_count > u8::MAX as usize {
-            Err((Error::OverflowError(OverflowError::TooManyArguments), range.clone()))?;
+            Err((
+                Error::OverflowError(OverflowError::TooManyArguments),
+                range.clone(),
+            ))?;
         }
         let callee_type = self.compile_expression(&call.callee, allocator)?;
         let callee_type = if callee_type.is_fn() {
@@ -639,17 +643,17 @@ impl Compiler {
                 .resolve_local(&assign.lhs.name, false, &range)
         {
             self.emit_u8(op::SET_LOCAL, &range);
-            self.write_constant(Value::Number(local_index.into()), &range);
+            self.emit_u8(local_index, &range);
         } else if let Ok(Some(upvalue)) = self
             .current_compiler
             .resolve_upvalue(&assign.lhs.name, &range)
         {
             self.emit_u8(op::SET_UPVALUE, &range);
-            self.write_constant(Value::Number(upvalue.into()), &range);
+            self.emit_u8(upvalue, &range);
         } else {
             let name = allocator.alloc(&assign.lhs.name);
             self.emit_u8(op::SET_GLOBAL, &range);
-            self.write_constant(Value::String(name), &range);
+            self.write_constant(name.into(), &range);
         }
         return Ok(var_type);
     }
@@ -678,7 +682,7 @@ impl Compiler {
                         let string = allocator.alloc(name);
                         self.globals.insert(name.clone(), t.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
-                        self.write_constant(Value::String(string), &range);
+                        self.write_constant(string.into(), &range);
                         return Ok(Type::String);
                     } else {
                         self.declare_local(name, &var_type, &range)?;
@@ -694,7 +698,7 @@ impl Compiler {
                 if self.is_global() {
                     self.globals.insert(name.clone(), var_type.clone());
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
-                    self.write_constant(Value::String(string), &range);
+                    self.write_constant(string.into(), &range);
                 } else {
                     //If variable type is not declared, left hand side expression type will be variable type
                     self.declare_local(name, &var_type, &range)?;
@@ -725,7 +729,7 @@ impl Compiler {
                 .resolve_local(&prefix.var.name, false, &range)
         {
             self.emit_u8(op::GET_LOCAL, &range);
-            self.write_constant(Value::Number(local_index.into()), &range);
+            self.emit_u8(local_index, &range);
             let expr_var_type = self.current_compiler.locals[local_index as usize]
                 .type_
                 .clone();
@@ -737,13 +741,13 @@ impl Compiler {
         } else if let Ok(Some(upvalue)) = self.current_compiler.resolve_upvalue(name, &range) {
             println!("compiler upvalues {:?}", self.current_compiler.upvalues);
             self.emit_u8(op::GET_UPVALUE, &range);
-            self.write_constant(Value::Number(upvalue.into()), &range);
+            self.emit_u8(upvalue, &range);
             Ok(Type::UnInitialized)
         } else {
             let global_var_name = &prefix.var.name;
             let string = allocator.alloc(name);
             self.emit_u8(op::GET_GLOBAL, &range);
-            self.write_constant(Value::String(string), &range);
+            self.write_constant(string.into(), &range);
             let type_ = self.globals.get(global_var_name);
             let expr_var_type = match type_ {
                 Some(t) => t.clone(),
@@ -862,12 +866,13 @@ impl Compiler {
     ) -> Result<Type> {
         match literal {
             ExprLiteral::Number(value) => {
-                self.emit_constant(Value::Number(*value), &range);
+                let value = (*value).into();
+                self.emit_constant(value, &range);
                 Ok(Type::Int)
             }
             ExprLiteral::String(string) => {
-                let string = allocator.alloc(string);
-                self.emit_constant(Value::String(string), &range);
+                let string = allocator.alloc(string).into();
+                self.emit_constant(string, &range);
                 Ok(Type::String)
             }
             ExprLiteral::Bool(value) => {
