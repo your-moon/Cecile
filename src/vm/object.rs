@@ -132,7 +132,7 @@ impl Display for Native {
 #[derive(Debug)]
 #[repr(C)]
 pub struct ObjectFunction {
-    pub common: MainObject,
+    pub main: MainObject,
     pub name: *mut StringObject,
     pub arity_count: u8,
     pub upvalue_count: u16,
@@ -147,7 +147,7 @@ impl ObjectFunction {
             type_: ObjectType::Function,
         };
         Self {
-            common,
+            main: common,
             name,
             arity_count,
             upvalue_count: 0,

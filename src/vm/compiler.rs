@@ -215,7 +215,6 @@ impl Compiler {
             Statement::Fun(func) => {
                 let func_type =
                     self.compile_statement_fun((func, range), FunctionType::Function, allocator)?;
-                // println!("compiled func return type: {:?}", func_type);
                 if self.is_global() {
                     let name = allocator.alloc(&func.name).into();
                     self.globals.insert(
@@ -262,10 +261,6 @@ impl Compiler {
                 match &return_.value {
                     Some(value) => {
                         let return_type = self.compile_expression(value, allocator)?;
-                        println!(
-                            "return type: {:?} func_return_type:{:?}",
-                            return_type, func_type_
-                        );
                         println!("compiler upvalues {:?}", self.current_compiler.upvalues);
                         match func_type_ {
                             Some(t) => {
@@ -333,14 +328,7 @@ impl Compiler {
     ) -> Result<Type> {
         let name = allocator.alloc(&func.name);
         let arity_count = func.params.len() as u8;
-        // let mut arity = Vec::new();
-        // for (param_string, param_type) in &func.params {
-        //     let param = Arity {
-        //         name: allocator.alloc(param_string),
-        //         type_: param_type.clone().unwrap(),
-        //     };
-        //     arity.push(param);
-        // }
+
         let cell = CompilerCell {
             function: allocator.alloc(ObjectFunction::new(
                 name,
@@ -380,6 +368,7 @@ impl Compiler {
         for (param_string, param_type) in param_strings.iter().rev() {
             match param_type {
                 Some(t) => match t {
+                    // TODO Add more type
                     Type::String | Type::Int => self.declare_local(&param_string, t, &range)?,
                     _ => todo!("type not implemented"),
                 },
@@ -733,13 +722,8 @@ impl Compiler {
             let expr_var_type = self.current_compiler.locals[local_index as usize]
                 .type_
                 .clone();
-            println!(
-                "expr var type: {:?}, name: {:?}",
-                expr_var_type, &prefix.var.name
-            );
             return Ok(expr_var_type);
         } else if let Ok(Some(upvalue)) = self.current_compiler.resolve_upvalue(name, &range) {
-            println!("compiler upvalues {:?}", self.current_compiler.upvalues);
             self.emit_u8(op::GET_UPVALUE, &range);
             self.emit_u8(upvalue, &range);
             Ok(Type::UnInitialized)
@@ -753,10 +737,6 @@ impl Compiler {
                 Some(t) => t.clone(),
                 None => Type::UnInitialized,
             };
-            // println!(
-            //     "expr var type: {:?}, name: {:?}",
-            //     expr_var_type, &prefix.var.name
-            // );
             Ok(expr_var_type)
         }
     }
@@ -794,7 +774,6 @@ impl Compiler {
         let lhs_type = self.compile_expression(&(infix.lhs), allocator)?;
         let rhs_type = self.compile_expression(&(infix.rhs), allocator)?;
 
-        // println!("lhs: {:?} rhs: {:?}", lhs_type, rhs_type);
         //if lhs_type: String rhs_type: String => concat string command will be called
         //if lhs_type: Int  rhs_type: Int  => add int command will be called
         let return_type = lhs_type;

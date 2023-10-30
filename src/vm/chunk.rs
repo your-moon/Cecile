@@ -36,7 +36,7 @@ impl Chunk {
                 let mut idx = offset + 1;
                 let constant_idx = self.code[idx];
                 let constant = &self.constants[constant_idx as usize];
-                eprintln!(
+                println!(
                     "{name:16} {constant_idx:>4} '{constant}'",
                     name = "OP_CLOSURE"
                 );
@@ -52,7 +52,7 @@ impl Chunk {
                     idx += 1;
                     let upvalue_idx = self.code[idx];
 
-                    eprintln!("{offset:04} |                     {label} {upvalue_idx}");
+                    println!("{offset:04} |                     {label} {upvalue_idx}");
                 }
 
                 idx + 1

@@ -1,8 +1,15 @@
-fn add(a: Int, b: Int) -> Int {
-    return a + b;
-}
+    fn fizzbuzz(n: Int) {
+        if (n % 15 == 0) {
+            println "FizzBuzz";
+        } else if (n % 3 == 0) {
+            println "Fizz";
+        } else if (n % 5 == 0) {
+            println "Buzz";
+        } else {
+            println n;
+        }
+    }
+    for (let i = 0; i < 2; i = i + 1) {
+        fizzbuzz(i);
+    }
 
-let a = 1;
-let b = 2;
-let c = add(a, b);
-println c;

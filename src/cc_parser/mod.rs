@@ -13,7 +13,7 @@ use self::ast::Program;
 pub fn parse(source: &str) -> Result<Program, Vec<ErrorS>> {
     let lexer = Lexer::new(source).map(|token| match token {
         Ok((l, token, r)) => {
-            println!("{:?}", token);
+            // println!("{:?}", token);
             return Ok((l, token, r));
         }
         Err((err, span)) => {
@@ -32,7 +32,7 @@ pub fn parse(source: &str) -> Result<Program, Vec<ErrorS>> {
         }
     };
     for (statement, _range) in &program.statements {
-        println!("{:?}", statement);
+        // println!("{:?}", statement);
     }
     errors.extend(parse_errors.into_iter().map(|err| match err {
         ParseError::ExtraToken {

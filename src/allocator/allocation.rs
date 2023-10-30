@@ -58,20 +58,23 @@ impl CeAllocation {
     pub fn sweep(&mut self) {
         for idx in (0..self.objects.len()).rev() {
             let object = *unsafe { self.objects.get_unchecked(idx) };
+            let is_marked = unsafe { (*object.main).is_marked };
+            println!("TRYING TO SWEEP: {:?}, is marked {}", object, is_marked);
             if !mem::take(unsafe { &mut (*object.main).is_marked }) {
                 self.objects.swap_remove(idx);
+                println!("SWEEPING: {:?}", object);
                 object.free();
             }
         }
 
-        self.strings.retain(|_, &mut string| {
-            if mem::take(unsafe { &mut (*string).main.is_marked }) {
-                true
-            } else {
-                unsafe { Box::from_raw(string) };
-                false
-            }
-        });
+        // self.strings.retain(|_, &mut string| {
+        //     if mem::take(unsafe { &mut (*string).main.is_marked }) {
+        //         false
+        //     } else {
+        //         unsafe { Box::from_raw(string) };
+        //         true
+        //     }
+        // });
     }
 }
 
@@ -94,8 +97,10 @@ pub trait GcMark {
 impl<T: Into<Object>> GcMark for T {
     fn mark(self, allocator: &mut CeAllocation) {
         let object = self.into();
-        if !unsafe { (*(object.main)).is_marked } {
-            unsafe { (*(object.main)).is_marked = true };
+        println!("MARKING: {:?}", object);
+        let is_marked = unsafe { (*object.main).is_marked };
+        if !is_marked {
+            unsafe { (*object.main).is_marked = true };
             allocator.gray_objects.push(object);
         }
     }
