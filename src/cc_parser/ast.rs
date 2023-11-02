@@ -228,7 +228,7 @@ pub enum Type {
     String,
     Bool,
     Int,
-    Object,
+    Object(String),
     #[default]
     UnInitialized,
 }
@@ -257,7 +257,7 @@ impl Display for Type {
             Type::String => "String".to_string(),
             Type::Bool => "Bool".to_string(),
             Type::Int => "Int".to_string(),
-            Type::Object => "Object".to_string(),
+            Type::Object(name) => format!("Object({:?})", name),
             Type::UnInitialized => "UnInitialized".to_string(),
         };
         write!(f, "{type_}")

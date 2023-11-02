@@ -454,10 +454,10 @@ impl Compiler {
             self.compile_expression(increment, allocator)?;
             self.emit_u8(op::POP, &range);
         }
-        self.emit_loop(loop_start, &range);
+        self.emit_loop(loop_start, &range)?;
 
         if let Some(exit_jump) = exit_jump {
-            self.patch_jump(exit_jump, &range);
+            self.patch_jump(exit_jump, &range)?;
             self.emit_u8(op::POP, &range);
         }
         self.end_scope(range.clone());
@@ -484,20 +484,25 @@ impl Compiler {
         let exit_jump = self.emit_jump(op::JUMP_IF_FALSE, &range);
         self.emit_u8(op::POP, &range);
         self.compile_statement(&while_.body, allocator)?;
-        self.emit_loop(loop_start, &range);
-        self.patch_jump(exit_jump, &range);
+        self.emit_loop(loop_start, &range)?;
+        self.patch_jump(exit_jump, &range)?;
         self.emit_u8(op::POP, &range);
         return Ok(Type::UnInitialized);
     }
 
-    fn emit_loop(&mut self, loop_start: usize, span: &Span) {
+    fn emit_loop(&mut self, loop_start: usize, span: &Span) -> Result<()> {
         self.emit_u8(op::LOOP, span);
         let offset = unsafe { (*self.current_compiler.function).chunk.code.len() - loop_start + 2 };
         if offset > u16::MAX as usize {
-            todo!("Loop body too large");
+            return Err((
+                Error::OverflowError(OverflowError::LoopTooLarge),
+                span.clone(),
+            ));
         }
         self.emit_u8((offset >> 8) as u8, span);
         self.emit_u8(offset as u8, span);
+
+        Ok(())
     }
 
     fn compile_statement_if(
@@ -508,7 +513,7 @@ impl Compiler {
         let cond_type = self.compile_expression(&if_.cond, allocator)?;
         if cond_type != Type::Bool {
             let result = Err((
-                Error::TypeError(TypeError::LoopMustBeBoolean),
+                Error::TypeError(TypeError::CondMustbeBoolean),
                 range.clone(),
             ));
             return result;
@@ -523,14 +528,14 @@ impl Compiler {
         let jump_to_end = self.emit_jump(op::JUMP, &range);
 
         // ELSE:
-        self.patch_jump(jump_to_else, &range);
+        self.patch_jump(jump_to_else, &range)?;
         self.emit_u8(op::POP, &range); // Discard the condition.
         if let Some(else_branch) = &if_.else_branch {
             self.compile_statement(else_branch, allocator)?;
         }
 
         // END:
-        self.patch_jump(jump_to_end, &range);
+        self.patch_jump(jump_to_end, &range)?;
         return Ok(Type::UnInitialized);
     }
 
@@ -549,10 +554,9 @@ impl Compiler {
 
     fn print_ln_statement(
         &mut self,
-        print: (&StatementPrintLn, &Range<usize>),
+        (print, range): (&StatementPrintLn, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let (print, range) = print;
         let expr_type = self.compile_expression(&print.value, allocator)?;
         self.emit_u8(op::PRINT_LN, range);
         return Ok(expr_type);
@@ -560,13 +564,12 @@ impl Compiler {
 
     fn print_statement(
         &mut self,
-        print: (&StatementPrint, &Range<usize>),
+        (print, range): (&StatementPrint, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let (print, range) = print;
         let expr_type = self.compile_expression(&print.value, allocator)?;
         self.emit_u8(op::PRINT, range);
-        return Ok(expr_type);
+        Ok(expr_type)
     }
 
     fn compile_expression(
@@ -696,7 +699,7 @@ impl Compiler {
                 }
             }
         }
-        return Ok(var_type);
+        Ok(var_type)
     }
 
     fn compile_expression_var(
@@ -942,15 +945,20 @@ impl Compiler {
         unsafe { (*self.current_compiler.function).chunk.code.len() - 2 }
     }
 
-    fn patch_jump(&mut self, offset_idx: usize, span: &Span) {
+    fn patch_jump(&mut self, offset_idx: usize, span: &Span) -> Result<()> {
         let offset = unsafe { (*self.current_compiler.function).chunk.code.len() - offset_idx - 2 };
         if offset > u16::MAX as usize {
-            todo!("Too much code to jump over");
+            Err((
+                Error::OverflowError(OverflowError::TooManyArguments),
+                span.clone(),
+            ))?;
         }
         unsafe {
             (*self.current_compiler.function).chunk.code[offset_idx] = (offset >> 8) as u8;
             (*self.current_compiler.function).chunk.code[offset_idx + 1] = offset as u8;
         }
+
+        Ok(())
     }
 
     fn emit_u8(&mut self, byte: u8, span: &Span) {

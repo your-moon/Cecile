@@ -11,22 +11,18 @@ mod vm;
 fn main() -> std::io::Result<()> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
-    let input = r#"
-    fn fizzbuzz(n: Int) {
-        if (n % 15 == 0) {
-            print("FizzBuzz");
-        } else if (n % 3 == 0) {
-            print("Fizz");
-        } else if (n % 5 == 0) {
-            print("Buzz");
-        } else {
-            print(n);
-        }
-    }
-    for (let i = 0; i < 10; i = i + 1) {
-        print(i);
-    }
-    "#;
+    // let input = r#"
+    // fn is_even(n) -> bool {
+    //     if (n == 0) {
+    //         return true;
+    //     } else {
+    //         return is_odd(n - 1);
+    //     }
+    // }
+    //
+    // is_even(12);
+    //
+    // "#;
 
     let path = std::env::args().nth(1).expect("No file path provided");
 

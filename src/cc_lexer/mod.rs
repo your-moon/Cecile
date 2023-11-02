@@ -21,6 +21,9 @@ pub enum Token {
     #[token("struct")]
     Struct,
 
+    #[token("bool")]
+    TypeBool,
+
     #[token("print")]
     Print,
 
