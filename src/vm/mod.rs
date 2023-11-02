@@ -475,7 +475,9 @@ impl<'a> VM<'a> {
     }
 
     fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {
-        self.gc();
+        if GLOBAL.allocated_bytes() > self.next_gc {
+            self.gc();
+        }
         let allc = self.allocator.alloc(object);
         allc
     }
@@ -492,24 +494,22 @@ impl<'a> VM<'a> {
             self.allocator.mark(name);
             self.allocator.mark(value);
         }
-        //
-        // //BUG
+
         let closure_name = unsafe { (*(*(*self.frame.closure).function).name).value };
         println!("INSIDE closure name: {:?}", closure_name);
         self.allocator.mark(self.frame.closure);
 
-        //
         for frame in &self.frames {
             self.allocator.mark(frame.closure);
         }
-        //
+
         for upvalue in &self.open_upvalues {
             self.allocator.mark(*upvalue);
         }
-        //
+
         self.allocator.trace();
         self.allocator.sweep();
-        //
+
         self.next_gc = GLOBAL.allocated_bytes() * 2;
         println!("--- gc end");
     }

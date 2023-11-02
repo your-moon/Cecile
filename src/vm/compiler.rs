@@ -28,6 +28,7 @@ use super::{
     op,
     value::Value,
 };
+
 use rustc_hash::FxHasher;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -850,8 +851,9 @@ impl Compiler {
                 Ok(Type::Int)
             }
             ExprLiteral::String(string) => {
-                let string = allocator.alloc(string).into();
-                self.emit_constant(string, &range);
+                let string = allocator.alloc(string);
+                unsafe { (*string).main.is_marked = true };
+                self.emit_constant(string.into(), &range);
                 Ok(Type::String)
             }
             ExprLiteral::Bool(value) => {
