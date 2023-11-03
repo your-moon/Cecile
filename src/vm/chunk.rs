@@ -70,6 +70,7 @@ impl Chunk {
             op::DEFINE_GLOBAL => self.constant_instruction("DEFINE_GLOBAL", offset),
             op::GET_GLOBAL => self.constant_instruction("GET_GLOBAL", offset),
             op::ADD => self.simple_instruction("ADD", offset),
+            op::CONCAT => self.simple_instruction("CONCAT", offset),
             op::SUB => self.simple_instruction("SUB", offset),
             op::MUL => self.simple_instruction("MUL", offset),
             op::DIV => self.simple_instruction("DIV", offset),

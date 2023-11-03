@@ -36,6 +36,7 @@ iota! {
     CLOSURE,
     GET_UPVALUE,
     SET_UPVALUE,
+    CONCAT,
     CLOSE_UPVALUE
 
 

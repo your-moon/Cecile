@@ -115,7 +115,8 @@ impl<'a> VM<'a> {
                 op::GREATER_THAN_EQUAL => self.greater_equal(),
                 op::LESS_THAN => self.less(),
                 op::LESS_THAN_EQUAL => self.less_equal(),
-                op::ADD => self.add(),
+                op::ADD => self.binary_add(),
+                op::CONCAT => self.concat(),
                 op::SUB => self.sub(),
                 op::MUL => self.mul(),
                 op::DIV => self.div(),
@@ -401,24 +402,25 @@ impl<'a> VM<'a> {
         }
     }
 
-    fn add(&mut self) {
+    fn concat(&mut self) {
         let b = self.pop();
         let a = self.pop();
 
-        if a.is_number() && b.is_number() {
-            self.push_to_stack((a.as_number() + b.as_number()).into());
-        }
+        let a = a.as_object();
+        let b = b.as_object();
 
-        if a.is_object() && b.is_object() {
-            let a = a.as_object();
-            let b = b.as_object();
-
-            if a.type_() == ObjectType::String && b.type_() == ObjectType::String {
-                let result = unsafe { [(*a.string).value, (*b.string).value] }.concat();
-                let result = Value::from(self.alloc(result));
-                self.push_to_stack(result);
-            }
+        if a.type_() == ObjectType::String && b.type_() == ObjectType::String {
+            let result = unsafe { [(*a.string).value, (*b.string).value] }.concat();
+            let result = Value::from(self.alloc(result));
+            self.push_to_stack(result);
         }
+    }
+
+    fn binary_add(&mut self) {
+        let b = self.pop();
+        let a = self.pop();
+
+        self.push_to_stack((a.as_number() + b.as_number()).into());
 
         // self.err(TypeError::UnsupportedOperandInfix {
         //     op: "+".to_string(),

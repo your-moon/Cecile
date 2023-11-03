@@ -202,17 +202,17 @@ impl Compiler {
     ) -> Result<Type> {
         match statement {
             Statement::Expression(expr) => {
-                let type_ = self.compile_expression(&expr.expr, allocator)?;
+                let type_ = self.cp_expression(&expr.expr, allocator)?;
                 self.emit_u8(op::POP, &range);
                 Ok(type_)
             }
-            Statement::Print(print) => self.print_statement((print, range), allocator),
-            Statement::PrintLn(print) => self.print_ln_statement((print, range), allocator),
-            Statement::Var(var) => self.compile_statement_var((var, range), allocator),
-            Statement::Block(block) => self.compile_statement_block((block, range), allocator),
-            Statement::If(if_) => self.compile_statement_if((if_, range), allocator),
-            Statement::While(while_) => self.compile_statement_while((while_, range), allocator),
-            Statement::For(for_) => self.compile_statement_for((for_, range), allocator),
+            Statement::Print(print) => self.print_stmt((print, range), allocator),
+            Statement::PrintLn(print) => self.print_ln_stmt((print, range), allocator),
+            Statement::Var(var) => self.compile_var_stmt((var, range), allocator),
+            Statement::Block(block) => self.compile_block_stmt((block, range), allocator),
+            Statement::If(if_) => self.compile_if_stmt((if_, range), allocator),
+            Statement::While(while_) => self.compile_while_stmt((while_, range), allocator),
+            Statement::For(for_) => self.compile_fun_stmt((for_, range), allocator),
             Statement::Fun(func) => {
                 let func_type =
                     self.compile_statement_fun((func, range), FunctionType::Function, allocator)?;
@@ -261,7 +261,7 @@ impl Compiler {
                 let func_type_ = unsafe { &(*self.current_compiler.function).return_type };
                 match &return_.value {
                     Some(value) => {
-                        let return_type = self.compile_expression(value, allocator)?;
+                        let return_type = self.cp_expression(value, allocator)?;
                         println!("compiler upvalues {:?}", self.current_compiler.upvalues);
                         match func_type_ {
                             Some(t) => {
@@ -422,7 +422,7 @@ impl Compiler {
         (cell.function, cell.upvalues)
     }
 
-    fn compile_statement_for(
+    fn compile_fun_stmt(
         &mut self,
         (for_, range): (&StatementFor, &Range<usize>),
         allocator: &mut CeAllocation,
@@ -437,7 +437,7 @@ impl Compiler {
         let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
         let mut exit_jump = None;
         if let Some(cond) = &for_.cond {
-            let cond_type = self.compile_expression(cond, allocator)?;
+            let cond_type = self.cp_expression(cond, allocator)?;
             if cond_type != Type::Bool {
                 let result = Err((
                     Error::TypeError(TypeError::LoopMustBeBoolean),
@@ -451,7 +451,7 @@ impl Compiler {
 
         self.compile_statement(&for_.body, allocator)?;
         if let Some(increment) = &for_.update {
-            self.compile_expression(increment, allocator)?;
+            self.cp_expression(increment, allocator)?;
             self.emit_u8(op::POP, &range);
         }
         self.emit_loop(loop_start, &range)?;
@@ -467,13 +467,13 @@ impl Compiler {
         return Ok(Type::UnInitialized);
     }
 
-    fn compile_statement_while(
+    fn compile_while_stmt(
         &mut self,
         (while_, range): (&StatementWhile, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
-        let cond_type = self.compile_expression(&while_.cond, allocator)?;
+        let cond_type = self.cp_expression(&while_.cond, allocator)?;
         if cond_type != Type::Bool {
             let result = Err((
                 Error::TypeError(TypeError::LoopMustBeBoolean),
@@ -505,12 +505,12 @@ impl Compiler {
         Ok(())
     }
 
-    fn compile_statement_if(
+    fn compile_if_stmt(
         &mut self,
         (if_, range): (&StatementIf, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let cond_type = self.compile_expression(&if_.cond, allocator)?;
+        let cond_type = self.cp_expression(&if_.cond, allocator)?;
         if cond_type != Type::Bool {
             let result = Err((
                 Error::TypeError(TypeError::CondMustbeBoolean),
@@ -539,7 +539,7 @@ impl Compiler {
         return Ok(Type::UnInitialized);
     }
 
-    fn compile_statement_block(
+    fn compile_block_stmt(
         &mut self,
         (block, range): (&StatementBlock, &Range<usize>),
         allocator: &mut CeAllocation,
@@ -552,27 +552,27 @@ impl Compiler {
         return Ok(Type::UnInitialized);
     }
 
-    fn print_ln_statement(
+    fn print_ln_stmt(
         &mut self,
         (print, range): (&StatementPrintLn, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let expr_type = self.compile_expression(&print.value, allocator)?;
+        let expr_type = self.cp_expression(&print.value, allocator)?;
         self.emit_u8(op::PRINT_LN, range);
         return Ok(expr_type);
     }
 
-    fn print_statement(
+    fn print_stmt(
         &mut self,
         (print, range): (&StatementPrint, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let expr_type = self.compile_expression(&print.value, allocator)?;
+        let expr_type = self.cp_expression(&print.value, allocator)?;
         self.emit_u8(op::PRINT, range);
         Ok(expr_type)
     }
 
-    fn compile_expression(
+    fn cp_expression(
         &mut self,
         expr: &(Expression, Range<usize>),
         allocator: &mut CeAllocation,
@@ -600,7 +600,7 @@ impl Compiler {
                 range.clone(),
             ))?;
         }
-        let callee_type = self.compile_expression(&call.callee, allocator)?;
+        let callee_type = self.cp_expression(&call.callee, allocator)?;
         let callee_type = if callee_type.is_fn() {
             let mut callee_type = callee_type.as_fn().unwrap();
             let callee_type = callee_type.return_type.as_mut().clone();
@@ -617,7 +617,7 @@ impl Compiler {
         //     todo!("Can only call functions and classes");
         // }
         for arg in &call.args {
-            self.compile_expression(&arg, allocator)?;
+            self.cp_expression(&arg, allocator)?;
         }
 
         self.emit_u8(op::CALL, &range);
@@ -630,7 +630,7 @@ impl Compiler {
         (assign, range): (&Box<ExprAssign>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let var_type = self.compile_expression(&assign.rhs, allocator)?;
+        let var_type = self.cp_expression(&assign.rhs, allocator)?;
         if let Ok(Some(local_index)) =
             self.current_compiler
                 .resolve_local(&assign.lhs.name, false, &range)
@@ -651,7 +651,7 @@ impl Compiler {
         return Ok(var_type);
     }
 
-    fn compile_statement_var(
+    fn compile_var_stmt(
         &mut self,
         (var, range): (&StatementVar, &Range<usize>),
         allocator: &mut CeAllocation,
@@ -662,7 +662,7 @@ impl Compiler {
             .value
             .as_ref()
             .map_or(Ok(Type::UnInitialized), |value| {
-                let val_type = self.compile_expression(value, allocator)?;
+                let val_type = self.cp_expression(value, allocator)?;
                 Ok(val_type)
             })?;
 
@@ -751,7 +751,7 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let (prefix, range) = prefix;
-        let rt_type = self.compile_expression(&(prefix.rt), allocator)?;
+        let rt_type = self.cp_expression(&(prefix.rt), allocator)?;
         if rt_type != Type::Int || rt_type != Type::Bool {
             let spanned_error = Err((
                 Error::TypeError(TypeError::UnsupportedOperandPrefix {
@@ -775,12 +775,10 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let (infix, range) = infix;
-        let lhs_type = self.compile_expression(&(infix.lhs), allocator)?;
-        let rhs_type = self.compile_expression(&(infix.rhs), allocator)?;
+        let lhs_type = self.cp_expression(&(infix.lhs), allocator)?;
+        let rhs_type = self.cp_expression(&(infix.rhs), allocator)?;
 
-        //if lhs_type: String rhs_type: String => concat string command will be called
-        //if lhs_type: Int  rhs_type: Int  => add int command will be called
-        let return_type = lhs_type;
+        let return_type = lhs_type.clone();
 
         // if lhs_type != rhs_type {
         //     todo!("type mismatch");
@@ -792,7 +790,12 @@ impl Compiler {
                 return Ok(return_type);
             }
             OpInfix::Add => {
-                self.emit_u8(op::ADD, &range);
+                if lhs_type == Type::String && rhs_type == Type::String {
+                    self.emit_u8(op::CONCAT, &range);
+                    return Ok(Type::String);
+                } else {
+                    self.emit_u8(op::ADD, &range);
+                }
                 return Ok(return_type);
             }
             OpInfix::Sub => {

@@ -1,9 +1,4 @@
-    fn is_even(n) -> Point {
-        if (n % 2 == 0) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-println is_even(12);
+let a = "a";
+let b = "b";
+let c = a + b;
+println c;
