@@ -95,6 +95,18 @@ pub enum ObjectType {
     Upvalue,
 }
 
+impl Display for ObjectType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::String => write!(f, "{}", "string"),
+            Self::Function => write!(f, "{}", "function"),
+            Self::Native => write!(f, "{}", "native"),
+            Self::Closure => write!(f, "{}", "closure"),
+            Self::Upvalue => write!(f, "{}", "upvalue"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct ObjectNative {

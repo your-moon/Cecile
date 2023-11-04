@@ -153,6 +153,17 @@ pub enum ValueType {
     Object(ObjectType),
 }
 
+impl Display for ValueType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Nil => write!(f, "nil"),
+            Self::Bool => write!(f, "bool"),
+            Self::Number => write!(f, "number"),
+            Self::Object(type_) => write!(f, "{}", type_),
+        }
+    }
+}
+
 impl From<ObjectType> for ValueType {
     fn from(type_: ObjectType) -> Self {
         Self::Object(type_)

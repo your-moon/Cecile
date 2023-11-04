@@ -1,4 +1,0 @@
-let a = "a";
-let b = "b";
-let c = a + b;
-println c;
