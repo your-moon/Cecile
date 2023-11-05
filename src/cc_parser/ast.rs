@@ -27,6 +27,23 @@ pub enum Statement {
     For(Box<StatementFor>),
     Fun(StatementFun),
     Struct(StatementStruct),
+    Impl(StatementImpl),
+    Error,
+}
+impl Statement {
+    pub fn as_fun(&self) -> Option<StatementFun> {
+        match self {
+            Statement::Fun(fun) => Some(fun.clone()),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StatementImpl {
+    pub name: String,
+    pub super_: Option<ExprS>,
+    pub methods: Vec<Spanned<Statement>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -39,6 +56,12 @@ pub struct StatementStruct {
 pub struct Field {
     pub name: String,
     pub type_: Type,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprCreateStructField {
+    pub name: String,
+    pub value: ExprS,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -116,6 +139,22 @@ pub enum Expression {
     Call(Box<ExprCall>),
     Literal(ExprLiteral),
     Var(ExprVar),
+    Get(Box<ExprGet>),
+    Set(Box<ExprSet>),
+    // Struct(Box<ExprStruct>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprSet {
+    pub object: ExprS,
+    pub name: String,
+    pub value: ExprS,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprGet {
+    pub object: ExprS,
+    pub name: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -223,6 +262,7 @@ pub struct Fn {
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Type {
+    Struct,
     Fn(Fn),
     Nil,
     String,
@@ -258,6 +298,7 @@ impl Display for Type {
             Type::Bool => "Bool".to_string(),
             Type::Int => "Int".to_string(),
             Type::Object(name) => format!("Object({:?})", name),
+            Type::Struct => "Struct".to_string(),
             Type::UnInitialized => "UnInitialized".to_string(),
         };
         write!(f, "{type_}")

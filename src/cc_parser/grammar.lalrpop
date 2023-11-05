@@ -22,23 +22,30 @@ Decl = {
     DeclVar,
     DeclFun,
     DeclStruct,
+    DeclImpl,
 }
 
+DeclImpl: ast::Statement = 
+   "impl" <name:identifier> <super_:("<" <Spanned<ExprVar>>)?> "{" <methods:Spanned<DeclFun>*> "}" => 
+        ast::Statement::Impl(ast::StatementImpl { <> });
+
+
 DeclStruct: ast::Statement = {
-  "struct" <name:identifier> <fields:StructFields> ";"  => 
+  "struct" <name:identifier> <fields:StructFields> ";" => 
     ast::Statement::Struct(ast::StatementStruct { <> })
 }
 
 
 StructFields: Vec<ast::Field> = {
-   "{" <mut fields:(<SingleField>)*> "}" => {
+   "{" <first:SingleField> <mut fields:("," <SingleField>)*> "}" => {
+      fields.insert(0, first);
       fields
     },
     () => Vec::new(),
 }
 
 SingleField: ast::Field = {
-  <name:identifier> ":" <type_:Types> ","? =>
+  <name:identifier> ":" <type_:Types> =>
     ast::Field { <> }
 }
 
@@ -55,18 +62,23 @@ DeclVar: ast::Statement = "let" <name:identifier> <type_:(":" <Types>)?> <value:
 Stmt: ast::Statement = {
  StmtOpen,
  StmtClosed,
+    <e:!> => {
+        errors.push(e.error);
+        ast::Statement::Error
+    },
 }
 
 
 StmtOpen: ast::Statement = {
-    "for" "(" <init:ForInit> <cond:ForCond> <update:ForIncr> ")" <body:Spanned<StmtOpen>> =>
-        ast::Statement::For(Box::new(ast::StatementFor { <> })),
 
     "if" "(" <cond:ExprS> ")" <then_branch:Spanned<Stmt>> =>
         ast::Statement::If(Box::new(ast::StatementIf { <>, else_branch: None })),
 
     "if" "(" <cond:ExprS> ")" <then_branch:Spanned<StmtClosed>> "else" <else_branch:Spanned<StmtOpen>> =>
         ast::Statement::If(Box::new(ast::StatementIf { cond, then_branch, else_branch: Some(else_branch)})),
+
+    "for" "(" <init:ForInit> <cond:ForCond> <update:ForIncr> ")" <body:Spanned<StmtOpen>> =>
+        ast::Statement::For(Box::new(ast::StatementFor { <> })),
 
     "while" "(" <cond:ExprS> ")" <body:Spanned<StmtOpen>> =>
         ast::Statement::While(Box::new(ast::StatementWhile { <> })),
@@ -93,6 +105,29 @@ ForInit: Option<ast::StatementS> = {
 ForCond = <ExprS?> ";";
 
 ForIncr = <ExprS?>;
+
+Function: ast::StatementFun =
+    <name:identifier>  "("  <params:Params> ")" <return_type:("->" <Types>)?>  <body:StatementBlockIn> =>
+        ast::StatementFun { <> };
+
+
+Params: HashMap<String, Option<ast::Type>> = {
+    <first:Param> <mut params:("," <Param>)*> => {
+        let mut param_map = HashMap::new();
+        let (string_, type_) = first;
+        param_map.insert(string_, type_);
+        for (string_, type_) in params {
+          param_map.insert(string_, type_);
+        }
+        param_map
+    },
+    () => HashMap::new(),
+}
+
+Param: (String, Option<ast::Type>) = {
+  <string_:identifier> <type_:(":" <Types>)?> =>
+    (string_,type_)
+}
 
 
 
@@ -135,6 +170,9 @@ ExprAssign = {
             lhs: ast::Var { name, type_: None },
             rhs: value,
         })),
+        <object:Spanned<ExprCall>> "." <name:identifier> "=" <value:ExprS> =>
+        ast::Expression::Set(Box::new(ast::ExprSet { <> })),
+
     ExprLogicOr,
 }
 
@@ -187,11 +225,10 @@ ExprPrefix: ast::Expression = {
 ExprCall: ast::Expression = {
     <callee:Spanned<ExprCall>> "(" <args:Args> ")" =>
       ast::Expression::Call(Box::new(ast::ExprCall { callee, args })),
-//    <object:Spanned<ExprCall>> "." <name:identifier> =>
-//        ast::Expr::Get(Box::new(ast::ExprGet { <> })),
+    <object:Spanned<ExprCall>> "." <name:identifier> =>
+        ast::Expression::Get(Box::new(ast::ExprGet { <> })),
       ExprPrimary
 }
-
 
 ExprPrimary: ast::Expression = {
     // Literals
@@ -203,33 +240,12 @@ ExprPrimary: ast::Expression = {
     
     // Variables
     ExprVar,
+    ExprSelf,
 
     // Grouping
     "(" <Expression> ")",
 }
 
-Function: ast::StatementFun =
-    <name:identifier>  "("  <params:Params> ")" <return_type:("->" <Types>)?>  <body:StatementBlockIn> =>
-        ast::StatementFun { <> };
-
-
-Params: HashMap<String, Option<ast::Type>> = {
-    <first:Param> <mut params:("," <Param>)*> => {
-        let mut param_map = HashMap::new();
-        let (string_, type_) = first;
-        param_map.insert(string_, type_);
-        for (string_, type_) in params {
-          param_map.insert(string_, type_);
-        }
-        param_map
-    },
-    () => HashMap::new(),
-}
-
-Param: (String, Option<ast::Type>) = {
-  <string_:identifier> <type_:(":" <Types>)?> =>
-    (string_,type_)
-}
 
 Args: Vec<ast::ExprS> = {
     <first:ExprS> <mut args:("," <ExprS>)*> => {
@@ -250,6 +266,12 @@ Types: ast::Type = {
 
 ExprVar: ast::Expression = <name:identifier> =>
   ast::Expression::Var(ast::ExprVar { var: ast::Var {name, type_: None} });
+
+ExprSelf: ast::Expression = "self" => ast::Expression::Var(ast::ExprVar { var: ast::Var {
+    name: "self".to_string(),
+    type_: None,
+}});
+
 
 
 
@@ -280,6 +302,8 @@ extern {
     "nil" => Token::Nil,
     "or" => Token::Or,
     "fn" => Token::Fn,
+    "impl" => Token::Impl,
+    "self" => Token::Self_,
 
     // Literals
     string => Token::String(<String>),

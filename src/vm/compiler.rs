@@ -6,6 +6,7 @@ use std::fmt::Write;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
+use crate::cc_parser::ast::{Field, StatementImpl, StatementStruct};
 use crate::vm::error::NameError;
 use crate::{
     allocator::allocation::CeAllocation,
@@ -35,6 +36,8 @@ use rustc_hash::FxHasher;
 pub enum FunctionType {
     Script,
     Function,
+    Initializer,
+    Method,
 }
 
 #[derive(Debug, Default)]
@@ -146,9 +149,15 @@ impl CompilerCell {
     }
 }
 
+pub struct StructCell {
+    name: String,
+    fields: Vec<Field>,
+}
+
 pub struct Compiler {
     pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
     pub current_compiler: CompilerCell,
+    pub structs: Vec<StructCell>,
 }
 
 impl Compiler {
@@ -164,6 +173,7 @@ impl Compiler {
                 upvalues: ArrayVec::new(),
             },
             globals: HashMap::default(),
+            structs: Vec::new(),
         }
     }
     pub fn compile(
@@ -240,8 +250,74 @@ impl Compiler {
             Statement::Return(return_) => {
                 self.compile_statement_return((return_, range), allocator)
             }
-            _ => todo!("statement not implemented"),
+            Statement::Struct(struct_) => self.compile_struct_stmt((struct_, range), allocator),
+            Statement::Impl(impl_) => self.compile_impl_stmt((impl_, range), allocator),
+            Statement::Error => todo!(),
         }
+    }
+
+    fn compile_struct_stmt(
+        &mut self,
+        (struct_, range): (&StatementStruct, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        let name = allocator.alloc(&struct_.name).into();
+        let fields = struct_.fields.clone();
+
+        self.structs.push(StructCell {
+            name: struct_.name.clone(),
+            fields,
+        });
+
+        if self.is_global() {
+            self.globals.insert(struct_.name.clone(), Type::Struct);
+            self.emit_u8(op::DEFINE_GLOBAL, range);
+            self.write_constant(name, range);
+        } else {
+            self.declare_local(&struct_.name, &Type::Struct, &range);
+            // self.define_local();
+        }
+        Ok(Type::Struct)
+    }
+
+    fn compile_impl_stmt(
+        &mut self,
+        (impl_, range): (&StatementImpl, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        let has_super = impl_.super_.is_some();
+
+        let is_found = if self.is_global() {
+            self.globals.get(&impl_.name).map(|_| ())
+        } else {
+            self.current_compiler
+                .resolve_local(impl_.name.as_str(), false, &range)
+                .ok()
+                .map(|_| ())
+        };
+        if is_found.is_some() {
+            println!("STRUCT FOUND");
+        }
+
+        if !impl_.methods.is_empty() {
+            self.get_variable(&impl_.name, &range, allocator)?;
+            for (method, span) in &impl_.methods {
+                let method = method.as_fun().unwrap();
+                let type_ = if method.name == "init" {
+                    FunctionType::Initializer
+                } else {
+                    FunctionType::Method
+                };
+                self.compile_statement_fun((&method, span), type_, allocator)?;
+
+                let name = allocator.alloc(&method.name).into();
+                self.emit_u8(op::METHOD, span);
+                self.write_constant(name, span);
+            }
+            self.emit_u8(op::POP, &range);
+        }
+
+        Ok(Type::Struct)
     }
 
     fn compile_statement_return(
@@ -318,6 +394,7 @@ impl Compiler {
                     }
                 }
             }
+            _ => todo!(),
         }
     }
 
@@ -360,6 +437,14 @@ impl Compiler {
                 }),
                 &range,
             )?,
+            FunctionType::Method => self.declare_local(
+                &func.name,
+                &Type::Fn(Fn {
+                    return_type: Box::new(func.return_type.clone()),
+                }),
+                &range,
+            )?,
+            _ => todo!(),
         }
         //TODO check param type
         let mut param_strings = Vec::new();
@@ -370,7 +455,7 @@ impl Compiler {
             match param_type {
                 Some(t) => match t {
                     // TODO Add more type
-                    Type::String | Type::Int => self.declare_local(&param_string, t, &range)?,
+                    Type::String | Type::Int => self.declare_local(&param_string, &t, &range)?,
                     _ => todo!("type not implemented"),
                 },
                 None => self.declare_local(&param_string, &Type::UnInitialized, &range)?,
@@ -585,6 +670,7 @@ impl Compiler {
             Expression::Literal(value) => self.compile_literal((value, range), allocator),
             Expression::Var(var) => self.compile_expression_var((var, range), allocator),
             Expression::Call(call) => self.compile_call((call, range), allocator),
+            _ => todo!(),
         }
     }
 
@@ -700,6 +786,24 @@ impl Compiler {
             }
         }
         Ok(var_type)
+    }
+
+    fn get_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<()> {
+        if name == "this" && self.structs.is_empty() {
+            return Err((SyntaxError::ThisOutsideClass.into(), span.clone()));
+        }
+        if let Some(local_idx) = self.current_compiler.resolve_local(name, false, span)? {
+            self.emit_u8(op::GET_LOCAL, span);
+            self.emit_u8(local_idx, span);
+        } else if let Some(upvalue_idx) = self.current_compiler.resolve_upvalue(name, span)? {
+            self.emit_u8(op::GET_UPVALUE, span);
+            self.emit_u8(upvalue_idx, span);
+        } else {
+            let name = gc.alloc(name);
+            self.emit_u8(op::GET_GLOBAL, span);
+            self.write_constant(name.into(), span);
+        }
+        Ok(())
     }
 
     fn compile_expression_var(

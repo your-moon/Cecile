@@ -10,7 +10,7 @@ pub enum Token {
     // Төрөл
     #[token("String")]
     TypeString,
-    #[token("Int")]
+    #[token("int")]
     TypeInt,
     // Түлхүүр үгс
     #[token("let")]
@@ -18,8 +18,11 @@ pub enum Token {
     #[token("and")]
     And,
 
-    #[token("struct")]
+    #[token("type")]
     Struct,
+
+    #[token("impl")]
+    Impl,
 
     #[token("bool")]
     TypeBool,
@@ -40,6 +43,9 @@ pub enum Token {
 
     #[token("return")]
     Return,
+
+    #[token("self")]
+    Self_,
 
     #[token("true")]
     True,

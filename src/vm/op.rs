@@ -37,7 +37,8 @@ iota! {
     GET_UPVALUE,
     SET_UPVALUE,
     CONCAT,
-    CLOSE_UPVALUE
+    CLOSE_UPVALUE,
+    METHOD
 
 
 }
