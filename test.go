@@ -41,7 +41,7 @@
 type Point {
     x:int,
     y:int
-};
+}
 
 impl Point < Rectangle {
     fn new() {

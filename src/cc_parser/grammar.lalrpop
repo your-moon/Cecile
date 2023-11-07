@@ -31,13 +31,13 @@ DeclImpl: ast::Statement =
 
 
 DeclStruct: ast::Statement = {
-  "struct" <name:identifier> <fields:StructFields> ";" => 
+  "struct" <name:identifier> "{" <fields:StructFields> "}"  => 
     ast::Statement::Struct(ast::StatementStruct { <> })
 }
 
 
 StructFields: Vec<ast::Field> = {
-   "{" <first:SingleField> <mut fields:("," <SingleField>)*> "}" => {
+    <first:SingleField> <mut fields:("," <SingleField>)*>  => {
       fields.insert(0, first);
       fields
     },

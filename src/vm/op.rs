@@ -38,7 +38,8 @@ iota! {
     SET_UPVALUE,
     CONCAT,
     CLOSE_UPVALUE,
-    METHOD
+    METHOD,
+    STRUCT
 
 
 }

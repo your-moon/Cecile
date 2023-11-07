@@ -16,7 +16,7 @@ use std::{mem, ptr};
 use self::compiler::Compiler;
 use self::error::{Error, ErrorS, Result, TypeError};
 use self::object::{
-    ClosureObject, Native, ObjectFunction, ObjectNative, ObjectType, UpvalueObject,
+    ClosureObject, Native, ObjectFunction, ObjectNative, ObjectType, StructObject, UpvalueObject,
 };
 pub mod chunk;
 pub mod compiler;
@@ -91,6 +91,8 @@ impl<'a> VM<'a> {
             (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
+                op::STRUCT => self.cstruct(),
+                op::METHOD => self.method(),
                 op::CECILE_CONSTANT => self.cecile_constant(),
                 op::ADD => self.binary_add(),
                 op::CONCAT => self.concat(),
@@ -148,6 +150,21 @@ impl<'a> VM<'a> {
             }
             println!();
         }
+        Ok(())
+    }
+
+    fn cstruct(&mut self) -> Result<()> {
+        let name = unsafe { self.read_constant().as_object().string };
+        let cstruct = self.alloc(StructObject::new(name, Vec::new()));
+        self.push_to_stack(cstruct.into());
+        Ok(())
+    }
+
+    fn method(&mut self) -> Result<()> {
+        let name = unsafe { self.read_constant().as_object().string };
+        let method = unsafe { self.pop().as_object().closure };
+        let cstruct = unsafe { (*self.peek(0)).as_object().cstruct };
+        unsafe { (*cstruct).methods.insert(name, method) };
         Ok(())
     }
 

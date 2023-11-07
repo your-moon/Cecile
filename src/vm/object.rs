@@ -1,4 +1,10 @@
-use std::fmt::{self, Debug, Display, Formatter};
+use std::{
+    fmt::{self, Debug, Display, Formatter},
+    hash::BuildHasherDefault,
+};
+
+use hashbrown::HashMap;
+use rustc_hash::FxHasher;
 
 use crate::cc_parser::ast::Type;
 
@@ -13,6 +19,7 @@ pub union Object {
     pub closure: *mut ClosureObject,
     pub native: *mut ObjectNative,
     pub upvalue: *mut UpvalueObject,
+    pub cstruct: *mut StructObject,
 }
 
 impl Object {
@@ -37,6 +44,9 @@ impl Object {
             ObjectType::Upvalue => {
                 let _free = unsafe { Box::from_raw(self.upvalue) };
             }
+            ObjectType::Struct => {
+                let _free = unsafe { Box::from_raw(self.cstruct) };
+            }
         };
     }
 }
@@ -59,6 +69,9 @@ impl Display for Object {
                 (*(*(*self.closure).function).name).value
             }),
             ObjectType::Upvalue => write!(f, "<upvalue {}>", unsafe { (*self.upvalue).value }),
+            ObjectType::Struct => {
+                write!(f, "<struct {}>", unsafe { (*(*self.cstruct).name).value })
+            }
         }
     }
 }
@@ -78,6 +91,7 @@ impl_from_object!(function, ObjectFunction);
 impl_from_object!(native, ObjectNative);
 impl_from_object!(closure, ClosureObject);
 impl_from_object!(upvalue, UpvalueObject);
+impl_from_object!(cstruct, StructObject);
 
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
@@ -93,6 +107,7 @@ pub enum ObjectType {
     Native,
     Closure,
     Upvalue,
+    Struct,
 }
 
 impl Display for ObjectType {
@@ -103,6 +118,7 @@ impl Display for ObjectType {
             Self::Native => write!(f, "{}", "native"),
             Self::Closure => write!(f, "{}", "closure"),
             Self::Upvalue => write!(f, "{}", "upvalue"),
+            Self::Struct => write!(f, "{}", "struct"),
         }
     }
 }
@@ -212,6 +228,29 @@ impl ClosureObject {
             },
             function,
             upvalues,
+        }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct StructObject {
+    pub main: MainObject,
+    pub name: *mut StringObject,
+    pub fields: Vec<*mut StringObject>,
+    pub methods: HashMap<*mut StringObject, *mut ClosureObject, BuildHasherDefault<FxHasher>>,
+}
+
+impl StructObject {
+    pub fn new(name: *mut StringObject, fields: Vec<*mut StringObject>) -> Self {
+        Self {
+            main: MainObject {
+                type_: ObjectType::Struct,
+                is_marked: false,
+            },
+            name,
+            fields,
+            methods: HashMap::default(),
         }
     }
 }

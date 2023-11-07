@@ -23,6 +23,7 @@ use crate::{
 };
 
 use super::error::OverflowError;
+use super::object::StringObject;
 use super::{
     error::{Error, ErrorS, Result, SyntaxError},
     object::ObjectFunction,
@@ -150,7 +151,7 @@ impl CompilerCell {
 }
 
 pub struct StructCell {
-    name: String,
+    name: *mut StringObject,
     fields: Vec<Field>,
 }
 
@@ -161,6 +162,12 @@ pub struct Compiler {
 }
 
 impl Compiler {
+    pub fn find_struct(&self, name: &str) -> Option<&StructCell> {
+        self.structs
+            .iter()
+            .find(|s| unsafe { (*s.name).value } == name)
+    }
+
     pub fn new(allocator: &mut CeAllocation) -> Self {
         let name = allocator.alloc("");
         Self {
@@ -261,22 +268,11 @@ impl Compiler {
         (struct_, range): (&StatementStruct, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let name = allocator.alloc(&struct_.name).into();
+        let name = allocator.alloc(&struct_.name);
         let fields = struct_.fields.clone();
 
-        self.structs.push(StructCell {
-            name: struct_.name.clone(),
-            fields,
-        });
+        self.structs.push(StructCell { name, fields });
 
-        if self.is_global() {
-            self.globals.insert(struct_.name.clone(), Type::Struct);
-            self.emit_u8(op::DEFINE_GLOBAL, range);
-            self.write_constant(name, range);
-        } else {
-            self.declare_local(&struct_.name, &Type::Struct, &range);
-            // self.define_local();
-        }
         Ok(Type::Struct)
     }
 
@@ -287,16 +283,23 @@ impl Compiler {
     ) -> Result<Type> {
         let has_super = impl_.super_.is_some();
 
-        let is_found = if self.is_global() {
-            self.globals.get(&impl_.name).map(|_| ())
+        let is_found_struct = self.find_struct(&impl_.name).is_some();
+
+        if !is_found_struct {
+            println!("STRUCT NOT FOUND");
+        }
+
+        println!("STRUCT FOUND");
+        let name = allocator.alloc(&impl_.name).into();
+        self.emit_u8(op::STRUCT, &range);
+        self.write_constant(name, &range);
+
+        if self.is_global() {
+            self.emit_u8(op::DEFINE_GLOBAL, range);
+            self.write_constant(name, range);
         } else {
-            self.current_compiler
-                .resolve_local(impl_.name.as_str(), false, &range)
-                .ok()
-                .map(|_| ())
-        };
-        if is_found.is_some() {
-            println!("STRUCT FOUND");
+            self.declare_local(&impl_.name, &Type::Struct, &range);
+            // self.define_local();
         }
 
         if !impl_.methods.is_empty() {

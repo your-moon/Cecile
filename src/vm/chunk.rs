@@ -29,6 +29,7 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
+            op::STRUCT => self.code_byte("STRUCT", offset),
             op::CLOSE_UPVALUE => self.simple_instruction("CLOSE_UPVALUE", offset),
             op::SET_UPVALUE => self.code_byte("SET_UPVALUE", offset),
             op::GET_UPVALUE => self.code_byte("GET_UPVALUE", offset),
@@ -56,6 +57,15 @@ impl Chunk {
                 }
 
                 idx + 1
+            }
+            op::METHOD => {
+                let constant_idx = self.code[offset + 1];
+                let constant = &self.constants[constant_idx as usize];
+                println!(
+                    "{name:16} {constant_idx:>4} '{constant}'",
+                    name = "OP_METHOD"
+                );
+                offset + 2
             }
             op::MODULO => self.simple_instruction("MODULO", offset),
             op::CALL => self.code_byte("CALL", offset),

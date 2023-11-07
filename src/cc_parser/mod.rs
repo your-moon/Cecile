@@ -289,7 +289,7 @@ mod tests {
 
     #[test]
     fn variable_declaration_int() {
-        let input = r#"let variable_2: Int = 123;"#;
+        let input = r#"let variable_2: int = 123;"#;
         let lexer = lexer::Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 return (l, token, r);

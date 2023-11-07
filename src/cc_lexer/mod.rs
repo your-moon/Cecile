@@ -217,7 +217,7 @@ mod tests {
 
         let input = r#"
             and
-            struct
+            type
             identifier123
             "string"
             42
