@@ -40,7 +40,8 @@ iota! {
     CLOSE_UPVALUE,
     METHOD,
     STRUCT,
-    FIELD
+    FIELD,
+    GET_FIELD
 
 
 }

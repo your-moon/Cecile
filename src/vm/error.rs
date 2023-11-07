@@ -18,6 +18,8 @@ pub enum Error {
     NameError(NameError),
     #[error("OverflowError {0}")]
     OverflowError(OverflowError),
+    #[error("AttributeError {0}")]
+    AttributeError(AttributeError),
 }
 
 macro_rules! impl_from_error {
@@ -30,7 +32,14 @@ macro_rules! impl_from_error {
     )+};
 }
 
-impl_from_error!(IoError, NameError, OverflowError, SyntaxError, TypeError);
+impl_from_error!(
+    IoError,
+    NameError,
+    OverflowError,
+    SyntaxError,
+    TypeError,
+    AttributeError
+);
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum OverflowError {
@@ -120,6 +129,12 @@ pub enum TypeError {
 
     #[error("return type must be {expected:?}, got {actual:?}")]
     ReturnTypeMismatch { expected: String, actual: String },
+}
+
+#[derive(Debug, Error, Eq, PartialEq)]
+pub enum AttributeError {
+    #[error("no such attribute: {name} on {type_}")]
+    NoSuchAttribute { name: String, type_: String },
 }
 
 //

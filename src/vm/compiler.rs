@@ -6,7 +6,7 @@ use std::fmt::Write;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
-use crate::cc_parser::ast::{Field, StatementImpl, StatementStruct};
+use crate::cc_parser::ast::{ExprGet, Field, StatementImpl, StatementStruct};
 use crate::vm::error::NameError;
 use crate::{
     allocator::allocation::CeAllocation,
@@ -33,7 +33,7 @@ use super::{
 
 use rustc_hash::FxHasher;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum FunctionType {
     Script,
     Function,
@@ -291,7 +291,6 @@ impl Compiler {
 
         let fields = found_struct.unwrap().fields.clone();
 
-        println!("STRUCT FOUND");
         let name = allocator.alloc(&impl_.name).into();
         self.emit_u8(op::STRUCT, &range);
 
@@ -306,7 +305,7 @@ impl Compiler {
             self.emit_u8(op::DEFINE_GLOBAL, range);
             self.write_constant(name, range);
         } else {
-            self.declare_local(&impl_.name, &Type::Struct, &range);
+            self.declare_local(&impl_.name, &Type::Struct, &range)?;
             // self.define_local();
         }
 
@@ -314,7 +313,7 @@ impl Compiler {
             self.get_variable(&impl_.name, &range, allocator)?;
             for (method, span) in &impl_.methods {
                 let method = method.as_fun().unwrap();
-                let type_ = if method.name == "init" {
+                let type_ = if method.name == "new" {
                     FunctionType::Initializer
                 } else {
                     FunctionType::Method
@@ -336,6 +335,7 @@ impl Compiler {
         (return_, range): (&StatementReturn, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
+        println!("current compiler type = {:?}", self.current_compiler.type_);
         match self.current_compiler.type_ {
             FunctionType::Script => {
                 let result = Err((
@@ -344,7 +344,7 @@ impl Compiler {
                 ));
                 return result;
             }
-            FunctionType::Function => {
+            FunctionType::Function | FunctionType::Method => {
                 let func_type_ = unsafe { &(*self.current_compiler.function).return_type };
                 match &return_.value {
                     Some(value) => {
@@ -404,6 +404,28 @@ impl Compiler {
                     }
                 }
             }
+            FunctionType::Initializer => match &return_.value {
+                Some(value) => {
+                    let return_type = self.cp_expression(value, allocator)?;
+                    if return_type != Type::Nil {
+                        let result = Err((
+                            Error::TypeError(TypeError::ReturnTypeMustBeNil),
+                            range.clone(),
+                        ));
+                        return result;
+                    }
+                    self.emit_u8(op::GET_LOCAL, &range);
+                    self.emit_u8(0, &range);
+                    self.emit_u8(op::RETURN, &range);
+                    return Ok(return_type);
+                }
+                None => {
+                    self.emit_u8(op::GET_LOCAL, &range);
+                    self.emit_u8(0, &range);
+                    self.emit_u8(op::RETURN, &range);
+                    return Ok(Type::UnInitialized);
+                }
+            },
             _ => todo!(),
         }
     }
@@ -423,7 +445,7 @@ impl Compiler {
                 arity_count,
                 func.return_type.clone(),
             )),
-            type_: FunctionType::Function,
+            type_,
             locals: ArrayVec::new(),
             scope_depth: self.current_compiler.scope_depth + 1,
             parent: None,
@@ -448,6 +470,13 @@ impl Compiler {
                 &range,
             )?,
             FunctionType::Method => self.declare_local(
+                &func.name,
+                &Type::Fn(Fn {
+                    return_type: Box::new(func.return_type.clone()),
+                }),
+                &range,
+            )?,
+            FunctionType::Initializer => self.declare_local(
                 &func.name,
                 &Type::Fn(Fn {
                     return_type: Box::new(func.return_type.clone()),
@@ -680,8 +709,24 @@ impl Compiler {
             Expression::Literal(value) => self.compile_literal((value, range), allocator),
             Expression::Var(var) => self.compile_expression_var((var, range), allocator),
             Expression::Call(call) => self.compile_call((call, range), allocator),
+            Expression::Get(get) => self.compile_get((get, range), allocator),
             _ => todo!(),
         }
+    }
+
+    fn compile_get(
+        &mut self,
+        (get, range): (&Box<ExprGet>, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        let var_type = self.cp_expression(&get.object, allocator)?;
+        // if var_type != Type::Struct {
+        //     todo!("Only struct can use get");
+        // }
+        let name = allocator.alloc(&get.name);
+        self.emit_u8(op::GET_FIELD, &range);
+        self.write_constant(name.into(), &range);
+        Ok(Type::String)
     }
 
     fn compile_call(

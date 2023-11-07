@@ -10,7 +10,7 @@
 // println c;
 // println "";
 //
-// fn fizzbuzz(n: Int) {
+// fn fizzbuzz(n: int) {
 //     if (n % 15 == 0) {
 //         println "FizzBuzz";
 //     } else if (n % 5 == 0) {
@@ -24,14 +24,14 @@
 //
 // let sum = 0;
 //
-// for (let i = 0; i < 100; i = i + 1) {
+// for (let i = 0; i < 2; i = i + 1) {
 //     fizzbuzz(i);
 //     sum = sum + i;
 // }
 // print "SUM OF 100: ";
 // println sum;
 //
-// fn add_two_number(a:Int, b:Int) -> Int {
+// fn add_two_number(a:int, b:int) -> int {
 //     return a + b;
 // }
 //
@@ -45,9 +45,13 @@ type Point {
 
 impl Point < Rectangle {
     fn new(x, y) {
-        print "new";
+        println x;
+        println y;
     }
     fn say_something(s: String) -> String {
         return s;
     }
 }
+
+let point = Point(1,2);
+println point.x;

@@ -20,6 +20,7 @@ pub union Object {
     pub native: *mut ObjectNative,
     pub upvalue: *mut UpvalueObject,
     pub cstruct: *mut StructObject,
+    pub instance: *mut InstanceObject,
 }
 
 impl Object {
@@ -47,6 +48,9 @@ impl Object {
             ObjectType::Struct => {
                 let _free = unsafe { Box::from_raw(self.cstruct) };
             }
+            ObjectType::Instance => {
+                let _free = unsafe { Box::from_raw(self.instance) };
+            }
         };
     }
 }
@@ -72,6 +76,11 @@ impl Display for Object {
             ObjectType::Struct => {
                 write!(f, "<struct {}>", unsafe { (*(*self.cstruct).name).value })
             }
+            ObjectType::Instance => {
+                write!(f, "<instance {}>", unsafe {
+                    (*(*(*self.instance).struct_).name).value
+                })
+            }
         }
     }
 }
@@ -92,6 +101,7 @@ impl_from_object!(native, ObjectNative);
 impl_from_object!(closure, ClosureObject);
 impl_from_object!(upvalue, UpvalueObject);
 impl_from_object!(cstruct, StructObject);
+impl_from_object!(instance, InstanceObject);
 
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
@@ -108,6 +118,7 @@ pub enum ObjectType {
     Closure,
     Upvalue,
     Struct,
+    Instance,
 }
 
 impl Display for ObjectType {
@@ -119,6 +130,7 @@ impl Display for ObjectType {
             Self::Closure => write!(f, "{}", "closure"),
             Self::Upvalue => write!(f, "{}", "upvalue"),
             Self::Struct => write!(f, "{}", "struct"),
+            Self::Instance => write!(f, "{}", "instance"),
         }
     }
 }
@@ -250,6 +262,27 @@ impl StructObject {
             },
             name,
             methods: HashMap::default(),
+            fields: HashMap::default(),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct InstanceObject {
+    pub main: MainObject,
+    pub struct_: *mut StructObject,
+    pub fields: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
+}
+
+impl InstanceObject {
+    pub fn new(struct_: *mut StructObject) -> Self {
+        Self {
+            main: MainObject {
+                type_: ObjectType::Instance,
+                is_marked: false,
+            },
+            struct_,
             fields: HashMap::default(),
         }
     }

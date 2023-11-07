@@ -14,9 +14,10 @@ use std::hash::BuildHasherDefault;
 use std::{mem, ptr};
 
 use self::compiler::Compiler;
-use self::error::{Error, ErrorS, Result, TypeError};
+use self::error::{AttributeError, Error, ErrorS, Result, TypeError};
 use self::object::{
-    ClosureObject, Native, ObjectFunction, ObjectNative, ObjectType, StructObject, UpvalueObject,
+    ClosureObject, InstanceObject, Native, ObjectFunction, ObjectNative, ObjectType, StructObject,
+    UpvalueObject,
 };
 pub mod chunk;
 pub mod compiler;
@@ -39,6 +40,8 @@ pub struct VM<'a> {
 
     globals: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
     open_upvalues: Vec<*mut UpvalueObject>,
+
+    struct_init_method: *mut StringObject,
 }
 
 impl<'a> VM<'a> {
@@ -48,6 +51,7 @@ impl<'a> VM<'a> {
         let random_number = allocator.alloc("random_number");
         let clock_native = allocator.alloc(ObjectNative::new(Native::Clock));
         let random_number_native = allocator.alloc(ObjectNative::new(Native::RandomNumber));
+        let struct_init_method = allocator.alloc("new");
         globals.insert(clock_string, clock_native.into());
         globals.insert(random_number, random_number_native.into());
         VM {
@@ -63,6 +67,7 @@ impl<'a> VM<'a> {
             },
             open_upvalues: Vec::new(),
             next_gc: 1024 * 1024,
+            struct_init_method,
         }
     }
 
@@ -91,6 +96,7 @@ impl<'a> VM<'a> {
             (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
+                op::GET_FIELD => self.get_field(),
                 op::FIELD => self.field(),
                 op::STRUCT => self.cstruct(),
                 op::METHOD => self.method(),
@@ -150,6 +156,45 @@ impl<'a> VM<'a> {
                 stack_ptr = unsafe { stack_ptr.add(1) };
             }
             println!();
+        }
+        Ok(())
+    }
+
+    fn get_field(&mut self) -> Result<()> {
+        let name = unsafe { self.read_constant().as_object().string };
+        let instance = {
+            let value = unsafe { *self.peek(0) };
+            let object = value.as_object();
+
+            if value.is_object() && object.type_() == ObjectType::Instance {
+                unsafe { object.instance }
+            } else {
+                return self.err(AttributeError::NoSuchAttribute {
+                    type_: value.type_().to_string(),
+                    name: unsafe { (*name).value.to_string() },
+                });
+            }
+        };
+
+        let value = unsafe { (*(*instance).struct_).fields.get(&name) };
+        match value {
+            Some(&value) => {
+                self.push_to_stack(value);
+            }
+            None => {
+                let method = unsafe { (*(*instance).struct_).methods.get(&name) };
+                match method {
+                    Some(&method) => {
+                        self.call_closure(method, 0);
+                    }
+                    None => {
+                        return self.err(AttributeError::NoSuchAttribute {
+                            type_: "instance".to_string(),
+                            name: unsafe { (*name).value.to_string() },
+                        });
+                    }
+                }
+            }
         }
         Ok(())
     }
@@ -269,11 +314,28 @@ impl<'a> VM<'a> {
             let object = callee.as_object();
             match object.type_() {
                 ObjectType::Closure => self.call_closure(unsafe { object.closure }, arg_count),
+                ObjectType::Struct => self.call_struct(unsafe { object.cstruct }, arg_count),
                 // ObjectType::Native => self.call_native(object, arg_count),
                 _ => todo!(),
             }
         } else {
             todo!()
+        }
+    }
+
+    fn call_struct(&mut self, cstruct: *mut StructObject, arg_count: usize) {
+        let instance = self.alloc(InstanceObject::new(cstruct));
+        unsafe { *self.peek(arg_count) = Value::from(instance) };
+
+        match unsafe { (*cstruct).methods.get(&self.struct_init_method) } {
+            Some(&method) => {
+                self.call_closure(method, arg_count);
+            }
+            None => {
+                if arg_count != 0 {
+                    todo!()
+                }
+            }
         }
     }
 
