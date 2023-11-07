@@ -262,6 +262,7 @@ pub struct Fn {
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub enum Type {
+    Self_,
     Struct,
     Fn(Fn),
     Nil,
@@ -300,6 +301,7 @@ impl Display for Type {
             Type::Object(name) => format!("Object({:?})", name),
             Type::Struct => "Struct".to_string(),
             Type::UnInitialized => "UnInitialized".to_string(),
+            Type::Self_ => "Self".to_string(),
         };
         write!(f, "{type_}")
     }

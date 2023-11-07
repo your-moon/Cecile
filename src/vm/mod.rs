@@ -96,6 +96,7 @@ impl<'a> VM<'a> {
             (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
+                op::SET_FIELD => self.set_field(),
                 op::GET_FIELD => self.get_field(),
                 op::FIELD => self.field(),
                 op::STRUCT => self.cstruct(),
@@ -157,6 +158,26 @@ impl<'a> VM<'a> {
             }
             println!();
         }
+        Ok(())
+    }
+
+    fn set_field(&mut self) -> Result<()> {
+        let name = unsafe { self.read_constant().as_object().string };
+        let instance = {
+            let value = self.pop();
+            let object = value.as_object();
+
+            if value.is_object() && object.type_() == ObjectType::Instance {
+                unsafe { object.instance }
+            } else {
+                return self.err(AttributeError::NoSuchAttribute {
+                    type_: value.type_().to_string(),
+                    name: unsafe { (*name).value.to_string() },
+                });
+            }
+        };
+        let value = self.peek(0);
+        unsafe { (*(*instance).struct_).fields.insert(name, *value) };
         Ok(())
     }
 

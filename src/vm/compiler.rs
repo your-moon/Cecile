@@ -6,7 +6,7 @@ use std::fmt::Write;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
-use crate::cc_parser::ast::{ExprGet, Field, StatementImpl, StatementStruct};
+use crate::cc_parser::ast::{ExprGet, ExprSet, Field, StatementImpl, StatementStruct};
 use crate::vm::error::NameError;
 use crate::{
     allocator::allocation::CeAllocation,
@@ -318,6 +318,7 @@ impl Compiler {
                 } else {
                     FunctionType::Method
                 };
+                println!("type {:?}", type_);
                 self.compile_statement_fun((&method, span), type_, allocator)?;
 
                 let name = allocator.alloc(&method.name).into();
@@ -335,7 +336,6 @@ impl Compiler {
         (return_, range): (&StatementReturn, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        println!("current compiler type = {:?}", self.current_compiler.type_);
         match self.current_compiler.type_ {
             FunctionType::Script => {
                 let result = Err((
@@ -453,6 +453,19 @@ impl Compiler {
         };
         self.begin_cell(cell);
 
+        // match type_ {
+        //     FunctionType::Initializer | FunctionType::Method => {
+        //         self.declare_local("self", &Type::Self_, &range)
+        //     }
+        //     FunctionType::Function | FunctionType::Script => self.declare_local(
+        //         &func.name,
+        //         &Type::Fn(Fn {
+        //             return_type: Box::new(func.return_type.clone()),
+        //         }),
+        //         &range,
+        //     ),
+        // }?;
+
         match type_ {
             FunctionType::Script => {
                 self.globals.insert(
@@ -469,21 +482,16 @@ impl Compiler {
                 }),
                 &range,
             )?,
-            FunctionType::Method => self.declare_local(
-                &func.name,
-                &Type::Fn(Fn {
-                    return_type: Box::new(func.return_type.clone()),
-                }),
-                &range,
-            )?,
-            FunctionType::Initializer => self.declare_local(
-                &func.name,
-                &Type::Fn(Fn {
-                    return_type: Box::new(func.return_type.clone()),
-                }),
-                &range,
-            )?,
-            _ => todo!(),
+            FunctionType::Initializer | FunctionType::Method => {
+                self.declare_local("self", &Type::Self_, &range)?;
+                // self.declare_local(
+                //     &func.name,
+                //     &Type::Fn(Fn {
+                //         return_type: Box::new(func.return_type.clone()),
+                //     }),
+                //     &range,
+                // )?;
+            }
         }
         //TODO check param type
         let mut param_strings = Vec::new();
@@ -506,11 +514,8 @@ impl Compiler {
             self.compile_statement(&statement, allocator)?;
         }
 
-        if unsafe { (*self.current_compiler.function).chunk.code.last().unwrap() } != &op::RETURN {
-            let stmt = (
-                Statement::Return(StatementReturn { value: None }),
-                range.clone(),
-            );
+        if unsafe { (*self.current_compiler.function).chunk.code.last() } != Some(&op::RETURN) {
+            let stmt = (Statement::Return(StatementReturn { value: None }), (0..0));
             self.compile_statement(&stmt, allocator)?;
         }
 
@@ -710,8 +715,25 @@ impl Compiler {
             Expression::Var(var) => self.compile_expression_var((var, range), allocator),
             Expression::Call(call) => self.compile_call((call, range), allocator),
             Expression::Get(get) => self.compile_get((get, range), allocator),
+            Expression::Set(set) => self.compile_set((set, range), allocator),
             _ => todo!(),
         }
+    }
+
+    fn compile_set(
+        &mut self,
+        (set, range): (&Box<ExprSet>, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        self.cp_expression(&set.value, allocator)?;
+        self.cp_expression(&set.object, allocator)?;
+        // if var_type != Type::Struct {
+        //     todo!("Only struct can use get");
+        // }
+        let name = allocator.alloc(&set.name);
+        self.emit_u8(op::SET_FIELD, &range);
+        self.write_constant(name.into(), &range);
+        Ok(Type::String)
     }
 
     fn compile_get(
@@ -843,22 +865,33 @@ impl Compiler {
         Ok(var_type)
     }
 
-    fn get_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<()> {
-        if name == "this" && self.structs.is_empty() {
+    fn get_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<Type> {
+        if name == "self" && self.structs.is_empty() {
             return Err((SyntaxError::ThisOutsideClass.into(), span.clone()));
         }
         if let Some(local_idx) = self.current_compiler.resolve_local(name, false, span)? {
             self.emit_u8(op::GET_LOCAL, span);
             self.emit_u8(local_idx, span);
+            let expr_var_type = self.current_compiler.locals[local_idx as usize]
+                .type_
+                .clone();
+            return Ok(expr_var_type);
         } else if let Some(upvalue_idx) = self.current_compiler.resolve_upvalue(name, span)? {
             self.emit_u8(op::GET_UPVALUE, span);
             self.emit_u8(upvalue_idx, span);
+            Ok(Type::UnInitialized)
         } else {
-            let name = gc.alloc(name);
+            let allocated_name = gc.alloc(name);
             self.emit_u8(op::GET_GLOBAL, span);
-            self.write_constant(name.into(), span);
+            self.write_constant(allocated_name.into(), span);
+            let type_ = self.globals.get(&name.to_string());
+
+            let expr_var_type = match type_ {
+                Some(t) => t.clone(),
+                None => Type::UnInitialized,
+            };
+            return Ok(expr_var_type);
         }
-        Ok(())
     }
 
     fn compile_expression_var(
@@ -876,32 +909,7 @@ impl Compiler {
         //         }
         //     }
         // }
-        if let Ok(Some(local_index)) =
-            self.current_compiler
-                .resolve_local(&prefix.var.name, false, &range)
-        {
-            self.emit_u8(op::GET_LOCAL, &range);
-            self.emit_u8(local_index, &range);
-            let expr_var_type = self.current_compiler.locals[local_index as usize]
-                .type_
-                .clone();
-            return Ok(expr_var_type);
-        } else if let Ok(Some(upvalue)) = self.current_compiler.resolve_upvalue(name, &range) {
-            self.emit_u8(op::GET_UPVALUE, &range);
-            self.emit_u8(upvalue, &range);
-            Ok(Type::UnInitialized)
-        } else {
-            let global_var_name = &prefix.var.name;
-            let string = allocator.alloc(name);
-            self.emit_u8(op::GET_GLOBAL, &range);
-            self.write_constant(string.into(), &range);
-            let type_ = self.globals.get(global_var_name);
-            let expr_var_type = match type_ {
-                Some(t) => t.clone(),
-                None => Type::UnInitialized,
-            };
-            Ok(expr_var_type)
-        }
+        self.get_variable(name, &range, allocator)
     }
 
     fn compile_prefix(

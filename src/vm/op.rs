@@ -41,7 +41,8 @@ iota! {
     METHOD,
     STRUCT,
     FIELD,
-    GET_FIELD
+    GET_FIELD,
+    SET_FIELD
 
 
 }
