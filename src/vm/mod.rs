@@ -91,6 +91,7 @@ impl<'a> VM<'a> {
             (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
+                op::FIELD => self.field(),
                 op::STRUCT => self.cstruct(),
                 op::METHOD => self.method(),
                 op::CECILE_CONSTANT => self.cecile_constant(),
@@ -153,9 +154,15 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    fn field(&mut self) -> Result<()> {
+        let name = unsafe { self.read_constant().as_object().string };
+        let cstruct = unsafe { (*self.peek(0)).as_object().cstruct };
+        unsafe { (*cstruct).fields.insert(name, Value::NIL) };
+        Ok(())
+    }
     fn cstruct(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
-        let cstruct = self.alloc(StructObject::new(name, Vec::new()));
+        let cstruct = self.alloc(StructObject::new(name));
         self.push_to_stack(cstruct.into());
         Ok(())
     }

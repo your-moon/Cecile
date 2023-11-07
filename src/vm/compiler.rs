@@ -283,16 +283,24 @@ impl Compiler {
     ) -> Result<Type> {
         let has_super = impl_.super_.is_some();
 
-        let is_found_struct = self.find_struct(&impl_.name).is_some();
+        let found_struct = self.find_struct(&impl_.name);
 
-        if !is_found_struct {
+        if !found_struct.is_some() {
             println!("STRUCT NOT FOUND");
         }
+
+        let fields = found_struct.unwrap().fields.clone();
 
         println!("STRUCT FOUND");
         let name = allocator.alloc(&impl_.name).into();
         self.emit_u8(op::STRUCT, &range);
+
         self.write_constant(name, &range);
+        for field in &fields {
+            let name = allocator.alloc(&field.name).into();
+            self.emit_u8(op::FIELD, &range);
+            self.write_constant(name, &range);
+        }
 
         if self.is_global() {
             self.emit_u8(op::DEFINE_GLOBAL, range);
@@ -341,7 +349,6 @@ impl Compiler {
                 match &return_.value {
                     Some(value) => {
                         let return_type = self.cp_expression(value, allocator)?;
-                        println!("compiler upvalues {:?}", self.current_compiler.upvalues);
                         match func_type_ {
                             Some(t) => {
                                 //if function that return function else check return type and

@@ -51,12 +51,7 @@ impl CeAllocation {
                         self.mark(upvalue);
                     }
                 }
-                ObjectType::Struct => {
-                    let cstruct = unsafe { &mut *object.cstruct };
-                    for field in &cstruct.fields {
-                        self.mark(*field);
-                    }
-                }
+                ObjectType::Struct => {}
             }
         }
     }

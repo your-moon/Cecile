@@ -237,20 +237,20 @@ impl ClosureObject {
 pub struct StructObject {
     pub main: MainObject,
     pub name: *mut StringObject,
-    pub fields: Vec<*mut StringObject>,
+    pub fields: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
     pub methods: HashMap<*mut StringObject, *mut ClosureObject, BuildHasherDefault<FxHasher>>,
 }
 
 impl StructObject {
-    pub fn new(name: *mut StringObject, fields: Vec<*mut StringObject>) -> Self {
+    pub fn new(name: *mut StringObject) -> Self {
         Self {
             main: MainObject {
                 type_: ObjectType::Struct,
                 is_marked: false,
             },
             name,
-            fields,
             methods: HashMap::default(),
+            fields: HashMap::default(),
         }
     }
 }

@@ -44,7 +44,10 @@ type Point {
 }
 
 impl Point < Rectangle {
-    fn new() {
-        print "hello";
+    fn new(x, y) {
+        print "new";
+    }
+    fn say_something(s: String) -> String {
+        return s;
     }
 }

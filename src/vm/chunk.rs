@@ -29,6 +29,7 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
+            op::FIELD => self.code_byte("FIELD", offset),
             op::STRUCT => self.code_byte("STRUCT", offset),
             op::CLOSE_UPVALUE => self.simple_instruction("CLOSE_UPVALUE", offset),
             op::SET_UPVALUE => self.code_byte("SET_UPVALUE", offset),

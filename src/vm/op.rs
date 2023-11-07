@@ -39,7 +39,8 @@ iota! {
     CONCAT,
     CLOSE_UPVALUE,
     METHOD,
-    STRUCT
+    STRUCT,
+    FIELD
 
 
 }
