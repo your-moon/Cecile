@@ -392,8 +392,6 @@ impl<'a> VM<'a> {
 
     fn call_closure(&mut self, closure: *mut ClosureObject, arg_count: usize) {
         let function = unsafe { &mut *(*closure).function };
-        println!("arg_count {:?}", arg_count);
-        println!("arity_count {:?}", (*function).arity_count);
         // if arg_count != (*function).arity_count.into() {
         //     todo!()
         // }

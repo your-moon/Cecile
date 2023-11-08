@@ -67,6 +67,12 @@ pub enum OverflowError {
 pub enum NameError {
     #[error("can't access local variable {name} in its own initializer")]
     AccessInsideInitializer { name: String },
+
+    #[error("struct {name} is not defined")]
+    StructNameNotFound { name: String },
+
+    #[error("identifier {name} is not defined")]
+    IdentifierNotDefined { name: String },
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]
@@ -129,6 +135,9 @@ pub enum TypeError {
 
     #[error("return type must be {expected:?}, got {actual:?}")]
     ReturnTypeMismatch { expected: String, actual: String },
+
+    #[error("variable type must be {expected:?}, got {actual:?}")]
+    VariableTypeMismatch { expected: String, actual: String },
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]

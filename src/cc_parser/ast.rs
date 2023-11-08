@@ -255,12 +255,12 @@ pub struct Var {
     pub type_: Option<Type>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Fn {
     pub return_type: Box<Option<Type>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Eq)]
 pub enum Type {
     Self_,
     Struct,

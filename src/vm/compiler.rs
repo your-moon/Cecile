@@ -62,6 +62,7 @@ impl Display for Local {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Upvalue {
+    type_: Type,
     index: u8,
     is_local: bool,
 }
@@ -76,7 +77,12 @@ pub struct CompilerCell {
 }
 
 impl CompilerCell {
-    pub fn resolve_local(&mut self, name: &str, capture: bool, span: &Span) -> Result<Option<u8>> {
+    pub fn resolve_local(
+        &mut self,
+        name: &str,
+        capture: bool,
+        span: &Span,
+    ) -> Result<Option<(u8, Type)>> {
         match self
             .locals
             .iter_mut()
@@ -88,7 +94,10 @@ impl CompilerCell {
                     if capture {
                         local.is_captured = true;
                     }
-                    Ok(Some(idx.try_into().expect("local index overflow")))
+                    Ok(Some((
+                        idx.try_into().expect("local index overflow"),
+                        local.type_.clone(),
+                    )))
                 } else {
                     Err((
                         Error::NameError(NameError::AccessInsideInitializer {
@@ -102,15 +111,15 @@ impl CompilerCell {
         }
     }
 
-    pub fn resolve_upvalue(&mut self, name: &str, span: &Span) -> Result<Option<u8>> {
-        let local_idx = match &mut self.parent {
+    pub fn resolve_upvalue(&mut self, name: &str, span: &Span) -> Result<Option<(u8, Type)>> {
+        let local = match &mut self.parent {
             Some(parent) => parent.resolve_local(name, true, span)?,
             None => return Ok(None),
         };
 
-        if let Some(local_idx) = local_idx {
-            let upvalue_idx = self.add_upvalue(local_idx, true, span)?;
-            return Ok(Some(upvalue_idx));
+        if let Some((local_idx, local_type)) = local {
+            let upvalue_idx = self.add_upvalue(local_idx, local_type.clone(), true, span)?;
+            return Ok(Some((upvalue_idx, local_type)));
         };
 
         let upvalue_idx = match &mut self.parent {
@@ -118,18 +127,19 @@ impl CompilerCell {
             None => return Ok(None),
         };
 
-        if let Some(upvalue_idx) = upvalue_idx {
-            let upvalue_idx = self.add_upvalue(upvalue_idx, false, span)?;
-            return Ok(Some(upvalue_idx));
+        if let Some((upvalue_idx, upvalue_type)) = upvalue_idx {
+            let upvalue_idx = self.add_upvalue(upvalue_idx, upvalue_type.clone(), false, span)?;
+            return Ok(Some((upvalue_idx, upvalue_type)));
         };
 
         Ok(None)
     }
 
-    fn add_upvalue(&mut self, idx: u8, is_local: bool, span: &Span) -> Result<u8> {
+    fn add_upvalue(&mut self, idx: u8, type_: Type, is_local: bool, span: &Span) -> Result<u8> {
         let upvalue = Upvalue {
             index: idx,
             is_local,
+            type_,
         };
         let upvalue_idx = match self.upvalues.iter().position(|u| u == &upvalue) {
             Some(upvalue_idx) => upvalue_idx,
@@ -183,6 +193,7 @@ impl Compiler {
             structs: Vec::new(),
         }
     }
+
     pub fn compile(
         &mut self,
         source: &str,
@@ -286,7 +297,13 @@ impl Compiler {
         let found_struct = self.find_struct(&impl_.name);
 
         if !found_struct.is_some() {
-            println!("STRUCT NOT FOUND");
+            let result = Err((
+                Error::NameError(NameError::StructNameNotFound {
+                    name: impl_.name.clone(),
+                }),
+                range.clone(),
+            ));
+            return result;
         }
 
         let fields = found_struct.unwrap().fields.clone();
@@ -302,11 +319,12 @@ impl Compiler {
         }
 
         if self.is_global() {
+            self.globals
+                .insert(impl_.name.clone(), Type::Object(impl_.name.clone()));
             self.emit_u8(op::DEFINE_GLOBAL, range);
             self.write_constant(name, range);
         } else {
             self.declare_local(&impl_.name, &Type::Struct, &range)?;
-            // self.define_local();
         }
 
         if !impl_.methods.is_empty() {
@@ -318,7 +336,6 @@ impl Compiler {
                 } else {
                     FunctionType::Method
                 };
-                println!("type {:?}", type_);
                 self.compile_statement_fun((&method, span), type_, allocator)?;
 
                 let name = allocator.alloc(&method.name).into();
@@ -345,33 +362,32 @@ impl Compiler {
                 return result;
             }
             FunctionType::Function | FunctionType::Method => {
-                let func_type_ = unsafe { &(*self.current_compiler.function).return_type };
+                let func_return_type = unsafe { &(*self.current_compiler.function).return_type };
                 match &return_.value {
                     Some(value) => {
-                        let return_type = self.cp_expression(value, allocator)?;
-                        match func_type_ {
-                            Some(t) => {
+                        let return_stmt_type = self.cp_expression(value, allocator)?;
+                        match func_return_type {
+                            Some(fn_return_type) => {
                                 //if function that return function else check return type and
                                 //function's return type
-                                if return_type.is_both_fn(t) {
+                                if return_stmt_type.is_both_fn(fn_return_type) {
                                     self.emit_u8(op::RETURN, &range);
-                                    return Ok(return_type);
-                                } else if &return_type != t {
-                                    println!("return type = {return_type}");
+                                    return Ok(return_stmt_type);
+                                } else if &return_stmt_type != fn_return_type {
                                     let result = Err((
                                         Error::TypeError(TypeError::ReturnTypeMismatch {
-                                            expected: t.to_string(),
-                                            actual: return_type.to_string(),
+                                            expected: fn_return_type.to_string(),
+                                            actual: return_stmt_type.to_string(),
                                         }),
                                         range.clone(),
                                     ));
                                     return result;
                                 }
                                 self.emit_u8(op::RETURN, &range);
-                                return Ok(return_type);
+                                return Ok(return_stmt_type);
                             }
                             None => {
-                                if return_type != Type::Nil {
+                                if return_stmt_type != Type::Nil {
                                     let result = Err((
                                         Error::TypeError(TypeError::ReturnTypeMustBeNil),
                                         range.clone(),
@@ -379,28 +395,32 @@ impl Compiler {
                                     return result;
                                 }
                                 self.emit_u8(op::RETURN, &range);
-                                return Ok(return_type);
+                                return Ok(return_stmt_type);
                             }
                         }
                     }
+                    // when return_stmt_type is nil,
                     None => {
-                        match func_type_ {
-                            Some(t) => {
+                        match func_return_type {
+                            Some(fn_return_type) => {
                                 let result = Err((
                                     Error::TypeError(TypeError::ReturnTypeMismatch {
-                                        expected: t.to_string(),
+                                        expected: fn_return_type.to_string(),
                                         actual: Type::Nil.to_string(),
                                     }),
                                     range.clone(),
                                 ));
                                 return result;
                             }
-                            _ => {
+                            // both return_stmt_type and fn_return_type is nil
+                            None => {
                                 self.emit_u8(op::NIL, &range);
                                 self.emit_u8(op::RETURN, &range);
                             }
                         }
-                        return Ok(Type::UnInitialized);
+                        return Ok(Type::Fn(Fn {
+                            return_type: Box::new(Some(Type::Nil)),
+                        }));
                     }
                 }
             }
@@ -426,7 +446,6 @@ impl Compiler {
                     return Ok(Type::UnInitialized);
                 }
             },
-            _ => todo!(),
         }
     }
 
@@ -708,7 +727,7 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let (expr, range) = expr;
-        match expr {
+        let expr_type = match expr {
             Expression::Assign(assign) => self.compile_assign((assign, range), allocator),
             Expression::Prefix(prefix) => self.compile_prefix((prefix, range), allocator),
             Expression::Infix(infix) => self.compile_infix((infix, range), allocator),
@@ -718,7 +737,9 @@ impl Compiler {
             Expression::Get(get) => self.compile_get((get, range), allocator),
             Expression::Set(set) => self.compile_set((set, range), allocator),
             _ => todo!(),
-        }
+        }?;
+        println!("EXPR TYPE {:?}", expr_type);
+        Ok(expr_type)
     }
 
     fn compile_set(
@@ -805,13 +826,13 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let var_type = self.cp_expression(&assign.rhs, allocator)?;
-        if let Ok(Some(local_index)) =
+        if let Ok(Some((local_index, local_type))) =
             self.current_compiler
                 .resolve_local(&assign.lhs.name, false, &range)
         {
             self.emit_u8(op::SET_LOCAL, &range);
             self.emit_u8(local_index, &range);
-        } else if let Ok(Some(upvalue)) = self
+        } else if let Ok(Some((upvalue, upvalue_type))) = self
             .current_compiler
             .resolve_upvalue(&assign.lhs.name, &range)
         {
@@ -832,7 +853,7 @@ impl Compiler {
     ) -> Result<Type> {
         // Variable declaration left hand side expression, if it's not have expression variable
         // type is UnInitialized
-        let var_type = var
+        let value_var_type = var
             .value
             .as_ref()
             .map_or(Ok(Type::UnInitialized), |value| {
@@ -840,19 +861,61 @@ impl Compiler {
                 Ok(val_type)
             })?;
 
+        if var.var.type_.is_some() {
+            let var_type = var.var.type_.as_ref().unwrap();
+            match var_type {
+                Type::String | Type::Int | Type::Nil | Type::Bool | Type::Struct => {}
+                Type::Object(obj) => {
+                    let found_struct = self.find_struct(obj);
+                    if !found_struct.is_some() {
+                        let result = Err((
+                            Error::NameError(NameError::StructNameNotFound { name: obj.clone() }),
+                            range.clone(),
+                        ));
+                        return result;
+                    }
+                }
+                _ => todo!("type not implemented"),
+            }
+            println!("var type: {:?}", var_type);
+            if var_type != &value_var_type {
+                let result = Err((
+                    Error::TypeError(TypeError::VariableTypeMismatch {
+                        expected: var_type.to_string(),
+                        actual: value_var_type.to_string(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
+            }
+        }
+
         //Check if variable type is declared
         match &var.var.type_ {
-            Some(t) => match t {
-                Type::String | Type::Int => {
+            Some(type_) => match type_ {
+                Type::String | Type::Int | Type::Nil | Type::Bool | Type::Struct => {
                     let name = &var.var.name;
                     if self.is_global() {
                         let string = allocator.alloc(name);
-                        self.globals.insert(name.clone(), t.clone());
+                        self.globals.insert(name.clone(), type_.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
                         self.write_constant(string.into(), &range);
                         return Ok(Type::String);
                     } else {
-                        self.declare_local(name, &var_type, &range)?;
+                        self.declare_local(name, &value_var_type, &range)?;
+                        self.define_local();
+                    }
+                }
+                Type::Object(obj) => {
+                    let name = &var.var.name;
+                    if self.is_global() {
+                        let string = allocator.alloc(name);
+                        self.globals.insert(name.clone(), type_.clone());
+                        self.emit_u8(op::DEFINE_GLOBAL, &range);
+                        self.write_constant(string.into(), &range);
+                        return Ok(Type::String);
+                    } else {
+                        self.declare_local(name, &value_var_type, &range)?;
                         self.define_local();
                     }
                 }
@@ -863,34 +926,35 @@ impl Compiler {
                 let string = allocator.alloc(name);
                 //If variable type is not declared, left hand side expression type will be variable type
                 if self.is_global() {
-                    self.globals.insert(name.clone(), var_type.clone());
+                    self.globals.insert(name.clone(), value_var_type.clone());
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
                     self.write_constant(string.into(), &range);
                 } else {
                     //If variable type is not declared, left hand side expression type will be variable type
-                    self.declare_local(name, &var_type, &range)?;
+                    self.declare_local(name, &value_var_type, &range)?;
                     self.define_local();
                 }
             }
         }
-        Ok(var_type)
+        Ok(value_var_type)
     }
 
     fn get_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<Type> {
         if name == "self" && self.structs.is_empty() {
             return Err((SyntaxError::ThisOutsideClass.into(), span.clone()));
         }
-        if let Some(local_idx) = self.current_compiler.resolve_local(name, false, span)? {
+        if let Some((local_idx, local_type)) =
+            self.current_compiler.resolve_local(name, false, span)?
+        {
             self.emit_u8(op::GET_LOCAL, span);
             self.emit_u8(local_idx, span);
-            let expr_var_type = self.current_compiler.locals[local_idx as usize]
-                .type_
-                .clone();
-            return Ok(expr_var_type);
-        } else if let Some(upvalue_idx) = self.current_compiler.resolve_upvalue(name, span)? {
+            return Ok(local_type);
+        } else if let Some((upvalue_idx, upvalue_type)) =
+            self.current_compiler.resolve_upvalue(name, span)?
+        {
             self.emit_u8(op::GET_UPVALUE, span);
             self.emit_u8(upvalue_idx, span);
-            Ok(Type::UnInitialized)
+            return Ok(upvalue_type);
         } else {
             let allocated_name = gc.alloc(name);
             self.emit_u8(op::GET_GLOBAL, span);
@@ -898,10 +962,13 @@ impl Compiler {
             let type_ = self.globals.get(&name.to_string());
 
             let expr_var_type = match type_ {
-                Some(t) => t.clone(),
-                None => Type::UnInitialized,
+                Some(type_) => Ok(type_.clone()),
+                None => Err((
+                    Error::NameError(NameError::IdentifierNotDefined { name: name.into() }),
+                    span.clone(),
+                )),
             };
-            return Ok(expr_var_type);
+            return expr_var_type;
         }
     }
 

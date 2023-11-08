@@ -37,7 +37,7 @@ fn main() -> std::io::Result<()> {
         writeln!(&mut stdout, "Error: {:?}", e).expect("Failed to write to stdout");
     }
 
-    println!("Allocations: {:?}", allocator);
+    // println!("Allocations: {:?}", allocator);
     stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
     writeln!(&mut stdout, "Program exited successfully")?;
     return Ok(());
