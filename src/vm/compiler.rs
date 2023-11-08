@@ -2,7 +2,6 @@ use std::{fmt::Display, hash::BuildHasherDefault, mem, ops::Range};
 
 use arrayvec::ArrayVec;
 use hashbrown::HashMap;
-use std::fmt::Write;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
@@ -227,6 +226,7 @@ impl Compiler {
                 .disassemble("script")
         };
         stdout.set_color(ColorSpec::new().set_fg(Some(Color::Cyan)));
+
         println!("|--------------Virtual Machine--------------|");
         //reset color
         stdout.reset();
@@ -286,7 +286,7 @@ impl Compiler {
 
     fn compile_struct_stmt(
         &mut self,
-        (struct_, range): (&StatementStruct, &Range<usize>),
+        (struct_, _range): (&StatementStruct, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let name = allocator.alloc(&struct_.name);
@@ -766,37 +766,17 @@ impl Compiler {
             Expression::Call(call) => self.compile_call((call, range), allocator),
             Expression::Get(get) => self.compile_get((get, range), allocator),
             Expression::Set(set) => self.compile_set((set, range), allocator),
-            _ => todo!(),
         }?;
-        // println!("EXPR TYPE {:?}", expr_type);
         Ok(expr_type)
     }
 
-    fn compile_set(
+    fn find_struct_field_or_method_type(
         &mut self,
-        (set, range): (&Box<ExprSet>, &Range<usize>),
-        allocator: &mut CeAllocation,
+        struct_name: &Type,
+        check_field: String,
+        range: &Span,
     ) -> Result<Type> {
-        self.cp_expression(&set.value, allocator)?;
-        self.cp_expression(&set.object, allocator)?;
-        // if var_type != Type::Struct {
-        //     todo!("Only struct can use get");
-        // }
-        let name = allocator.alloc(&set.name);
-        self.emit_u8(op::SET_FIELD, &range);
-        self.write_constant(name.into(), &range);
-        Ok(Type::String)
-    }
-
-    fn compile_get(
-        &mut self,
-        (get, range): (&Box<ExprGet>, &Range<usize>),
-        allocator: &mut CeAllocation,
-    ) -> Result<Type> {
-        let var_type = self.cp_expression(&get.object, allocator)?;
-        println!("GET OBJECT TYPE: {:?}", var_type);
-
-        let field_type = match var_type {
+        let result_type = match struct_name {
             Type::Struct(strct) => {
                 let found_struct = self.find_struct(&strct);
                 if !found_struct.is_some() {
@@ -809,17 +789,20 @@ impl Compiler {
                     return result;
                 }
                 let found_struct = found_struct.unwrap();
-                let field = found_struct.fields.iter().find(|f| (*f.name) == get.name);
+                let field = found_struct
+                    .fields
+                    .iter()
+                    .find(|f| (*f.name) == check_field);
                 let strct_type = match field {
                     Some(field) => field.type_.clone(),
                     None => {
-                        let method = found_struct.methods.iter().find(|m| m.name == get.name);
+                        let method = found_struct.methods.iter().find(|m| m.name == check_field);
                         let method_type = match method {
                             Some(method) => method.return_type.clone(),
                             None => {
                                 let result = Err((
                                     Error::NameError(NameError::StructMethodNotFound {
-                                        name: get.name.clone(),
+                                        name: check_field.clone(),
                                         struct_name: strct.clone(),
                                     }),
                                     range.clone(),
@@ -834,14 +817,50 @@ impl Compiler {
             }
             _ => todo!("Only struct can use get"),
         };
+        return Ok(result_type);
+    }
 
-        // if var_type != Type::Struct {
-        //     todo!("Only struct can use get");
-        // }
+    fn compile_set(
+        &mut self,
+        (set, range): (&Box<ExprSet>, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        let value_type = self.cp_expression(&set.value, allocator)?;
+        let object_type = self.cp_expression(&set.object, allocator)?;
+
+        let field_type =
+            self.find_struct_field_or_method_type(&object_type, set.name.clone(), range)?;
+
+        if field_type != value_type {
+            let result = Err((
+                Error::TypeError(TypeError::SetTypeMisMatch {
+                    expected: object_type.to_string(),
+                    actual: value_type.to_string(),
+                }),
+                range.clone(),
+            ));
+            return result;
+        }
+        let name = allocator.alloc(&set.name);
+        self.emit_u8(op::SET_FIELD, &range);
+        self.write_constant(name.into(), &range);
+        Ok(field_type)
+    }
+
+    fn compile_get(
+        &mut self,
+        (get, range): (&Box<ExprGet>, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        let var_type = self.cp_expression(&get.object, allocator)?;
+        println!("GET OBJECT TYPE: {:?}", var_type);
+
+        let field_type =
+            self.find_struct_field_or_method_type(&var_type, get.name.clone(), range)?;
+
         let name = allocator.alloc(&get.name);
         self.emit_u8(op::GET_FIELD, &range);
-        self.emit_constant_w(name.into(), &range);
-        println!("COMPILE_GET TYPE {:?}", field_type);
+        self.emit_constant_w(name.into(), &range)?;
         return Ok(field_type);
     }
 
@@ -878,14 +897,12 @@ impl Compiler {
         }
 
         let ops = unsafe { &mut (*self.current_compiler.function).chunk.code };
-        let current_compiler_name = unsafe { (*(*self.current_compiler.function).name).value };
 
         match ops.len().checked_sub(2) {
             Some(idx) if ops[idx] == op::GET_FIELD => ops[idx] = op::INVOKE,
             // Some(idx) if ops[idx] == op::GET_SUPER => ops[idx] = op::SUPER_INVOKE,
             Some(_) | None => self.emit_u8(op::CALL, &range),
         }
-        println!("COMPILE TIME ARG COUNT: {:?}", arg_count);
         self.emit_u8(arg_count as u8, &range);
         Ok(callee_type)
     }
@@ -896,13 +913,13 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let var_type = self.cp_expression(&assign.rhs, allocator)?;
-        if let Ok(Some((local_index, local_type))) =
+        if let Ok(Some((local_index, _local_type))) =
             self.current_compiler
                 .resolve_local(&assign.lhs.name, false, &range)
         {
             self.emit_u8(op::SET_LOCAL, &range);
             self.emit_u8(local_index, &range);
-        } else if let Ok(Some((upvalue, upvalue_type))) = self
+        } else if let Ok(Some((upvalue, _upvalue_type))) = self
             .current_compiler
             .resolve_upvalue(&assign.lhs.name, &range)
         {
