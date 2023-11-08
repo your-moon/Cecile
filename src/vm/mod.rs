@@ -14,7 +14,7 @@ use std::hash::BuildHasherDefault;
 use std::{mem, ptr};
 
 use self::compiler::Compiler;
-use self::error::{AttributeError, Error, ErrorS, Result, TypeError};
+use self::error::{AttributeError, Error, ErrorS, OverflowError, Result, TypeError};
 use self::object::{
     BoundMethodObject, ClosureObject, InstanceObject, Native, ObjectFunction, ObjectNative,
     ObjectType, StructObject, UpvalueObject,
@@ -47,11 +47,15 @@ pub struct VM<'a> {
 impl<'a> VM<'a> {
     pub fn new(allocator: &'a mut CeAllocation) -> VM {
         let mut globals = HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
+
         let clock_string = allocator.alloc("clock");
         let random_number = allocator.alloc("random_number");
+
         let clock_native = allocator.alloc(ObjectNative::new(Native::Clock));
         let random_number_native = allocator.alloc(ObjectNative::new(Native::RandomNumber));
+
         let struct_init_method = allocator.alloc("new");
+
         globals.insert(clock_string, clock_native.into());
         globals.insert(random_number, random_number_native.into());
         VM {
@@ -171,11 +175,10 @@ impl<'a> VM<'a> {
             Some(&value) => self.call_value(value, arg_count),
             None => match unsafe { (*(*instance).struct_).methods.get(&name) } {
                 Some(&method) => self.call_closure(method, arg_count),
-                None => todo!(),
-                // None => self.err(AttributeError::NoSuchAttribute {
-                //     type_: unsafe { (*(*(*instance).struct_).name).value.to_string() },
-                //     name: unsafe { (*name).value.to_string() },
-                // }),
+                None => self.err(AttributeError::NoSuchAttribute {
+                    type_: unsafe { (*(*(*instance).struct_).name).value.to_string() },
+                    name: unsafe { (*name).value.to_string() },
+                }),
             },
         };
         Ok(())
@@ -348,11 +351,11 @@ impl<'a> VM<'a> {
     fn call(&mut self) -> Result<()> {
         let arg_count = self.read_u8() as usize;
         let callee = self.peek(arg_count);
-        self.call_value(unsafe { *callee }, arg_count as usize);
+        self.call_value(unsafe { *callee }, arg_count as usize)?;
         Ok(())
     }
 
-    fn call_value(&mut self, callee: Value, arg_count: usize) {
+    fn call_value(&mut self, callee: Value, arg_count: usize) -> Result<()> {
         if callee.is_object() {
             let object = callee.as_object();
             match object.type_() {
@@ -362,41 +365,52 @@ impl<'a> VM<'a> {
                     self.call_bound_method(unsafe { object.bound_method }, arg_count)
                 }
                 // ObjectType::Native => self.call_native(object, arg_count),
-                _ => todo!(),
+                _ => self.err(TypeError::NotCallable {
+                    type_: callee.type_().to_string(),
+                }),
             }
         } else {
-            todo!()
+            self.err(TypeError::NotCallable {
+                type_: callee.type_().to_string(),
+            })
         }
     }
 
-    fn call_bound_method(&mut self, method: *mut BoundMethodObject, arg_count: usize) {
+    fn call_bound_method(
+        &mut self,
+        method: *mut BoundMethodObject,
+        arg_count: usize,
+    ) -> Result<()> {
         unsafe { *self.peek(arg_count) = (*method).receiver.into() };
         self.call_closure(unsafe { (*method).method }, arg_count)
     }
 
-    fn call_struct(&mut self, cstruct: *mut StructObject, arg_count: usize) {
+    fn call_struct(&mut self, cstruct: *mut StructObject, arg_count: usize) -> Result<()> {
         let instance = self.alloc(InstanceObject::new(cstruct));
         unsafe { *self.peek(arg_count) = Value::from(instance) };
 
         match unsafe { (*cstruct).methods.get(&self.struct_init_method) } {
-            Some(&method) => {
-                self.call_closure(method, arg_count);
-            }
-            None => {
-                if arg_count != 0 {
-                    todo!()
-                }
-            }
+            Some(&method) => self.call_closure(method, arg_count),
+            None if arg_count != 0 => self.err(TypeError::ArityMisMatch {
+                expected: 0,
+                actual: arg_count,
+                name: unsafe { (*(*(*cstruct).name).value).to_string() },
+            }),
+            None => Ok(()),
         }
     }
 
-    fn call_closure(&mut self, closure: *mut ClosureObject, arg_count: usize) {
+    fn call_closure(&mut self, closure: *mut ClosureObject, arg_count: usize) -> Result<()> {
         let function = unsafe { &mut *(*closure).function };
-        // if arg_count != (*function).arity_count.into() {
-        //     todo!()
-        // }
+        if arg_count != (*function).arity_count.into() {
+            return self.err(TypeError::ArityMisMatch {
+                expected: (*function).arity_count.into(),
+                actual: arg_count,
+                name: unsafe { (*(*function).name).value }.to_string(),
+            });
+        }
         if self.frames.len() == FRAMES_MAX {
-            todo!()
+            return self.err(OverflowError::StackOverflow);
         }
         let frame = CallFrame {
             closure,
@@ -407,6 +421,7 @@ impl<'a> VM<'a> {
             self.frames
                 .push_unchecked(mem::replace(&mut self.frame, frame))
         };
+        Ok(())
     }
 
     fn capture_upvalue(&mut self, location: Value) -> *mut UpvalueObject {

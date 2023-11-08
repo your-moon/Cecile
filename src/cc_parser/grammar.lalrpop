@@ -260,7 +260,7 @@ Types: ast::Type = {
   type_int => ast::Type::Int,
   type_bool => ast::Type::Bool,
   "fn" => ast::Type::Fn(ast::Fn { return_type: Box::new(None) }),
-  <name:identifier> => ast::Type::Object(name)
+  <name:identifier> => ast::Type::Struct(name)
 }
 
 

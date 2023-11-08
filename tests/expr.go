@@ -1,15 +1,18 @@
-type Point {
-    x: int,
-    y: int
-
+type Pair {
+    first: String,
+    second: String
 }
 
-impl Point {
-    fn new(x: int, y: int) {
-        self.x = x;
-        self.y = y;
+impl Pair {
+    fn new() {
+    }
+
+    fn sum() -> String {
+        return self.first + self.second;
     }
 }
 
-let a: Point = nil; 
-println a.x;
+let a = Pair();
+a.first = "Wow";
+a.second = " Cool";
+println a.sum();

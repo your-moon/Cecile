@@ -263,13 +263,12 @@ pub struct Fn {
 #[derive(Clone, Debug, PartialEq, Default, Eq)]
 pub enum Type {
     Self_,
-    Struct,
+    Struct(String),
     Fn(Fn),
     Nil,
     String,
     Bool,
     Int,
-    Object(String),
     #[default]
     UnInitialized,
 }
@@ -298,8 +297,7 @@ impl Display for Type {
             Type::String => "String".to_string(),
             Type::Bool => "Bool".to_string(),
             Type::Int => "Int".to_string(),
-            Type::Object(name) => format!("Object({:?})", name),
-            Type::Struct => "Struct".to_string(),
+            Type::Struct(name) => format!("Struct({:?})", name),
             Type::UnInitialized => "UnInitialized".to_string(),
             Type::Self_ => "Self".to_string(),
         };

@@ -160,21 +160,30 @@ impl CompilerCell {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct StructCell {
     name: *mut StringObject,
     fields: Vec<Field>,
+    methods: Vec<StructMethod>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StructMethod {
+    name: String,
+    return_type: Type,
 }
 
 pub struct Compiler {
     pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
     pub current_compiler: CompilerCell,
+    pub current_struct: Option<String>,
     pub structs: Vec<StructCell>,
 }
 
 impl Compiler {
-    pub fn find_struct(&self, name: &str) -> Option<&StructCell> {
+    pub fn find_struct(&mut self, name: &str) -> Option<&mut StructCell> {
         self.structs
-            .iter()
+            .iter_mut()
             .find(|s| unsafe { (*s.name).value } == name)
     }
 
@@ -191,6 +200,7 @@ impl Compiler {
             },
             globals: HashMap::default(),
             structs: Vec::new(),
+            current_struct: None,
         }
     }
 
@@ -282,9 +292,13 @@ impl Compiler {
         let name = allocator.alloc(&struct_.name);
         let fields = struct_.fields.clone();
 
-        self.structs.push(StructCell { name, fields });
+        self.structs.push(StructCell {
+            name,
+            fields,
+            methods: Vec::new(),
+        });
 
-        Ok(Type::Struct)
+        Ok(Type::Struct(struct_.name.clone()))
     }
 
     fn compile_impl_stmt(
@@ -293,6 +307,7 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let has_super = impl_.super_.is_some();
+        self.current_struct = Some(impl_.name.clone());
 
         let found_struct = self.find_struct(&impl_.name);
 
@@ -306,7 +321,8 @@ impl Compiler {
             return result;
         }
 
-        let fields = found_struct.unwrap().fields.clone();
+        let fields = found_struct.as_ref().unwrap().fields.clone();
+        let methods = impl_.methods.clone();
 
         let name = allocator.alloc(&impl_.name).into();
         self.emit_u8(op::STRUCT, &range);
@@ -320,16 +336,16 @@ impl Compiler {
 
         if self.is_global() {
             self.globals
-                .insert(impl_.name.clone(), Type::Object(impl_.name.clone()));
+                .insert(impl_.name.clone(), Type::Struct(impl_.name.clone()));
             self.emit_u8(op::DEFINE_GLOBAL, range);
             self.write_constant(name, range);
         } else {
-            self.declare_local(&impl_.name, &Type::Struct, &range)?;
+            self.declare_local(&impl_.name, &Type::Struct(impl_.name.clone()), &range)?;
         }
 
         if !impl_.methods.is_empty() {
             self.get_variable(&impl_.name, &range, allocator)?;
-            for (method, span) in &impl_.methods {
+            for (method, span) in &methods {
                 let method = method.as_fun().unwrap();
                 let type_ = if method.name == "new" {
                     FunctionType::Initializer
@@ -341,11 +357,23 @@ impl Compiler {
                 let name = allocator.alloc(&method.name).into();
                 self.emit_u8(op::METHOD, span);
                 self.write_constant(name, span);
+
+                let strct_method = StructMethod {
+                    name: method.name.clone(),
+                    return_type: Type::Fn(Fn {
+                        return_type: Box::new(method.return_type.clone()),
+                    }),
+                };
+
+                let found_struct = self.find_struct(&impl_.name).unwrap();
+                found_struct.methods.push(strct_method);
             }
             self.emit_u8(op::POP, &range);
         }
 
-        Ok(Type::Struct)
+        self.current_struct = None;
+
+        Ok(Type::Struct(impl_.name.clone()))
     }
 
     fn compile_statement_return(
@@ -485,6 +513,7 @@ impl Compiler {
         //         &range,
         //     ),
         // }?;
+        //
 
         match type_ {
             FunctionType::Script => {
@@ -503,7 +532,8 @@ impl Compiler {
                 &range,
             )?,
             FunctionType::Initializer | FunctionType::Method => {
-                self.declare_local("self", &Type::Self_, &range)?;
+                let current_struct = self.current_struct.clone().unwrap();
+                self.declare_local("self", &Type::Struct(current_struct), &range)?;
                 // self.declare_local(
                 //     &func.name,
                 //     &Type::Fn(Fn {
@@ -738,7 +768,7 @@ impl Compiler {
             Expression::Set(set) => self.compile_set((set, range), allocator),
             _ => todo!(),
         }?;
-        println!("EXPR TYPE {:?}", expr_type);
+        // println!("EXPR TYPE {:?}", expr_type);
         Ok(expr_type)
     }
 
@@ -764,13 +794,55 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let var_type = self.cp_expression(&get.object, allocator)?;
+        println!("GET OBJECT TYPE: {:?}", var_type);
+
+        let field_type = match var_type {
+            Type::Struct(strct) => {
+                let found_struct = self.find_struct(&strct);
+                if !found_struct.is_some() {
+                    let result = Err((
+                        Error::NameError(NameError::StructNameNotFound {
+                            name: strct.clone(),
+                        }),
+                        range.clone(),
+                    ));
+                    return result;
+                }
+                let found_struct = found_struct.unwrap();
+                let field = found_struct.fields.iter().find(|f| (*f.name) == get.name);
+                let strct_type = match field {
+                    Some(field) => field.type_.clone(),
+                    None => {
+                        let method = found_struct.methods.iter().find(|m| m.name == get.name);
+                        let method_type = match method {
+                            Some(method) => method.return_type.clone(),
+                            None => {
+                                let result = Err((
+                                    Error::NameError(NameError::StructMethodNotFound {
+                                        name: get.name.clone(),
+                                        struct_name: strct.clone(),
+                                    }),
+                                    range.clone(),
+                                ));
+                                return result;
+                            }
+                        };
+                        method_type
+                    }
+                };
+                strct_type
+            }
+            _ => todo!("Only struct can use get"),
+        };
+
         // if var_type != Type::Struct {
         //     todo!("Only struct can use get");
         // }
         let name = allocator.alloc(&get.name);
         self.emit_u8(op::GET_FIELD, &range);
         self.emit_constant_w(name.into(), &range);
-        Ok(Type::String)
+        println!("COMPILE_GET TYPE {:?}", field_type);
+        return Ok(field_type);
     }
 
     fn compile_call(
@@ -807,8 +879,6 @@ impl Compiler {
 
         let ops = unsafe { &mut (*self.current_compiler.function).chunk.code };
         let current_compiler_name = unsafe { (*(*self.current_compiler.function).name).value };
-        println!("current compiler name: {:?}", current_compiler_name);
-        println!("op code: {:?}", &ops.len().checked_sub(2));
 
         match ops.len().checked_sub(2) {
             Some(idx) if ops[idx] == op::GET_FIELD => ops[idx] = op::INVOKE,
@@ -864,12 +934,14 @@ impl Compiler {
         if var.var.type_.is_some() {
             let var_type = var.var.type_.as_ref().unwrap();
             match var_type {
-                Type::String | Type::Int | Type::Nil | Type::Bool | Type::Struct => {}
-                Type::Object(obj) => {
-                    let found_struct = self.find_struct(obj);
+                Type::String | Type::Int | Type::Nil | Type::Bool => {}
+                Type::Struct(strct) => {
+                    let found_struct = self.find_struct(strct);
                     if !found_struct.is_some() {
                         let result = Err((
-                            Error::NameError(NameError::StructNameNotFound { name: obj.clone() }),
+                            Error::NameError(NameError::StructNameNotFound {
+                                name: strct.clone(),
+                            }),
                             range.clone(),
                         ));
                         return result;
@@ -893,27 +965,37 @@ impl Compiler {
         //Check if variable type is declared
         match &var.var.type_ {
             Some(type_) => match type_ {
-                Type::String | Type::Int | Type::Nil | Type::Bool | Type::Struct => {
+                Type::String | Type::Int | Type::Nil | Type::Bool => {
                     let name = &var.var.name;
                     if self.is_global() {
                         let string = allocator.alloc(name);
                         self.globals.insert(name.clone(), type_.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
                         self.write_constant(string.into(), &range);
-                        return Ok(Type::String);
+                        // return Ok(Type::String);
                     } else {
                         self.declare_local(name, &value_var_type, &range)?;
                         self.define_local();
                     }
                 }
-                Type::Object(obj) => {
+                Type::Struct(strct) => {
+                    let found_struct = self.find_struct(strct);
+                    if !found_struct.is_some() {
+                        let result = Err((
+                            Error::NameError(NameError::StructNameNotFound {
+                                name: strct.clone(),
+                            }),
+                            range.clone(),
+                        ));
+                        return result;
+                    }
                     let name = &var.var.name;
                     if self.is_global() {
                         let string = allocator.alloc(name);
                         self.globals.insert(name.clone(), type_.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
                         self.write_constant(string.into(), &range);
-                        return Ok(Type::String);
+                        // return Ok(Type::String);
                     } else {
                         self.declare_local(name, &value_var_type, &range)?;
                         self.define_local();
@@ -1021,7 +1103,9 @@ impl Compiler {
     ) -> Result<Type> {
         let (infix, range) = infix;
         let lhs_type = self.cp_expression(&(infix.lhs), allocator)?;
+        println!("LHS TYPE: {:?}", lhs_type);
         let rhs_type = self.cp_expression(&(infix.rhs), allocator)?;
+        println!("RHS TYPE: {:?}", rhs_type);
 
         let return_type = lhs_type.clone();
 

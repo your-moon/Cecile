@@ -71,6 +71,9 @@ pub enum NameError {
     #[error("struct {name} is not defined")]
     StructNameNotFound { name: String },
 
+    #[error("struct {struct_name} has no method {name}")]
+    StructMethodNotFound { name: String, struct_name: String },
+
     #[error("identifier {name} is not defined")]
     IdentifierNotDefined { name: String },
 }
@@ -112,6 +115,13 @@ pub enum SyntaxError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum TypeError {
+    #[error("arity expected {expected:?}, got {actual:?} name: {name:?}")]
+    ArityMisMatch {
+        expected: usize,
+        actual: usize,
+        name: String,
+    },
+
     #[error("condition must be boolean")]
     CondMustbeBoolean,
 
@@ -138,6 +148,9 @@ pub enum TypeError {
 
     #[error("variable type must be {expected:?}, got {actual:?}")]
     VariableTypeMismatch { expected: String, actual: String },
+
+    #[error("cannot call {type_}")]
+    NotCallable { type_: String },
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]
