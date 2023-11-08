@@ -553,8 +553,26 @@ impl Compiler {
                 Some(t) => match t {
                     // TODO Add more type
                     Type::String | Type::Int => self.declare_local(&param_string, &t, &range)?,
+                    Type::Struct(name) => {
+                        let found_struct = self.find_struct(name);
+                        match found_struct {
+                            Some(struct_) => {
+                                self.declare_local(&param_string, &t, &range)?;
+                            }
+                            None => {
+                                let result = Err((
+                                    Error::NameError(NameError::StructNameNotFound {
+                                        name: name.clone(),
+                                    }),
+                                    range.clone(),
+                                ));
+                                return result;
+                            }
+                        }
+                    }
                     _ => todo!("type not implemented"),
                 },
+                //TODO identify param type
                 None => self.declare_local(&param_string, &Type::UnInitialized, &range)?,
             }
             self.define_local();
@@ -853,10 +871,10 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let var_type = self.cp_expression(&get.object, allocator)?;
-        println!("GET OBJECT TYPE: {:?}", var_type);
 
         let field_type =
             self.find_struct_field_or_method_type(&var_type, get.name.clone(), range)?;
+        println!("GET OBJECT TYPE: {:?}", field_type);
 
         let name = allocator.alloc(&get.name);
         self.emit_u8(op::GET_FIELD, &range);
@@ -889,6 +907,7 @@ impl Compiler {
             callee_type
         };
 
+        println!("CALLEE TYPE: {:?}", callee_type);
         // if callee_type != Type::Object {
         //     todo!("Can only call functions and classes");
         // }

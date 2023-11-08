@@ -4,7 +4,9 @@ type Pair {
 }
 
 impl Pair {
-    fn new() {
+    fn new(a: String, b: String) {
+        self.first = a;
+        self.second = b;
     }
 
     fn sum() -> String {
@@ -12,7 +14,10 @@ impl Pair {
     }
 }
 
-let a = Pair();
-a.first = "Wow";
-a.second = " Cool";
-println a.sum();
+fn print_pair(s: Pair) {
+    println s.sum();
+}
+
+let a = Pair("Wow", " Cool");
+
+print_pair(a);
