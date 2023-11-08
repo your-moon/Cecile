@@ -21,6 +21,7 @@ pub union Object {
     pub upvalue: *mut UpvalueObject,
     pub cstruct: *mut StructObject,
     pub instance: *mut InstanceObject,
+    pub bound_method: *mut BoundMethodObject,
 }
 
 impl Object {
@@ -50,6 +51,9 @@ impl Object {
             }
             ObjectType::Instance => {
                 let _free = unsafe { Box::from_raw(self.instance) };
+            }
+            ObjectType::BoundMethod => {
+                let _free = unsafe { Box::from_raw(self.bound_method) };
             }
         };
     }
@@ -81,6 +85,9 @@ impl Display for Object {
                     (*(*(*self.instance).struct_).name).value
                 })
             }
+            ObjectType::BoundMethod => write!(f, "<bound method {}>", unsafe {
+                (*(*(*(*self.bound_method).method).function).name).value
+            }),
         }
     }
 }
@@ -102,6 +109,7 @@ impl_from_object!(closure, ClosureObject);
 impl_from_object!(upvalue, UpvalueObject);
 impl_from_object!(cstruct, StructObject);
 impl_from_object!(instance, InstanceObject);
+impl_from_object!(bound_method, BoundMethodObject);
 
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
@@ -119,6 +127,7 @@ pub enum ObjectType {
     Upvalue,
     Struct,
     Instance,
+    BoundMethod,
 }
 
 impl Display for ObjectType {
@@ -131,6 +140,7 @@ impl Display for ObjectType {
             Self::Upvalue => write!(f, "{}", "upvalue"),
             Self::Struct => write!(f, "{}", "struct"),
             Self::Instance => write!(f, "{}", "instance"),
+            Self::BoundMethod => write!(f, "{}", "bound_method"),
         }
     }
 }
@@ -284,6 +294,27 @@ impl InstanceObject {
             },
             struct_,
             fields: HashMap::default(),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct BoundMethodObject {
+    pub common: MainObject,
+    pub receiver: *mut InstanceObject,
+    pub method: *mut ClosureObject,
+}
+
+impl BoundMethodObject {
+    pub fn new(receiver: *mut InstanceObject, method: *mut ClosureObject) -> Self {
+        Self {
+            common: MainObject {
+                type_: ObjectType::BoundMethod,
+                is_marked: false,
+            },
+            receiver,
+            method,
         }
     }
 }

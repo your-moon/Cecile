@@ -16,8 +16,8 @@ use std::{mem, ptr};
 use self::compiler::Compiler;
 use self::error::{AttributeError, Error, ErrorS, Result, TypeError};
 use self::object::{
-    ClosureObject, InstanceObject, Native, ObjectFunction, ObjectNative, ObjectType, StructObject,
-    UpvalueObject,
+    BoundMethodObject, ClosureObject, InstanceObject, Native, ObjectFunction, ObjectNative,
+    ObjectType, StructObject, UpvalueObject,
 };
 pub mod chunk;
 pub mod compiler;
@@ -96,6 +96,7 @@ impl<'a> VM<'a> {
             (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
+                op::INVOKE => self.invoke(),
                 op::SET_FIELD => self.set_field(),
                 op::GET_FIELD => self.get_field(),
                 op::FIELD => self.field(),
@@ -161,6 +162,24 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    fn invoke(&mut self) -> Result<()> {
+        let name = unsafe { self.read_constant().as_object().string };
+        let arg_count = self.read_u8() as usize;
+        let instance = unsafe { (*self.peek(arg_count)).as_object().instance };
+
+        match unsafe { (*instance).fields.get(&name) } {
+            Some(&value) => self.call_value(value, arg_count),
+            None => match unsafe { (*(*instance).struct_).methods.get(&name) } {
+                Some(&method) => self.call_closure(method, arg_count),
+                None => todo!(),
+                // None => self.err(AttributeError::NoSuchAttribute {
+                //     type_: unsafe { (*(*(*instance).struct_).name).value.to_string() },
+                //     name: unsafe { (*name).value.to_string() },
+                // }),
+            },
+        };
+        Ok(())
+    }
     fn set_field(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let instance = {
@@ -200,13 +219,16 @@ impl<'a> VM<'a> {
         let value = unsafe { (*(*instance).struct_).fields.get(&name) };
         match value {
             Some(&value) => {
+                self.pop();
                 self.push_to_stack(value);
             }
             None => {
                 let method = unsafe { (*(*instance).struct_).methods.get(&name) };
                 match method {
                     Some(&method) => {
-                        self.call_closure(method, 0);
+                        let bound_method = self.alloc(BoundMethodObject::new(instance, method));
+                        self.pop();
+                        self.push_to_stack(bound_method.into());
                     }
                     None => {
                         return self.err(AttributeError::NoSuchAttribute {
@@ -336,12 +358,20 @@ impl<'a> VM<'a> {
             match object.type_() {
                 ObjectType::Closure => self.call_closure(unsafe { object.closure }, arg_count),
                 ObjectType::Struct => self.call_struct(unsafe { object.cstruct }, arg_count),
+                ObjectType::BoundMethod => {
+                    self.call_bound_method(unsafe { object.bound_method }, arg_count)
+                }
                 // ObjectType::Native => self.call_native(object, arg_count),
                 _ => todo!(),
             }
         } else {
             todo!()
         }
+    }
+
+    fn call_bound_method(&mut self, method: *mut BoundMethodObject, arg_count: usize) {
+        unsafe { *self.peek(arg_count) = (*method).receiver.into() };
+        self.call_closure(unsafe { (*method).method }, arg_count)
     }
 
     fn call_struct(&mut self, cstruct: *mut StructObject, arg_count: usize) {
@@ -362,9 +392,11 @@ impl<'a> VM<'a> {
 
     fn call_closure(&mut self, closure: *mut ClosureObject, arg_count: usize) {
         let function = unsafe { &mut *(*closure).function };
-        if arg_count != (*function).arity_count.into() {
-            todo!()
-        }
+        println!("arg_count {:?}", arg_count);
+        println!("arity_count {:?}", (*function).arity_count);
+        // if arg_count != (*function).arity_count.into() {
+        //     todo!()
+        // }
         if self.frames.len() == FRAMES_MAX {
             todo!()
         }

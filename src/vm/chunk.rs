@@ -1,11 +1,15 @@
+use arrayvec::ArrayVec;
+
 use crate::cc_parser::ast::Span;
 use crate::vm::op;
 use crate::vm::value::Value;
 
+use super::error::{OverflowError, Result};
+
 #[derive(Debug, Clone, Default)]
 pub struct Chunk {
     pub code: Vec<u8>,
-    pub constants: Vec<Value>,
+    pub constants: ArrayVec<Value, 256>,
     pub spans: Vec<Span>,
 }
 
@@ -13,7 +17,7 @@ impl Chunk {
     pub fn new() -> Chunk {
         Chunk {
             code: Vec::new(),
-            constants: Vec::new(),
+            constants: ArrayVec::new(),
             spans: Vec::new(),
         }
     }
@@ -29,8 +33,9 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
-            op::SET_FIELD => self.code_byte("SET_FIELD", offset),
-            op::GET_FIELD => self.code_byte("GET_FIELD", offset),
+            op::INVOKE => self.debug_op_invoke("INVOKE", offset),
+            op::SET_FIELD => self.constant_instruction("SET_FIELD", offset),
+            op::GET_FIELD => self.constant_instruction("GET_FIELD", offset),
             op::FIELD => self.code_byte("FIELD", offset),
             op::STRUCT => self.code_byte("STRUCT", offset),
             op::CLOSE_UPVALUE => self.simple_instruction("CLOSE_UPVALUE", offset),
@@ -110,6 +115,14 @@ impl Chunk {
             }
         }
     }
+    fn debug_op_invoke(&self, name: &str, idx: usize) -> usize {
+        let constant_idx = self.code[idx + 1];
+        let constant = &self.constants[constant_idx as usize];
+        let arg_count = self.code[idx + 2];
+        eprintln!("{name:16} ({arg_count} args) {constant_idx:>4} '{constant}'");
+        idx + 3
+    }
+
     fn code_byte(&self, name: &str, idx: usize) -> usize {
         let byte = self.code[idx + 1];
         println!("{name:16} {byte:>4}");
@@ -143,7 +156,7 @@ impl Chunk {
         offset + 2
     }
 
-    pub fn emit_u8(&mut self, byte: u8, span: &Span) {
+    pub fn write_u8(&mut self, byte: u8, span: &Span) {
         self.code.push(byte);
         self.spans.push(span.clone());
     }
@@ -154,14 +167,30 @@ impl Chunk {
     /// [CECILE_CONSTANT, index]
     pub fn emit_constant(&mut self, value: Value, span: &Span) {
         let index = self.constants.len() as u8;
-        self.emit_u8(op::CECILE_CONSTANT, span);
-        self.emit_u8(index, span);
+        self.write_u8(op::CECILE_CONSTANT, span);
+        self.write_u8(index, span);
         self.constants.push(value);
     }
 
     pub fn write_constant(&mut self, value: Value, span: &Span) {
         let index = self.constants.len() as u8;
-        self.emit_u8(index, span);
+        self.write_u8(index, span);
         self.constants.push(value);
+    }
+    pub fn write_constant_w(&mut self, value: Value, span: &Span) -> Result<u8> {
+        let idx = match self
+            .constants
+            .iter()
+            .position(|&constant| constant == value)
+        {
+            Some(idx) => idx,
+            None => {
+                self.constants
+                    .try_push(value)
+                    .map_err(|_| (OverflowError::TooManyConstants.into(), span.clone()))?;
+                self.constants.len() - 1
+            }
+        };
+        Ok(idx.try_into().expect("constant index overflow"))
     }
 }

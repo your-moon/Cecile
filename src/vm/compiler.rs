@@ -438,6 +438,7 @@ impl Compiler {
     ) -> Result<Type> {
         let name = allocator.alloc(&func.name);
         let arity_count = func.params.len() as u8;
+        println!("COMPILE FUN: {:?}", arity_count);
 
         let cell = CompilerCell {
             function: allocator.alloc(ObjectFunction::new(
@@ -747,7 +748,7 @@ impl Compiler {
         // }
         let name = allocator.alloc(&get.name);
         self.emit_u8(op::GET_FIELD, &range);
-        self.write_constant(name.into(), &range);
+        self.emit_constant_w(name.into(), &range);
         Ok(Type::String)
     }
 
@@ -783,7 +784,17 @@ impl Compiler {
             self.cp_expression(&arg, allocator)?;
         }
 
-        self.emit_u8(op::CALL, &range);
+        let ops = unsafe { &mut (*self.current_compiler.function).chunk.code };
+        let current_compiler_name = unsafe { (*(*self.current_compiler.function).name).value };
+        println!("current compiler name: {:?}", current_compiler_name);
+        println!("op code: {:?}", &ops.len().checked_sub(2));
+
+        match ops.len().checked_sub(2) {
+            Some(idx) if ops[idx] == op::GET_FIELD => ops[idx] = op::INVOKE,
+            // Some(idx) if ops[idx] == op::GET_SUPER => ops[idx] = op::SUPER_INVOKE,
+            Some(_) | None => self.emit_u8(op::CALL, &range),
+        }
+        println!("COMPILE TIME ARG COUNT: {:?}", arg_count);
         self.emit_u8(arg_count as u8, &range);
         Ok(callee_type)
     }
@@ -1131,9 +1142,19 @@ impl Compiler {
         Ok(())
     }
 
+    fn emit_constant_w(&mut self, value: Value, span: &Span) -> Result<()> {
+        let constant_idx = unsafe {
+            (*self.current_compiler.function)
+                .chunk
+                .write_constant_w(value, span)?
+        };
+        self.emit_u8(constant_idx, span);
+        Ok(())
+    }
+
     fn emit_u8(&mut self, byte: u8, span: &Span) {
         unsafe {
-            (*self.current_compiler.function).chunk.emit_u8(byte, span);
+            (*self.current_compiler.function).chunk.write_u8(byte, span);
         }
     }
 

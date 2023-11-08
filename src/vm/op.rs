@@ -42,7 +42,9 @@ iota! {
     STRUCT,
     FIELD,
     GET_FIELD,
-    SET_FIELD
+    SET_FIELD,
+    INVOKE
+
 
 
 }

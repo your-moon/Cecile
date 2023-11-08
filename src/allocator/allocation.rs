@@ -53,6 +53,7 @@ impl CeAllocation {
                 }
                 ObjectType::Struct => {}
                 ObjectType::Instance => {}
+                ObjectType::BoundMethod => {}
             }
         }
     }
