@@ -141,7 +141,23 @@ pub enum Expression {
     Var(ExprVar),
     Get(Box<ExprGet>),
     Set(Box<ExprSet>),
+    Super(ExprSuper),
     // Struct(Box<ExprStruct>),
+}
+
+impl Expression {
+    pub fn as_var(&self) -> Option<ExprVar> {
+        match self {
+            Expression::Var(var) => Some(var.clone()),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprSuper {
+    pub super_: Var,
+    pub name: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]

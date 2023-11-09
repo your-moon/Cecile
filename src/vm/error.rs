@@ -1,5 +1,3 @@
-use std::default;
-
 use crate::cc_parser::ast::Spanned;
 use thiserror::Error;
 
@@ -76,6 +74,12 @@ pub enum NameError {
 
     #[error("identifier {name} is not defined")]
     IdentifierNotDefined { name: String },
+
+    #[error("struct cannot inherit from itself")]
+    StructInheritFromItSelf { name: String },
+
+    #[error("struct {name} has no super class")]
+    StructHasNoSuper { name: String },
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]

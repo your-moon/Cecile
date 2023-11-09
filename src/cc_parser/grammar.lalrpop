@@ -169,6 +169,7 @@ ExprAssign = {
         <object:Spanned<ExprCall>> "." <name:identifier> "=" <value:ExprS> =>
         ast::Expression::Set(Box::new(ast::ExprSet { <> })),
 
+
     ExprLogicOr,
 }
 
@@ -223,6 +224,14 @@ ExprCall: ast::Expression = {
       ast::Expression::Call(Box::new(ast::ExprCall { callee, args })),
     <object:Spanned<ExprCall>> "." <name:identifier> =>
         ast::Expression::Get(Box::new(ast::ExprGet { <> })),
+    "super" "." <name:identifier> =>
+        ast::Expression::Super(ast::ExprSuper {
+            super_: ast::Var {
+                name: "super".to_string(),
+                type_: None,
+            },
+            name,
+        }),
       ExprPrimary
 }
 
@@ -300,6 +309,7 @@ extern {
     "fn" => Token::Fn,
     "impl" => Token::Impl,
     "self" => Token::Self_,
+    "super" => Token::Super,
 
     // Literals
     string => Token::String(<String>),

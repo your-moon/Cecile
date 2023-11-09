@@ -100,6 +100,9 @@ impl<'a> VM<'a> {
             (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
+                op::GET_SUPER => self.get_super(),
+                op::INHERIT => self.op_inherit(),
+                op::SUPER_INVOKE => self.super_invoke(),
                 op::INVOKE => self.invoke(),
                 op::SET_FIELD => self.set_field(),
                 op::GET_FIELD => self.get_field(),
@@ -137,7 +140,7 @@ impl<'a> VM<'a> {
                 op::TRUE => self.op_true(),
                 op::FALSE => self.op_false(),
                 op::NIL => self.op_nil(),
-                // op::CLOSE_UPVALUE => self.close_upvalue(),
+                op::CLOSE_UPVALUE => self.close_upvalue(),
                 op::POP => self.op_pop(),
 
                 op::RETURN => {
@@ -163,6 +166,61 @@ impl<'a> VM<'a> {
             }
             println!();
         }
+        Ok(())
+    }
+
+    fn get_super(&mut self) -> Result<()> {
+        let name = unsafe { self.read_constant().as_object().string };
+        let super_ = unsafe { self.pop().as_object().cstruct };
+        match unsafe { (*super_).methods.get(&name) } {
+            Some(&method) => {
+                let instance = unsafe { (*self.peek(0)).as_object().instance };
+                let bound_method = self.alloc(BoundMethodObject::new(instance, method));
+                self.pop();
+                self.push_to_stack(bound_method.into());
+            }
+            None => {
+                return self.err(AttributeError::NoSuchAttribute {
+                    type_: unsafe { (*(*super_).name).value.to_string() },
+                    name: unsafe { (*name).value.to_string() },
+                });
+            }
+        }
+        Ok(())
+    }
+
+    fn op_inherit(&mut self) -> Result<()> {
+        let cstruct = unsafe { self.pop().as_object().cstruct };
+        let super_ = {
+            let value = unsafe { *self.peek(0) };
+            let object = value.as_object();
+
+            if value.is_object() && object.type_() == ObjectType::Struct {
+                unsafe { object.cstruct }
+            } else {
+                return self.err(TypeError::NotCallable {
+                    type_: value.type_().to_string(),
+                });
+            }
+        };
+
+        unsafe { (*cstruct).methods = (*super_).methods.clone() };
+        Ok(())
+    }
+
+    fn super_invoke(&mut self) -> Result<()> {
+        let name = unsafe { self.read_constant().as_object().string };
+        let arg_count = self.read_u8() as usize;
+        let super_ = unsafe { self.pop().as_object().cstruct };
+        let instance = unsafe { (*self.peek(arg_count)).as_object().instance };
+
+        match unsafe { (*super_).methods.get(&name) } {
+            Some(&method) => self.call_closure(method, arg_count),
+            None => self.err(AttributeError::NoSuchAttribute {
+                type_: unsafe { (*(*super_).name).value.to_string() },
+                name: unsafe { (*name).value.to_string() },
+            }),
+        };
         Ok(())
     }
 
@@ -289,17 +347,18 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn close_upvalue(&mut self, last: Value) {
-        let mut idx = 0;
-        while idx < self.open_upvalues.len() {
-            let upvalue = unsafe { *self.open_upvalues.get_unchecked(idx) };
-            if unsafe { (*upvalue).value } >= last {
-                unsafe { (*upvalue).value = (*upvalue).value };
-                self.open_upvalues.remove(idx);
-            } else {
-                idx += 1;
-            }
-        }
+    fn close_upvalue(&mut self) -> Result<()> {
+        let last = self.pop();
+        // let last = self.peek(0);
+        // while let Some(upvalue) = self.open_upvalues.pop() {
+        //     let location = unsafe { (*upvalue).value };
+        //     if location < last {
+        //         unsafe { (*upvalue).value = location };
+        //     } else {
+        //         unsafe { (*upvalue).value = last };
+        //     }
+        // }
+        Ok(())
     }
 
     fn set_upvalue(&mut self) -> Result<()> {

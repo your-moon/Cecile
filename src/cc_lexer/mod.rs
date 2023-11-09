@@ -41,6 +41,9 @@ pub enum Token {
     #[token("fn")]
     Fn,
 
+    #[token("super")]
+    Super,
+
     #[token("return")]
     Return,
 

@@ -5,7 +5,7 @@ use hashbrown::HashMap;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
-use crate::cc_parser::ast::{ExprGet, ExprSet, Field, StatementImpl, StatementStruct};
+use crate::cc_parser::ast::{ExprGet, ExprSet, ExprSuper, Field, StatementImpl, StatementStruct};
 use crate::vm::error::NameError;
 use crate::{
     allocator::allocation::CeAllocation,
@@ -164,6 +164,7 @@ pub struct StructCell {
     name: *mut StringObject,
     fields: Vec<Field>,
     methods: Vec<StructMethod>,
+    has_super: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -180,7 +181,13 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn find_struct(&mut self, name: &str) -> Option<&mut StructCell> {
+    pub fn find_struct(&self, name: &str) -> Option<&StructCell> {
+        self.structs
+            .iter()
+            .find(|s| unsafe { (*s.name).value } == name)
+    }
+
+    pub fn find_struct_mut(&mut self, name: &str) -> Option<&mut StructCell> {
         self.structs
             .iter_mut()
             .find(|s| unsafe { (*s.name).value } == name)
@@ -296,6 +303,7 @@ impl Compiler {
             name,
             fields,
             methods: Vec::new(),
+            has_super: false,
         });
 
         Ok(Type::Struct(struct_.name.clone()))
@@ -307,9 +315,27 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let has_super = impl_.super_.is_some();
+        let mut super_methods = Vec::new();
+        if has_super {
+            let super_name = impl_
+                .super_
+                .as_ref()
+                .unwrap()
+                .0
+                .as_var()
+                .unwrap()
+                .var
+                .name
+                .clone();
+            let super_struct = self.find_struct_mut(&super_name);
+            super_methods = super_struct.as_ref().unwrap().methods.clone();
+        }
         self.current_struct = Some(impl_.name.clone());
 
-        let found_struct = self.find_struct(&impl_.name);
+        let found_struct = self.find_struct_mut(&impl_.name);
+        found_struct.unwrap().methods = super_methods;
+
+        let found_struct = self.find_struct_mut(&impl_.name);
 
         if !found_struct.is_some() {
             let result = Err((
@@ -343,6 +369,46 @@ impl Compiler {
             self.declare_local(&impl_.name, &Type::Struct(impl_.name.clone()), &range)?;
         }
 
+        let found_struct = self.find_struct_mut(&impl_.name).unwrap();
+        found_struct.has_super = has_super;
+
+        if impl_.super_.is_some() {
+            let super_name = impl_.super_.as_ref().unwrap().0.as_var().unwrap().var.name;
+
+            // if let Some(super_impl) = self.find_struct_mut(&super_name) {
+            //     let super_struct_methods = &super_impl.methods;
+            //     if let Some(found_struct) = self.find_struct_mut(&impl_.name) {
+            //         found_struct.methods = super_struct_methods.clone();
+            //     }
+            // }
+        }
+
+        if let Some(super_) = &impl_.super_ {
+            match &super_.0 {
+                Expression::Var(var) => {
+                    if var.var.name == impl_.name {
+                        return Err((
+                            NameError::StructInheritFromItSelf {
+                                name: impl_.name.to_string(),
+                            }
+                            .into(),
+                            range.clone(),
+                        ));
+                    }
+                }
+                _ => unreachable!(),
+            };
+            let super_name = super_.0.as_var().unwrap().var.name.clone();
+
+            self.begin_scope();
+            self.declare_local("super", &Type::Struct(super_name), &(0..0))?;
+            self.define_local();
+
+            self.cp_expression(super_, allocator)?;
+            self.get_variable(&impl_.name, range, allocator)?;
+            self.emit_u8(op::INHERIT, range);
+        }
+
         if !impl_.methods.is_empty() {
             self.get_variable(&impl_.name, &range, allocator)?;
             for (method, span) in &methods {
@@ -365,10 +431,14 @@ impl Compiler {
                     }),
                 };
 
-                let found_struct = self.find_struct(&impl_.name).unwrap();
+                let found_struct = self.find_struct_mut(&impl_.name).unwrap();
                 found_struct.methods.push(strct_method);
             }
             self.emit_u8(op::POP, &range);
+        }
+
+        if has_super {
+            self.end_scope(0..0);
         }
 
         self.current_struct = None;
@@ -550,7 +620,7 @@ impl Compiler {
                     // TODO Add more type
                     Type::String | Type::Int => self.declare_local(&param_string, &t, &range)?,
                     Type::Struct(name) => {
-                        let found_struct = self.find_struct(&name);
+                        let found_struct = self.find_struct_mut(&name);
                         match found_struct {
                             Some(struct_) => {
                                 self.declare_local(&param_string, &t, &range)?;
@@ -779,6 +849,7 @@ impl Compiler {
             Expression::Call(call) => self.compile_call((call, range), allocator),
             Expression::Get(get) => self.compile_get((get, range), allocator),
             Expression::Set(set) => self.compile_set((set, range), allocator),
+            Expression::Super(super_) => self.compile_super((super_, range), allocator),
         }?;
         Ok(expr_type)
     }
@@ -791,7 +862,7 @@ impl Compiler {
     ) -> Result<Type> {
         let result_type = match struct_name {
             Type::Struct(strct) => {
-                let found_struct = self.find_struct(&strct);
+                let found_struct = self.find_struct_mut(&strct);
                 if !found_struct.is_some() {
                     let result = Err((
                         Error::NameError(NameError::StructNameNotFound {
@@ -832,6 +903,50 @@ impl Compiler {
             _ => todo!("Only struct can use get"),
         };
         return Ok(result_type);
+    }
+
+    fn compile_super(
+        &mut self,
+        (super_, range): (&ExprSuper, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        let found_struct = self.find_struct_mut(&self.current_struct.clone().unwrap());
+        match found_struct {
+            Some(struct_) => {
+                if !struct_.has_super {
+                    let result = Err((
+                        Error::NameError(NameError::StructHasNoSuper {
+                            name: self.current_struct.clone().unwrap(),
+                        }),
+                        range.clone(),
+                    ));
+                    return result;
+                }
+            }
+            None => {
+                let result = Err((
+                    Error::NameError(NameError::StructNameNotFound {
+                        name: self.current_struct.clone().unwrap(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
+            }
+        }
+        let super_type = self.find_struct_field_or_method_type(
+            &Type::Struct(self.current_struct.clone().unwrap()),
+            super_.name.clone(),
+            range,
+        )?;
+
+        let name = allocator.alloc(&super_.name);
+
+        self.get_variable("self", range, allocator)?;
+        self.get_variable("super", range, allocator)?;
+
+        self.emit_u8(op::GET_SUPER, &range);
+        self.write_constant(name.into(), &range);
+        Ok(super_type)
     }
 
     fn compile_set(
@@ -915,7 +1030,7 @@ impl Compiler {
 
         match ops.len().checked_sub(2) {
             Some(idx) if ops[idx] == op::GET_FIELD => ops[idx] = op::INVOKE,
-            // Some(idx) if ops[idx] == op::GET_SUPER => ops[idx] = op::SUPER_INVOKE,
+            Some(idx) if ops[idx] == op::GET_SUPER => ops[idx] = op::SUPER_INVOKE,
             Some(_) | None => self.emit_u8(op::CALL, &range),
         }
         self.emit_u8(arg_count as u8, &range);
@@ -968,7 +1083,7 @@ impl Compiler {
             match var_type {
                 Type::String | Type::Int | Type::Nil | Type::Bool => {}
                 Type::Struct(strct) => {
-                    let found_struct = self.find_struct(strct);
+                    let found_struct = self.find_struct_mut(strct);
                     if !found_struct.is_some() {
                         let result = Err((
                             Error::NameError(NameError::StructNameNotFound {
@@ -1011,7 +1126,7 @@ impl Compiler {
                     }
                 }
                 Type::Struct(strct) => {
-                    let found_struct = self.find_struct(strct);
+                    let found_struct = self.find_struct_mut(strct);
                     if !found_struct.is_some() {
                         let result = Err((
                             Error::NameError(NameError::StructNameNotFound {

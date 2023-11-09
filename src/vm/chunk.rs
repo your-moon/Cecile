@@ -33,6 +33,9 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
+            op::SUPER_INVOKE => self.debug_op_invoke("SUPER_INVOKE", offset),
+            op::GET_SUPER => self.constant_instruction("GET_SUPER", offset),
+            op::INHERIT => self.simple_instruction("INHERIT", offset),
             op::INVOKE => self.debug_op_invoke("INVOKE", offset),
             op::SET_FIELD => self.constant_instruction("SET_FIELD", offset),
             op::GET_FIELD => self.constant_instruction("GET_FIELD", offset),

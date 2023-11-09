@@ -43,7 +43,10 @@ iota! {
     FIELD,
     GET_FIELD,
     SET_FIELD,
-    INVOKE
+    INVOKE,
+    SUPER_INVOKE,
+    INHERIT,
+    GET_SUPER
 
 
 

@@ -1,41 +1,33 @@
-type Pair {
-    first: String,
-    second: String
+type Doughnut {
 }
 
-impl Pair {
-    fn new(a: String, b: String) {
-        self.first = a;
-        self.second = b;
+impl Doughnut {
+    fn new() {
     }
 
-    fn sum() -> String {
-        return self.first + self.second;
+    fn finish(ingredient: String) {
+        println "Finish with " + ingredient;
     }
+
+    fn cook() {
+        println "Dunk in the fryer.";
+        self.finish("sprinkles");
+    }
+
 }
 
-type Point {
-    x: int,
-    y: int,
-    name: String,
-    pair: Pair
+type Cruller {
 }
 
-impl Point {
-    fn new(x: int, y: int, name: String, pair: Pair) {
-        self.x = x;
-        self.y = y;
-        self.name = name;
-        self.pair = pair;
+impl Cruller < Doughnut {
+    fn new() {
     }
 
-    fn area() -> int {
-        return self.x * self.y;
+    fn finish(ingredient: String) {
+        super.finish("icing");
     }
+
 }
 
-let pair = Pair("Wow", " Cool");
-let point = Point(10, 20, "Point", pair);
-
-println point.area();
-println point.pair.sum();
+let crul = Cruller();
+crul.finish("S");
