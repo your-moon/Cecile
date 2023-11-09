@@ -17,18 +17,25 @@ impl Pair {
 type Point {
     x: int,
     y: int,
-    name: String
+    name: String,
+    pair: Pair
 }
 
 impl Point {
-    fn new(x: int, y: int, name: String) {
+    fn new(x: int, y: int, name: String, pair: Pair) {
         self.x = x;
         self.y = y;
         self.name = name;
+        self.pair = pair;
+    }
+
+    fn area() -> int {
+        return self.x * self.y;
     }
 }
 
 let pair = Pair("Wow", " Cool");
-let point = Point(1, 2, "Point");
+let point = Point(10, 20, "Point", pair);
 
-println pair.first + point.name;
+println point.area();
+println point.pair.sum();

@@ -767,10 +767,9 @@ impl Compiler {
 
     fn cp_expression(
         &mut self,
-        expr: &(Expression, Range<usize>),
+        (expr, range): &(Expression, Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let (expr, range) = expr;
         let expr_type = match expr {
             Expression::Assign(assign) => self.compile_assign((assign, range), allocator),
             Expression::Prefix(prefix) => self.compile_prefix((prefix, range), allocator),
@@ -827,6 +826,7 @@ impl Compiler {
                         method_type
                     }
                 };
+
                 strct_type
             }
             _ => todo!("Only struct can use get"),
