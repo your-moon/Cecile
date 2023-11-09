@@ -96,7 +96,7 @@ pub enum SyntaxError {
     #[error(r#""super" used in class without a superclass"#)]
     SuperWithoutSuperclass,
     #[error(r#""this" used outside class"#)]
-    ThisOutsideClass,
+    SelfOutsideClass,
     #[error("unexpected input")]
     UnexpectedInput { token: String },
     #[error("unexpected end of file")]

@@ -14,10 +14,21 @@ impl Pair {
     }
 }
 
-fn print_pair(s: Pair) {
-    println s.sum();
+type Point {
+    x: int,
+    y: int,
+    name: String
 }
 
-let a = Pair("Wow", " Cool");
+impl Point {
+    fn new(x: int, y: int, name: String) {
+        self.x = x;
+        self.y = y;
+        self.name = name;
+    }
+}
 
-print_pair(a);
+let pair = Pair("Wow", " Cool");
+let point = Point(1, 2, "Point");
+
+println pair.first + point.name;

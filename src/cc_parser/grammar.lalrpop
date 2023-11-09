@@ -54,7 +54,7 @@ DeclFun: ast::Statement = "fn" <function:Function> => ast::Statement::Fun(<>);
 
 DeclVar: ast::Statement = "let" <name:identifier> <type_:(":" <Types>)?> <value:("=" <ExprS>)?> ";" =>
   ast::Statement::Var(ast::StatementVar {
-        var: ast::Var { name, type_: type_},
+        var: ast::Var { name, type_: type_ },
         value,
       });
 
@@ -110,19 +110,15 @@ Function: ast::StatementFun =
     <name:identifier>  "("  <params:Params> ")" <return_type:("->" <Types>)?>  <body:StatementBlockIn> =>
         ast::StatementFun { <> };
 
-
-Params: HashMap<String, Option<ast::Type>> = {
+Params: Vec<(String, Option<ast::Type>)> = {
     <first:Param> <mut params:("," <Param>)*> => {
-        let mut param_map = HashMap::new();
-        let (string_, type_) = first;
-        param_map.insert(string_, type_);
-        for (string_, type_) in params {
-          param_map.insert(string_, type_);
-        }
-        param_map
+        params.insert(0, first);
+        params
     },
-    () => HashMap::new(),
+    () => Vec::new(),
 }
+
+
 
 Param: (String, Option<ast::Type>) = {
   <string_:identifier> <type_:(":" <Types>)?> =>

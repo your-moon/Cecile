@@ -67,7 +67,7 @@ pub struct ExprCreateStructField {
 #[derive(Clone, Debug, PartialEq)]
 pub struct StatementFun {
     pub name: String,
-    pub params: HashMap<String, Option<Type>>,
+    pub params: Vec<(String, Option<Type>)>,
     pub body: StatementBlock,
     pub return_type: Option<Type>,
 }

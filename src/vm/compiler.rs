@@ -544,17 +544,13 @@ impl Compiler {
             }
         }
         //TODO check param type
-        let mut param_strings = Vec::new();
         for (param_string, param_type) in &func.params {
-            param_strings.push((param_string, param_type));
-        }
-        for (param_string, param_type) in param_strings.iter().rev() {
             match param_type {
                 Some(t) => match t {
                     // TODO Add more type
                     Type::String | Type::Int => self.declare_local(&param_string, &t, &range)?,
                     Type::Struct(name) => {
-                        let found_struct = self.find_struct(name);
+                        let found_struct = self.find_struct(&name);
                         match found_struct {
                             Some(struct_) => {
                                 self.declare_local(&param_string, &t, &range)?;
@@ -1058,8 +1054,8 @@ impl Compiler {
     }
 
     fn get_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<Type> {
-        if name == "self" && self.structs.is_empty() {
-            return Err((SyntaxError::ThisOutsideClass.into(), span.clone()));
+        if name == "self" && self.current_struct.is_none() {
+            return Err((SyntaxError::SelfOutsideClass.into(), span.clone()));
         }
         if let Some((local_idx, local_type)) =
             self.current_compiler.resolve_local(name, false, span)?
