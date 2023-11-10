@@ -372,17 +372,6 @@ impl Compiler {
         let found_struct = self.find_struct_mut(&impl_.name).unwrap();
         found_struct.has_super = has_super;
 
-        if impl_.super_.is_some() {
-            let super_name = impl_.super_.as_ref().unwrap().0.as_var().unwrap().var.name;
-
-            // if let Some(super_impl) = self.find_struct_mut(&super_name) {
-            //     let super_struct_methods = &super_impl.methods;
-            //     if let Some(found_struct) = self.find_struct_mut(&impl_.name) {
-            //         found_struct.methods = super_struct_methods.clone();
-            //     }
-            // }
-        }
-
         if let Some(super_) = &impl_.super_ {
             match &super_.0 {
                 Expression::Var(var) => {
@@ -555,7 +544,6 @@ impl Compiler {
     ) -> Result<Type> {
         let name = allocator.alloc(&func.name);
         let arity_count = func.params.len() as u8;
-        println!("COMPILE FUN: {:?}", arity_count);
 
         let cell = CompilerCell {
             function: allocator.alloc(ObjectFunction::new(
@@ -1018,10 +1006,6 @@ impl Compiler {
             callee_type
         };
 
-        println!("CALLEE TYPE: {:?}", callee_type);
-        // if callee_type != Type::Object {
-        //     todo!("Can only call functions and classes");
-        // }
         for arg in &call.args {
             self.cp_expression(&arg, allocator)?;
         }
@@ -1250,9 +1234,7 @@ impl Compiler {
     ) -> Result<Type> {
         let (infix, range) = infix;
         let lhs_type = self.cp_expression(&(infix.lhs), allocator)?;
-        println!("LHS TYPE: {:?}", lhs_type);
         let rhs_type = self.cp_expression(&(infix.rhs), allocator)?;
-        println!("RHS TYPE: {:?}", rhs_type);
 
         let return_type = lhs_type.clone();
 
