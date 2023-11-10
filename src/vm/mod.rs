@@ -31,10 +31,12 @@ const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
 const STACK_MAX_PER_FRAME: usize = u8::MAX as usize + 1;
 
 pub struct VM<'a> {
+    stack_top: *mut Value,
     stack: Box<[Value; STACK_MAX]>,
+
     frames: ArrayVec<CallFrame, FRAMES_MAX>,
     frame: CallFrame,
-    stack_top: *mut Value,
+
     allocator: &'a mut CeAllocation,
     next_gc: usize,
 
@@ -100,18 +102,18 @@ impl<'a> VM<'a> {
             (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
-                op::GET_SUPER => self.get_super(),
+                op::GET_SUPER => self.op_get_super(),
                 op::INHERIT => self.op_inherit(),
-                op::SUPER_INVOKE => self.super_invoke(),
-                op::INVOKE => self.invoke(),
-                op::SET_FIELD => self.set_field(),
-                op::GET_FIELD => self.get_field(),
-                op::FIELD => self.field(),
-                op::STRUCT => self.cstruct(),
-                op::METHOD => self.method(),
-                op::CECILE_CONSTANT => self.cecile_constant(),
-                op::ADD => self.binary_add(),
-                op::CONCAT => self.concat(),
+                op::SUPER_INVOKE => self.op_super_invoke(),
+                op::INVOKE => self.op_invoke(),
+                op::SET_FIELD => self.op_set_field(),
+                op::GET_FIELD => self.op_get_field(),
+                op::FIELD => self.op_field(),
+                op::STRUCT => self.op_cstruct(),
+                op::METHOD => self.op_method(),
+                op::CECILE_CONSTANT => self.c_constant(),
+                op::ADD => self.op_binary_add(),
+                op::CONCAT => self.op_concat(),
                 op::SUB => self.sub(),
                 op::MUL => self.mul(),
                 op::DIV => self.div(),
@@ -169,7 +171,7 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn get_super(&mut self) -> Result<()> {
+    fn op_get_super(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let super_ = unsafe { self.pop().as_object().cstruct };
         match unsafe { (*super_).methods.get(&name) } {
@@ -208,7 +210,7 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn super_invoke(&mut self) -> Result<()> {
+    fn op_super_invoke(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let arg_count = self.read_u8() as usize;
         let super_ = unsafe { self.pop().as_object().cstruct };
@@ -224,7 +226,7 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn invoke(&mut self) -> Result<()> {
+    fn op_invoke(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let arg_count = self.read_u8() as usize;
         let instance = unsafe { (*self.peek(arg_count)).as_object().instance };
@@ -241,7 +243,7 @@ impl<'a> VM<'a> {
         };
         Ok(())
     }
-    fn set_field(&mut self) -> Result<()> {
+    fn op_set_field(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let instance = {
             let value = self.pop();
@@ -261,7 +263,7 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn get_field(&mut self) -> Result<()> {
+    fn op_get_field(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let instance = {
             let value = unsafe { *self.peek(0) };
@@ -303,20 +305,20 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn field(&mut self) -> Result<()> {
+    fn op_field(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let cstruct = unsafe { (*self.peek(0)).as_object().cstruct };
         unsafe { (*cstruct).fields.insert(name, Value::NIL) };
         Ok(())
     }
-    fn cstruct(&mut self) -> Result<()> {
+    fn op_cstruct(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let cstruct = self.alloc(StructObject::new(name));
         self.push_to_stack(cstruct.into());
         Ok(())
     }
 
-    fn method(&mut self) -> Result<()> {
+    fn op_method(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let method = unsafe { self.pop().as_object().closure };
         let cstruct = unsafe { (*self.peek(0)).as_object().cstruct };
@@ -341,23 +343,18 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn cecile_constant(&mut self) -> Result<()> {
+    fn c_constant(&mut self) -> Result<()> {
         let constant = self.read_constant();
         self.push_to_stack(constant);
         Ok(())
     }
 
     fn close_upvalue(&mut self) -> Result<()> {
-        let last = self.pop();
-        // let last = self.peek(0);
-        // while let Some(upvalue) = self.open_upvalues.pop() {
-        //     let location = unsafe { (*upvalue).value };
-        //     if location < last {
-        //         unsafe { (*upvalue).value = location };
-        //     } else {
-        //         unsafe { (*upvalue).value = last };
-        //     }
-        // }
+        let last = self.peek(0);
+
+        for open_upvalue in &mut self.open_upvalues {
+            println!("open_upvalue: {:?}", unsafe { (**open_upvalue).value });
+        }
         Ok(())
     }
 
@@ -373,8 +370,20 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    fn get_current_closure_name(&self) -> String {
+        unsafe { (*(*(*self.frame.closure).function).name).value.to_string() }
+    }
+
+    fn get_current_closure_upvalues(&self) -> Vec<*mut UpvalueObject> {
+        unsafe { (*self.frame.closure).upvalues.clone() }
+    }
+
     fn get_upvalue(&mut self) -> Result<()> {
         let upvalue_idx = self.read_u8() as usize;
+        println!("current closure: {:?}", self.get_current_closure_name());
+        for upvalues in self.get_current_closure_upvalues() {
+            println!("upvalue: {:?}", unsafe { (*upvalues).value });
+        }
         let object = *unsafe { (*self.frame.closure).upvalues.get_unchecked(upvalue_idx) };
         let value = unsafe { (*object).value };
         self.push_to_stack(value);
@@ -395,9 +404,7 @@ impl<'a> VM<'a> {
                 let location = unsafe { *self.frame.stack.add(upvalue_idx) };
                 self.capture_upvalue(location)
             } else {
-                let upvalue_ =
-                    unsafe { *(*self.frame.closure).upvalues.get_unchecked(upvalue_idx) };
-                upvalue_
+                unsafe { *(*self.frame.closure).upvalues.get_unchecked(upvalue_idx) }
             };
             upvalues.push(upvalue);
         }
@@ -607,7 +614,7 @@ impl<'a> VM<'a> {
 
     fn read_constant(&mut self) -> value::Value {
         let index = self.read_u8() as usize;
-        let function = unsafe { &mut *(*self.frame.closure).function };
+        let function = unsafe { (*self.frame.closure).function };
         *unsafe { (*function).chunk.constants.get_unchecked(index) }
     }
 
@@ -638,7 +645,7 @@ impl<'a> VM<'a> {
         })
     }
 
-    fn concat(&mut self) -> Result<()> {
+    fn op_concat(&mut self) -> Result<()> {
         let b = self.pop();
         let a = self.pop();
 
@@ -659,7 +666,7 @@ impl<'a> VM<'a> {
         })
     }
 
-    fn binary_add(&mut self) -> Result<()> {
+    fn op_binary_add(&mut self) -> Result<()> {
         let b = self.pop();
         let a = self.pop();
 

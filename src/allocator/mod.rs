@@ -1,9 +1,13 @@
-use std::{
-    alloc::{GlobalAlloc, Layout},
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use std::alloc::{GlobalAlloc, Layout};
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 pub mod allocation;
 
+#[cfg(any(miri, target_family = "wasm"))]
+#[global_allocator]
+pub static GLOBAL: Allocator<std::alloc::System> = Allocator::new(std::alloc::System);
+
+#[cfg(not(any(miri, target_family = "wasm")))]
 #[global_allocator]
 pub static GLOBAL: Allocator<mimalloc::MiMalloc> = Allocator::new(mimalloc::MiMalloc);
 
