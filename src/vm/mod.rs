@@ -725,9 +725,9 @@ impl<'a> VM<'a> {
     }
 
     fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {
-        if GLOBAL.allocated_bytes() > self.next_gc {
-            self.gc();
-        }
+        // if GLOBAL.allocated_bytes() > self.next_gc {
+        self.gc();
+        // }
         let allc = self.allocator.alloc(object);
         allc
     }

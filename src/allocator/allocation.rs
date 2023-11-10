@@ -33,27 +33,49 @@ impl CeAllocation {
 
     pub fn trace(&mut self) {
         while let Some(object) = self.gray_objects.pop() {
-            match unsafe { (*(object.main)).type_ } {
-                ObjectType::Function => {
-                    let function = unsafe { &mut *object.function };
-                    function.name.mark(self);
-                    for constant in &function.chunk.constants {
-                        self.mark(*constant);
+            match unsafe { (*object.main).type_ } {
+                ObjectType::BoundMethod => {
+                    let method = unsafe { object.bound_method };
+                    self.mark(unsafe { (*method).receiver });
+                    self.mark(unsafe { (*method).method });
+                }
+                ObjectType::Struct => {
+                    let cstruct = unsafe { object.cstruct };
+                    self.mark(unsafe { (*cstruct).name });
+                    for (&name, &method) in unsafe { &(*cstruct).methods } {
+                        self.mark(name);
+                        self.mark(method);
                     }
                 }
-                ObjectType::String => {}
-                ObjectType::Native => {}
-                ObjectType::Upvalue => {}
                 ObjectType::Closure => {
-                    let closure = unsafe { &mut *object.closure };
+                    let closure = unsafe { object.closure };
                     self.mark(unsafe { (*closure).function });
-                    for &upvalue in unsafe { &(*closure.upvalues) } {
+                    for &upvalue in unsafe { &(*closure).upvalues } {
                         self.mark(upvalue);
                     }
                 }
-                ObjectType::Struct => {}
-                ObjectType::Instance => {}
-                ObjectType::BoundMethod => {}
+                ObjectType::Function => {
+                    let function = unsafe { object.function };
+                    self.mark(unsafe { (*function).name });
+                    for constant in unsafe { &(*function).chunk.constants } {
+                        if constant.is_object() {
+                            self.mark(constant.as_object());
+                        }
+                    }
+                }
+                ObjectType::Instance => {
+                    self.mark(unsafe { (*object.instance).struct_ });
+                    for (&name, &value) in unsafe { (*object.instance).fields.iter() } {
+                        self.mark(name);
+                        self.mark(value);
+                    }
+                }
+                ObjectType::Native => {}
+                ObjectType::String => {}
+                ObjectType::Upvalue => {
+                    let upvalue = unsafe { object.upvalue };
+                    self.mark(unsafe { (*upvalue).value });
+                }
             }
         }
     }
@@ -62,10 +84,9 @@ impl CeAllocation {
         for idx in (0..self.objects.len()).rev() {
             let object = *unsafe { self.objects.get_unchecked(idx) };
             let is_marked = unsafe { (*object.main).is_marked };
-            println!("TRYING TO SWEEP: {:?}, is marked {}", object, is_marked);
             if !mem::take(unsafe { &mut (*object.main).is_marked }) {
                 self.objects.swap_remove(idx);
-                println!("SWEEPING: {:?}", object);
+                // println!("SWEEPING: {:?}", object);
                 object.free();
             }
         }
@@ -100,9 +121,8 @@ pub trait GcMark {
 impl<T: Into<Object>> GcMark for T {
     fn mark(self, allocator: &mut CeAllocation) {
         let object = self.into();
-        println!("MARKING: {:?}", object);
-        let is_marked = unsafe { (*object.main).is_marked };
-        if !is_marked {
+        if !unsafe { (*object.main).is_marked } {
+            // println!("mark {}: {object}", object.type_());
             unsafe { (*object.main).is_marked = true };
             allocator.gray_objects.push(object);
         }
