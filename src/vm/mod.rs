@@ -352,9 +352,6 @@ impl<'a> VM<'a> {
     fn close_upvalue(&mut self) -> Result<()> {
         let last = self.peek(0);
 
-        for open_upvalue in &mut self.open_upvalues {
-            println!("open_upvalue: {:?}", unsafe { (**open_upvalue).value });
-        }
         Ok(())
     }
 

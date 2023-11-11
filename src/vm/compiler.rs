@@ -247,7 +247,7 @@ impl Compiler {
     ) -> Result<Type> {
         match statement {
             Statement::Expression(expr) => {
-                let type_ = self.cp_expression(&expr.expr, allocator)?;
+                let type_ = self.compile_expression(&expr.expr, allocator)?;
                 self.emit_u8(op::POP, &range);
                 Ok(type_)
             }
@@ -393,7 +393,7 @@ impl Compiler {
             self.declare_local("super", &Type::Struct(super_name), &(0..0))?;
             self.define_local();
 
-            self.cp_expression(super_, allocator)?;
+            self.compile_expression(super_, allocator)?;
             self.get_variable(&impl_.name, range, allocator)?;
             self.emit_u8(op::INHERIT, range);
         }
@@ -452,7 +452,7 @@ impl Compiler {
                 let func_return_type = unsafe { &(*self.current_compiler.function).return_type };
                 match &return_.value {
                     Some(value) => {
-                        let return_stmt_type = self.cp_expression(value, allocator)?;
+                        let return_stmt_type = self.compile_expression(value, allocator)?;
                         match func_return_type {
                             Some(fn_return_type) => {
                                 //if function that return function else check return type and
@@ -513,7 +513,7 @@ impl Compiler {
             }
             FunctionType::Initializer => match &return_.value {
                 Some(value) => {
-                    let return_type = self.cp_expression(value, allocator)?;
+                    let return_type = self.compile_expression(value, allocator)?;
                     if return_type != Type::Nil {
                         let result = Err((
                             Error::TypeError(TypeError::ReturnTypeMustBeNil),
@@ -688,7 +688,7 @@ impl Compiler {
         let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
         let mut exit_jump = None;
         if let Some(cond) = &for_.cond {
-            let cond_type = self.cp_expression(cond, allocator)?;
+            let cond_type = self.compile_expression(cond, allocator)?;
             if cond_type != Type::Bool {
                 let result = Err((
                     Error::TypeError(TypeError::LoopMustBeBoolean),
@@ -702,7 +702,7 @@ impl Compiler {
 
         self.compile_statement(&for_.body, allocator)?;
         if let Some(increment) = &for_.update {
-            self.cp_expression(increment, allocator)?;
+            self.compile_expression(increment, allocator)?;
             self.emit_u8(op::POP, &range);
         }
         self.emit_loop(loop_start, &range)?;
@@ -724,7 +724,7 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
-        let cond_type = self.cp_expression(&while_.cond, allocator)?;
+        let cond_type = self.compile_expression(&while_.cond, allocator)?;
         if cond_type != Type::Bool {
             let result = Err((
                 Error::TypeError(TypeError::LoopMustBeBoolean),
@@ -761,7 +761,7 @@ impl Compiler {
         (if_, range): (&StatementIf, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let cond_type = self.cp_expression(&if_.cond, allocator)?;
+        let cond_type = self.compile_expression(&if_.cond, allocator)?;
         if cond_type != Type::Bool {
             let result = Err((
                 Error::TypeError(TypeError::CondMustbeBoolean),
@@ -808,7 +808,7 @@ impl Compiler {
         (print, range): (&StatementPrintLn, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let expr_type = self.cp_expression(&print.value, allocator)?;
+        let expr_type = self.compile_expression(&print.value, allocator)?;
         self.emit_u8(op::PRINT_LN, range);
         return Ok(expr_type);
     }
@@ -818,12 +818,12 @@ impl Compiler {
         (print, range): (&StatementPrint, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let expr_type = self.cp_expression(&print.value, allocator)?;
+        let expr_type = self.compile_expression(&print.value, allocator)?;
         self.emit_u8(op::PRINT, range);
         Ok(expr_type)
     }
 
-    fn cp_expression(
+    fn compile_expression(
         &mut self,
         (expr, range): &(Expression, Range<usize>),
         allocator: &mut CeAllocation,
@@ -942,8 +942,8 @@ impl Compiler {
         (set, range): (&Box<ExprSet>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let value_type = self.cp_expression(&set.value, allocator)?;
-        let object_type = self.cp_expression(&set.object, allocator)?;
+        let value_type = self.compile_expression(&set.value, allocator)?;
+        let object_type = self.compile_expression(&set.object, allocator)?;
 
         let field_type =
             self.find_struct_field_or_method_type(&object_type, set.name.clone(), range)?;
@@ -969,7 +969,7 @@ impl Compiler {
         (get, range): (&Box<ExprGet>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let var_type = self.cp_expression(&get.object, allocator)?;
+        let var_type = self.compile_expression(&get.object, allocator)?;
 
         let field_type =
             self.find_struct_field_or_method_type(&var_type, get.name.clone(), range)?;
@@ -993,7 +993,7 @@ impl Compiler {
                 range.clone(),
             ))?;
         }
-        let callee_type = self.cp_expression(&call.callee, allocator)?;
+        let callee_type = self.compile_expression(&call.callee, allocator)?;
         let callee_type = if callee_type.is_fn() {
             let mut callee_type = callee_type.as_fn().unwrap();
             let callee_type = callee_type.return_type.as_mut().clone();
@@ -1007,7 +1007,7 @@ impl Compiler {
         };
 
         for arg in &call.args {
-            self.cp_expression(&arg, allocator)?;
+            self.compile_expression(&arg, allocator)?;
         }
 
         let ops = unsafe { &mut (*self.current_compiler.function).chunk.code };
@@ -1026,7 +1026,22 @@ impl Compiler {
         (assign, range): (&Box<ExprAssign>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let var_type = self.cp_expression(&assign.rhs, allocator)?;
+        let var_type = self.compile_expression(&assign.rhs, allocator)?;
+        let lhs_type = self.globals.get(&assign.lhs.name);
+
+        if lhs_type.is_some() {
+            if lhs_type.unwrap() != &var_type {
+                let result = Err((
+                    Error::TypeError(TypeError::VariableTypeMismatch {
+                        expected: lhs_type.unwrap().to_string(),
+                        actual: var_type.to_string(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
+            }
+        }
+
         if let Ok(Some((local_index, _local_type))) =
             self.current_compiler
                 .resolve_local(&assign.lhs.name, false, &range)
@@ -1044,7 +1059,7 @@ impl Compiler {
             self.emit_u8(op::SET_GLOBAL, &range);
             self.write_constant(name.into(), &range);
         }
-        return Ok(var_type);
+        Ok(var_type)
     }
 
     fn compile_var_stmt(
@@ -1058,7 +1073,7 @@ impl Compiler {
             .value
             .as_ref()
             .map_or(Ok(Type::UnInitialized), |value| {
-                let val_type = self.cp_expression(value, allocator)?;
+                let val_type = self.compile_expression(value, allocator)?;
                 Ok(val_type)
             })?;
 
@@ -1209,7 +1224,7 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let (prefix, range) = prefix;
-        let rt_type = self.cp_expression(&(prefix.rt), allocator)?;
+        let rt_type = self.compile_expression(&(prefix.rt), allocator)?;
         if rt_type != Type::Int || rt_type != Type::Bool {
             let spanned_error = Err((
                 Error::TypeError(TypeError::UnsupportedOperandPrefix {
@@ -1233,8 +1248,8 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let (infix, range) = infix;
-        let lhs_type = self.cp_expression(&(infix.lhs), allocator)?;
-        let rhs_type = self.cp_expression(&(infix.rhs), allocator)?;
+        let lhs_type = self.compile_expression(&(infix.lhs), allocator)?;
+        let rhs_type = self.compile_expression(&(infix.rhs), allocator)?;
 
         let return_type = lhs_type.clone();
 
