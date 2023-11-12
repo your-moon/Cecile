@@ -22,6 +22,7 @@ pub union Object {
     pub cstruct: *mut StructObject,
     pub instance: *mut InstanceObject,
     pub bound_method: *mut BoundMethodObject,
+    pub array: *mut ArrayObject,
 }
 
 impl Object {
@@ -54,6 +55,9 @@ impl Object {
             }
             ObjectType::BoundMethod => {
                 let _free = unsafe { Box::from_raw(self.bound_method) };
+            }
+            ObjectType::Array => {
+                let _free = unsafe { Box::from_raw(self.array) };
             }
         };
     }
@@ -88,6 +92,7 @@ impl Display for Object {
             ObjectType::BoundMethod => write!(f, "<bound method {}>", unsafe {
                 (*(*(*(*self.bound_method).method).function).name).value
             }),
+            ObjectType::Array => write!(f, "<array {:?}>", unsafe { (*self.array).values.clone() }),
         }
     }
 }
@@ -110,6 +115,7 @@ impl_from_object!(upvalue, UpvalueObject);
 impl_from_object!(cstruct, StructObject);
 impl_from_object!(instance, InstanceObject);
 impl_from_object!(bound_method, BoundMethodObject);
+impl_from_object!(array, ArrayObject);
 
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
@@ -128,6 +134,7 @@ pub enum ObjectType {
     Struct,
     Instance,
     BoundMethod,
+    Array,
 }
 
 impl Display for ObjectType {
@@ -141,6 +148,7 @@ impl Display for ObjectType {
             Self::Struct => write!(f, "{}", "struct"),
             Self::Instance => write!(f, "{}", "instance"),
             Self::BoundMethod => write!(f, "{}", "bound_method"),
+            Self::Array => write!(f, "{}", "array"),
         }
     }
 }
@@ -203,6 +211,25 @@ impl ObjectFunction {
             upvalue_count: 0,
             return_type,
             chunk: Chunk::default(),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct ArrayObject {
+    pub main: MainObject,
+    pub values: Vec<Value>,
+}
+
+impl ArrayObject {
+    pub fn new(values: Vec<Value>) -> Self {
+        Self {
+            main: MainObject {
+                type_: ObjectType::Array,
+                is_marked: false,
+            },
+            values,
         }
     }
 }

@@ -5,7 +5,9 @@ use hashbrown::HashMap;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
-use crate::cc_parser::ast::{ExprGet, ExprSet, ExprSuper, Field, StatementImpl, StatementStruct};
+use crate::cc_parser::ast::{
+    ExprArray, ExprGet, ExprSet, ExprSuper, Field, StatementImpl, StatementStruct,
+};
 use crate::vm::error::NameError;
 use crate::{
     allocator::allocation::CeAllocation,
@@ -842,6 +844,7 @@ impl Compiler {
             Expression::Get(get) => self.compile_get((get, range), allocator),
             Expression::Set(set) => self.compile_set((set, range), allocator),
             Expression::Super(super_) => self.compile_super((super_, range), allocator),
+            Expression::Array(arr) => self.compile_array((arr, range), allocator),
             _ => todo!(),
         }?;
         Ok(expr_type)
@@ -896,6 +899,32 @@ impl Compiler {
             _ => todo!("Only struct can use get"),
         };
         return Ok(result_type);
+    }
+
+    fn compile_array(
+        &mut self,
+        (arr, range): (&ExprArray, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        let mut array_type = Type::Array(Box::new(Type::UnInitialized));
+        for expr in &arr.elements {
+            let expr_type = self.compile_expression(&expr, allocator)?;
+            if array_type == Type::Array(Box::new(Type::UnInitialized)) {
+                array_type = Type::Array(Box::new(expr_type));
+            } else if array_type.get_array_type().unwrap() != expr_type {
+                let result = Err((
+                    Error::TypeError(TypeError::ArrayTypeMismatch {
+                        expected: array_type.to_string(),
+                        actual: expr_type.to_string(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
+            }
+        }
+        self.emit_u8(op::ARRAY, &range);
+        self.emit_u8(arr.elements.len() as u8, &range);
+        return Ok(array_type);
     }
 
     fn compile_super(
@@ -1114,6 +1143,25 @@ impl Compiler {
                         return result;
                     }
                 }
+                Type::Array(arr) => {
+                    let arr_type = arr.as_ref();
+                    match arr_type {
+                        Type::String | Type::Int | Type::Nil | Type::Bool => {}
+                        Type::Struct(strct) => {
+                            let found_struct = self.find_struct_mut(strct);
+                            if !found_struct.is_some() {
+                                let result = Err((
+                                    Error::NameError(NameError::StructNameNotFound {
+                                        name: strct.clone(),
+                                    }),
+                                    range.clone(),
+                                ));
+                                return result;
+                            }
+                        }
+                        _ => todo!("type not implemented"),
+                    }
+                }
                 _ => todo!("type not implemented"),
             }
             println!("var type: {:?}", var_type);
@@ -1166,6 +1214,48 @@ impl Compiler {
                     } else {
                         self.declare_local(name, &value_var_type, &range)?;
                         self.define_local();
+                    }
+                }
+                Type::Array(arr) => {
+                    let arr_type = arr.as_ref();
+                    match arr_type {
+                        Type::String | Type::Int | Type::Nil | Type::Bool => {
+                            let name = &var.var.name;
+                            if self.is_global() {
+                                let string = allocator.alloc(name);
+                                self.globals.insert(name.clone(), type_.clone());
+                                self.emit_u8(op::DEFINE_GLOBAL, &range);
+                                self.write_constant(string.into(), &range);
+                                // return Ok(Type::String);
+                            } else {
+                                self.declare_local(name, &value_var_type, &range)?;
+                                self.define_local();
+                            }
+                        }
+                        Type::Struct(strct) => {
+                            let found_struct = self.find_struct_mut(strct);
+                            if !found_struct.is_some() {
+                                let result = Err((
+                                    Error::NameError(NameError::StructNameNotFound {
+                                        name: strct.clone(),
+                                    }),
+                                    range.clone(),
+                                ));
+                                return result;
+                            }
+                            let name = &var.var.name;
+                            if self.is_global() {
+                                let string = allocator.alloc(name);
+                                self.globals.insert(name.clone(), type_.clone());
+                                self.emit_u8(op::DEFINE_GLOBAL, &range);
+                                self.write_constant(string.into(), &range);
+                                // return Ok(Type::String);
+                            } else {
+                                self.declare_local(name, &value_var_type, &range)?;
+                                self.define_local();
+                            }
+                        }
+                        _ => todo!("type not implemented"),
                     }
                 }
                 _ => todo!("type not implemented"),

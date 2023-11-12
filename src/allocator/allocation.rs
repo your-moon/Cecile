@@ -1,7 +1,7 @@
 use std::hash::BuildHasherDefault;
 use std::mem;
 
-use crate::vm::object::{Object, ObjectType, StringObject};
+use crate::vm::object::{ArrayObject, Object, ObjectType, StringObject};
 use crate::vm::value::Value;
 
 use hashbrown::hash_map::RawEntryMut;
@@ -76,6 +76,12 @@ impl CeAllocation {
                     let upvalue = unsafe { object.upvalue };
                     self.mark(unsafe { (*upvalue).value });
                 }
+                ObjectType::Array => {
+                    let array = unsafe { object.array };
+                    for &value in unsafe { &(*array).values } {
+                        self.mark(value);
+                    }
+                }
             }
         }
     }
@@ -149,6 +155,18 @@ where
 
         allocation.objects.push(object);
         object_ptr
+    }
+}
+
+impl<A> CeAlloc<*mut ArrayObject> for A
+where
+    A: IntoIterator<Item = Value>,
+{
+    fn alloc(self, allocation: &mut CeAllocation) -> *mut ArrayObject {
+        let array = ArrayObject::new(self.into_iter().collect());
+        let ptr = Box::into_raw(Box::new(array));
+        allocation.objects.push(ptr.into());
+        ptr
     }
 }
 

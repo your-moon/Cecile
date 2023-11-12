@@ -122,6 +122,8 @@ pub enum SyntaxError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum TypeError {
+    #[error("array type must be {expected:?}, got {actual:?}")]
+    ArrayTypeMismatch { expected: String, actual: String },
     #[error("cannot set expected type {expected:?}, got {actual:?}")]
     SetTypeMisMatch { expected: String, actual: String },
     #[error("arity expected {expected:?}, got {actual:?} name: {name:?}")]

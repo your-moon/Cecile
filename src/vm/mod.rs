@@ -102,6 +102,7 @@ impl<'a> VM<'a> {
             (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
+                op::ARRAY => self.op_array(),
                 op::GET_SUPER => self.op_get_super(),
                 op::INHERIT => self.op_inherit(),
                 op::SUPER_INVOKE => self.op_super_invoke(),
@@ -168,6 +169,18 @@ impl<'a> VM<'a> {
             }
             println!();
         }
+        Ok(())
+    }
+
+    fn op_array(&mut self) -> Result<()> {
+        let arg_count = self.read_u8() as usize;
+        let mut array = Vec::with_capacity(arg_count);
+        for _ in 0..arg_count {
+            array.push(self.pop());
+        }
+        array.reverse();
+        let array = self.alloc(array);
+        self.push_to_stack(array.into());
         Ok(())
     }
 

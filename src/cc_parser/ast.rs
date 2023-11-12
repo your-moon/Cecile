@@ -143,6 +143,7 @@ pub enum Expression {
     Set(Box<ExprSet>),
     Super(ExprSuper),
     Array(Box<ExprArray>),
+    ArrayAccess(Box<ExprArrayAccess>),
     // Struct(Box<ExprStruct>),
 }
 
@@ -153,6 +154,12 @@ impl Expression {
             _ => None,
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprArrayAccess {
+    pub array: ExprS,
+    pub index: ExprS,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -297,6 +304,12 @@ pub enum Type {
 }
 
 impl Type {
+    pub fn get_array_type(&self) -> Option<Type> {
+        match self {
+            Type::Array(type_) => Some(*type_.clone()),
+            _ => None,
+        }
+    }
     pub fn as_fn(&self) -> Option<Fn> {
         match self {
             Type::Fn(fn_) => Some(fn_.clone()),

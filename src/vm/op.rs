@@ -2,6 +2,7 @@ use iota::iota;
 iota! {
     pub const
     CECILE_CONSTANT: u8 = iota;,
+    ARRAY,
     ADD,
     MODULO,
     POP,

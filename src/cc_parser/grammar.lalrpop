@@ -220,6 +220,9 @@ ExprPrefix: ast::Expression = {
 }
 
 ExprCall: ast::Expression = {
+    <array:Spanned<ExprCall>> "[" <index:ExprS> "]" =>
+      ast::Expression::ArrayAccess(Box::new(ast::ExprArrayAccess { <> })),
+
     <callee:Spanned<ExprCall>> "(" <args:Args> ")" =>
       ast::Expression::Call(Box::new(ast::ExprCall { callee, args })),
     <object:Spanned<ExprCall>> "." <name:identifier> =>
