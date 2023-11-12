@@ -31,8 +31,10 @@ DeclImpl: ast::Statement =
 
 
 DeclStruct: ast::Statement = {
-  "struct" <name:identifier> "{" <fields:StructFields> "}"  => 
-    ast::Statement::Struct(ast::StatementStruct { <> })
+  "struct" <name:identifier> 
+        "{" <fields:StructFields> "}"  => ast::Statement::Struct(ast::StatementStruct { name, fields }),
+
+  "struct" <name:identifier> ";" => ast::Statement::Struct(ast::StatementStruct { name, fields: Vec::new() }),
 }
 
 
@@ -43,6 +45,8 @@ StructFields: Vec<ast::Field> = {
     },
     () => Vec::new(),
 }
+
+
 
 SingleField: ast::Field = {
   <name:identifier> ":" <type_:Types> =>
@@ -246,6 +250,9 @@ ExprPrimary: ast::Expression = {
     string => ast::Expression::Literal(ast::ExprLiteral::String(<>)),
     number => ast::Expression::Literal(ast::ExprLiteral::Number(<>)),
 
+    //Struct
+    ExprStruct,
+
     //Array
     ExprArray,
 
@@ -257,6 +264,28 @@ ExprPrimary: ast::Expression = {
     // Grouping
     "(" <Expression> ")",
 }
+
+ExprStruct: ast::Expression = {
+    <name:identifier> 
+            "{" <fields:ExprStructFieldsGr> "}"  => ast::Expression::Struct(Box::new(ast::ExprStruct { <> })),
+
+}
+
+ExprStructFieldsGr: Vec<ast::ExprSingleField> = {
+    <first:ExprSingleFieldGr> <mut fields:("," <ExprSingleFieldGr>)*>  => {
+      fields.insert(0, first);
+      fields
+    },
+    () => Vec::new(),
+}
+
+
+ExprSingleFieldGr: ast::ExprSingleField = {
+  <name:identifier> ":" <value:ExprS> =>
+    ast::ExprSingleField { <> }
+}
+
+
 
 ExprArray: ast::Expression = {
    "[" <arr:Array> "]" => 

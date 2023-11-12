@@ -9,7 +9,7 @@ impl Rectangle {
         self.height = height;
     }
 
-    fn area() -> int {
+fn area(s: int) -> int {
         return self.width * self.height;
     }
 }
@@ -17,7 +17,7 @@ impl Rectangle {
 let rect = Rectangle(2, 2);
 let sum = 0;
 for (let i = 0; i < 10; i = i + 1) {
-    sum = sum + rect.area();
+    sum = sum + rect.area(i);
 }
 
 println sum;

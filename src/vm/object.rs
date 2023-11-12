@@ -8,7 +8,7 @@ use rustc_hash::FxHasher;
 
 use crate::cc_parser::ast::Type;
 
-use super::{chunk::Chunk, value::Value};
+use super::{built_in::ArrayMethod, chunk::Chunk, value::Value};
 
 #[derive(Clone, Copy, Eq)]
 #[repr(C)]
@@ -220,6 +220,7 @@ impl ObjectFunction {
 pub struct ArrayObject {
     pub main: MainObject,
     pub values: Vec<Value>,
+    pub methods: ArrayMethod,
 }
 
 impl ArrayObject {
@@ -230,6 +231,7 @@ impl ArrayObject {
                 is_marked: false,
             },
             values,
+            methods: ArrayMethod::default(),
         }
     }
 }

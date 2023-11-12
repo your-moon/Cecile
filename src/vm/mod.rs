@@ -1,6 +1,7 @@
 use arrayvec::ArrayVec;
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
+use rand::Rng;
 use termcolor::StandardStream;
 
 use crate::allocator::GLOBAL;
@@ -16,9 +17,10 @@ use std::{mem, ptr};
 use self::compiler::Compiler;
 use self::error::{AttributeError, Error, ErrorS, IndexError, OverflowError, Result, TypeError};
 use self::object::{
-    BoundMethodObject, ClosureObject, InstanceObject, Native, ObjectFunction, ObjectNative,
-    ObjectType, StructObject, UpvalueObject,
+    ArrayObject, BoundMethodObject, ClosureObject, InstanceObject, Native, ObjectFunction,
+    ObjectNative, ObjectType, StructObject, UpvalueObject,
 };
+pub mod built_in;
 pub mod chunk;
 pub mod compiler;
 pub mod error;
@@ -243,7 +245,7 @@ impl<'a> VM<'a> {
             array.push(self.pop());
         }
         array.reverse();
-        let array = self.alloc(array);
+        let array = self.alloc(ArrayObject::new(array));
         self.push_to_stack(array.into());
         Ok(())
     }
@@ -500,7 +502,8 @@ impl<'a> VM<'a> {
                 ObjectType::BoundMethod => {
                     self.call_bound_method(unsafe { object.bound_method }, arg_count)
                 }
-                // ObjectType::Native => self.call_native(object, arg_count),
+                // ObjectType::Array => self.call_array_method(unsafe { object.array }, arg_count),
+                ObjectType::Native => self.call_native(unsafe { object.native }, arg_count),
                 _ => self.err(TypeError::NotCallable {
                     type_: callee.type_().to_string(),
                 }),
@@ -511,6 +514,53 @@ impl<'a> VM<'a> {
             })
         }
     }
+
+    fn call_native(&mut self, native: *mut ObjectNative, arg_count: usize) -> Result<()> {
+        self.pop();
+        let value = match { unsafe { (*native).native } } {
+            Native::Clock => {
+                if arg_count != 0 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "clock".to_string(),
+                        expected: 0,
+                        actual: arg_count,
+                    });
+                }
+
+                let time = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs_f64();
+                Value::from(time)
+            }
+            Native::RandomNumber => {
+                if arg_count != 0 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "random_number".to_string(),
+                        expected: 0,
+                        actual: arg_count,
+                    });
+                }
+
+                let mut number = rand::thread_rng().gen_range(1..=100) as f64;
+                Value::from(number)
+            }
+        };
+        self.push_to_stack(value);
+        Ok(())
+    }
+
+    // fn call_array_method(&mut self, array: *mut ArrayObject, arg_count: usize) -> Result<()> {
+    //     let method = self.read_constant();
+    //     let method = unsafe { method.as_object().string };
+    //     match unsafe { (*array).methods.get(&method) } {
+    //         Some(&method) => self.call_closure(method, arg_count),
+    //         None => self.err(AttributeError::NoSuchAttribute {
+    //             type_: unsafe { (*(*array).main.type_).to_string() },
+    //             name: unsafe { (*method).value.to_string() },
+    //         }),
+    //     }
+    // }
 
     fn call_bound_method(
         &mut self,

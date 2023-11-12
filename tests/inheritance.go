@@ -1,5 +1,6 @@
-type Doughnut {
-}
+type Doughnut;
+
+type Cruller;
 
 impl Doughnut {
     fn new() {
@@ -16,8 +17,6 @@ impl Doughnut {
 
 }
 
-type Cruller {
-}
 
 impl Cruller < Doughnut {
     fn new() {

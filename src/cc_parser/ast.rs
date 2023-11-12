@@ -144,7 +144,7 @@ pub enum Expression {
     Super(ExprSuper),
     Array(Box<ExprArray>),
     ArrayAccess(Box<ExprArrayAccess>),
-    // Struct(Box<ExprStruct>),
+    Struct(Box<ExprStruct>),
 }
 
 impl Expression {
@@ -154,6 +154,18 @@ impl Expression {
             _ => None,
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprStruct {
+    pub name: String,
+    pub fields: Vec<ExprSingleField>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprSingleField {
+    pub name: String,
+    pub value: ExprS,
 }
 
 #[derive(Clone, Debug, PartialEq)]

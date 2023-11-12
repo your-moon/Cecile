@@ -23,6 +23,7 @@ use crate::{
     vm::error::TypeError,
 };
 
+use super::built_in::{self, builtin_array_methods_contains_int};
 use super::error::OverflowError;
 use super::object::StringObject;
 use super::{
@@ -178,21 +179,29 @@ pub struct StructMethod {
 pub struct Compiler {
     pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
     pub current_compiler: CompilerCell,
-    pub current_struct: Option<u8>,
+    pub current_struct: Option<String>,
     pub structs: Vec<StructCell>,
 }
 
 impl Compiler {
     pub fn get_current_struct_mut(&mut self, range: &Range<usize>) -> Result<&mut StructCell> {
-        if let Some(current_struct) = self.current_struct {
-            return Ok(&mut self.structs[current_struct as usize]);
+        if self.current_struct.is_none() {
+            return Err((Error::NameError(NameError::StructNotInScope), range.clone()));
         }
-        Err((
-            Error::NameError(NameError::StructNameNotFound {
-                name: "None".to_string(),
-            }),
-            range.clone(),
-        ))
+        let current_struct = self.current_struct.as_ref().unwrap();
+        let result = self
+            .structs
+            .iter_mut()
+            .find(|s| unsafe { (*s.name).value } == current_struct);
+        if result.is_none() {
+            return Err((
+                Error::NameError(NameError::StructNameNotFound {
+                    name: current_struct.to_string(),
+                }),
+                range.clone(),
+            ));
+        }
+        Ok(result.unwrap())
     }
 
     pub fn find_struct(&self, name: &str, range: &Range<usize>) -> Result<&StructCell> {
@@ -229,6 +238,10 @@ impl Compiler {
 
     pub fn new(allocator: &mut CeAllocation) -> Self {
         let name = allocator.alloc("");
+        let mut globals = HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default());
+        let clock = String::from("clock");
+        let clock_type = Type::Int;
+        globals.insert(clock, clock_type);
         Self {
             current_compiler: CompilerCell {
                 function: allocator.alloc(ObjectFunction::new(name, 0, None)),
@@ -238,7 +251,7 @@ impl Compiler {
                 parent: None,
                 upvalues: ArrayVec::new(),
             },
-            globals: HashMap::default(),
+            globals,
             structs: Vec::new(),
             current_struct: None,
         }
@@ -340,9 +353,6 @@ impl Compiler {
             has_super: false,
         });
 
-        let id = self.structs.len() - 1;
-        self.current_struct = Some(id.try_into().expect("struct index overflow"));
-
         Ok(Type::Struct(struct_.name.clone()))
     }
 
@@ -351,7 +361,10 @@ impl Compiler {
         (impl_, range): (&StatementImpl, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
+        self.current_struct = Some(impl_.name.clone());
+
         let has_super = impl_.super_.is_some();
+
         let mut super_methods = Vec::new();
         if has_super {
             let super_name = impl_
@@ -367,7 +380,6 @@ impl Compiler {
             let super_struct = self.find_struct_mut(&super_name, &range)?;
             super_methods = super_struct.methods.clone();
         }
-        // self.current_struct = Some(impl_.name.clone());
 
         let current_struct = self.get_current_struct_mut(&range)?;
         current_struct.methods = super_methods;
@@ -1038,6 +1050,24 @@ impl Compiler {
         let field_type = match var_type {
             Type::Struct(name) => {
                 self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
+            }
+            Type::Array(type_) => {
+                if builtin_array_methods_contains_int(&get.name) {
+                    let name = allocator.alloc(&get.name);
+                    self.emit_u8(op::GET_FIELD, &range);
+                    self.emit_constant_w(name.into(), &range)?;
+
+                    return Ok(Type::Fn(Fn {
+                        return_type: Box::new(Some(Type::Int)),
+                    }));
+                }
+                let result = Err((
+                    Error::NameError(NameError::ArrayHasNoField {
+                        name: get.name.clone(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
             }
             _ => todo!(),
         };

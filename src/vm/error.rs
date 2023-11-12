@@ -66,6 +66,11 @@ pub enum OverflowError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum NameError {
+    #[error("array has no field {name}")]
+    ArrayHasNoField { name: String },
+
+    #[error("struct is not in scope")]
+    StructNotInScope,
     #[error("can't access local variable {name} in its own initializer")]
     AccessInsideInitializer { name: String },
 
