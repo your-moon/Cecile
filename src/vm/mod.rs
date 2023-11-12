@@ -350,7 +350,7 @@ impl<'a> VM<'a> {
     }
 
     fn close_upvalue(&mut self) -> Result<()> {
-        let last = self.peek(0);
+        self.pop();
 
         Ok(())
     }
@@ -377,10 +377,6 @@ impl<'a> VM<'a> {
 
     fn get_upvalue(&mut self) -> Result<()> {
         let upvalue_idx = self.read_u8() as usize;
-        println!("current closure: {:?}", self.get_current_closure_name());
-        for upvalues in self.get_current_closure_upvalues() {
-            println!("upvalue: {:?}", unsafe { (*upvalues).value });
-        }
         let object = *unsafe { (*self.frame.closure).upvalues.get_unchecked(upvalue_idx) };
         let value = unsafe { (*object).value };
         self.push_to_stack(value);

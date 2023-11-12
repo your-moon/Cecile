@@ -80,6 +80,9 @@ pub enum NameError {
 
     #[error("struct {name} has no super class")]
     StructHasNoSuper { name: String },
+
+    #[error("variable {name} is not defined")]
+    VariableNameNotFound { name: String },
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]

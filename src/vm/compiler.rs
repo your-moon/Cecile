@@ -176,11 +176,18 @@ pub struct StructMethod {
 pub struct Compiler {
     pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
     pub current_compiler: CompilerCell,
-    pub current_struct: Option<String>,
+    pub current_struct: Option<u8>,
     pub structs: Vec<StructCell>,
 }
 
 impl Compiler {
+    pub fn get_current_struct_mut(&mut self) -> Option<&mut StructCell> {
+        match self.current_struct {
+            Some(id) => self.structs.get_mut(id as usize),
+            None => None,
+        }
+    }
+
     pub fn find_struct(&self, name: &str) -> Option<&StructCell> {
         self.structs
             .iter()
@@ -306,6 +313,9 @@ impl Compiler {
             has_super: false,
         });
 
+        let id = self.structs.len() - 1;
+        self.current_struct = Some(id.try_into().expect("struct index overflow"));
+
         Ok(Type::Struct(struct_.name.clone()))
     }
 
@@ -330,14 +340,14 @@ impl Compiler {
             let super_struct = self.find_struct_mut(&super_name);
             super_methods = super_struct.as_ref().unwrap().methods.clone();
         }
-        self.current_struct = Some(impl_.name.clone());
+        // self.current_struct = Some(impl_.name.clone());
 
-        let found_struct = self.find_struct_mut(&impl_.name);
-        found_struct.unwrap().methods = super_methods;
+        let current_struct = self.get_current_struct_mut();
+        current_struct.unwrap().methods = super_methods;
 
-        let found_struct = self.find_struct_mut(&impl_.name);
+        let current_struct = self.get_current_struct_mut();
 
-        if !found_struct.is_some() {
+        if !current_struct.is_some() {
             let result = Err((
                 Error::NameError(NameError::StructNameNotFound {
                     name: impl_.name.clone(),
@@ -347,7 +357,7 @@ impl Compiler {
             return result;
         }
 
-        let fields = found_struct.as_ref().unwrap().fields.clone();
+        let fields = current_struct.as_ref().unwrap().fields.clone();
         let methods = impl_.methods.clone();
 
         let name = allocator.alloc(&impl_.name).into();
@@ -369,8 +379,8 @@ impl Compiler {
             self.declare_local(&impl_.name, &Type::Struct(impl_.name.clone()), &range)?;
         }
 
-        let found_struct = self.find_struct_mut(&impl_.name).unwrap();
-        found_struct.has_super = has_super;
+        let current_struct = self.get_current_struct_mut().unwrap();
+        current_struct.has_super = has_super;
 
         if let Some(super_) = &impl_.super_ {
             match &super_.0 {
@@ -420,8 +430,8 @@ impl Compiler {
                     }),
                 };
 
-                let found_struct = self.find_struct_mut(&impl_.name).unwrap();
-                found_struct.methods.push(strct_method);
+                let current_struct = self.get_current_struct_mut().unwrap();
+                current_struct.methods.push(strct_method);
             }
             self.emit_u8(op::POP, &range);
         }
@@ -590,8 +600,9 @@ impl Compiler {
                 &range,
             )?,
             FunctionType::Initializer | FunctionType::Method => {
-                let current_struct = self.current_struct.clone().unwrap();
-                self.declare_local("self", &Type::Struct(current_struct), &range)?;
+                let current_struct =
+                    unsafe { (*self.get_current_struct_mut().unwrap().name).value };
+                self.declare_local("self", &Type::Struct(current_struct.to_string()), &range)?;
                 // self.declare_local(
                 //     &func.name,
                 //     &Type::Fn(Fn {
@@ -898,13 +909,18 @@ impl Compiler {
         (super_, range): (&ExprSuper, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let found_struct = self.find_struct_mut(&self.current_struct.clone().unwrap());
-        match found_struct {
+        let current_struct = self.get_current_struct_mut();
+        let current_struct_name = unsafe {
+            (*current_struct.as_ref().unwrap().name.clone())
+                .value
+                .to_string()
+        };
+        match current_struct {
             Some(struct_) => {
                 if !struct_.has_super {
                     let result = Err((
                         Error::NameError(NameError::StructHasNoSuper {
-                            name: self.current_struct.clone().unwrap(),
+                            name: current_struct_name,
                         }),
                         range.clone(),
                     ));
@@ -914,7 +930,7 @@ impl Compiler {
             None => {
                 let result = Err((
                     Error::NameError(NameError::StructNameNotFound {
-                        name: self.current_struct.clone().unwrap(),
+                        name: current_struct_name,
                     }),
                     range.clone(),
                 ));
@@ -922,7 +938,7 @@ impl Compiler {
             }
         }
         let super_type = self.find_struct_field_or_method_type(
-            &Type::Struct(self.current_struct.clone().unwrap()),
+            &Type::Struct(current_struct_name),
             super_.name.clone(),
             range,
         )?;
@@ -1027,10 +1043,21 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let var_type = self.compile_expression(&assign.rhs, allocator)?;
-        let lhs_type = self.globals.get(&assign.lhs.name);
+
+        let lhs_type = {
+            if self.globals.get(&assign.lhs.name).is_some() {
+                self.globals.get(&assign.lhs.name).cloned()
+            } else {
+                let local = self
+                    .current_compiler
+                    .resolve_local(&assign.lhs.name, false, &range)
+                    .unwrap();
+                Some(local.unwrap().1)
+            }
+        };
 
         if lhs_type.is_some() {
-            if lhs_type.unwrap() != &var_type {
+            if lhs_type.as_ref().unwrap() != &var_type {
                 let result = Err((
                     Error::TypeError(TypeError::VariableTypeMismatch {
                         expected: lhs_type.unwrap().to_string(),
@@ -1206,15 +1233,6 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let name = &prefix.var.name;
-        // if self.current_compiler.type_ == FunctionType::Function {
-        //     let function_ = unsafe { &mut (*self.current_compiler.function) };
-        //     let arity = function_.arity.as_ref().unwrap();
-        //     for param in arity {
-        //         if unsafe { (*param.name).value } == name {
-        //             return param.type_.clone();
-        //         }
-        //     }
-        // }
         self.get_variable(name, &range, allocator)
     }
 
