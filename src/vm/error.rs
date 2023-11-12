@@ -18,6 +18,8 @@ pub enum Error {
     OverflowError(OverflowError),
     #[error("AttributeError {0}")]
     AttributeError(AttributeError),
+    #[error("IndexError {0}")]
+    IndexError(IndexError),
 }
 
 macro_rules! impl_from_error {
@@ -36,7 +38,8 @@ impl_from_error!(
     OverflowError,
     SyntaxError,
     TypeError,
-    AttributeError
+    AttributeError,
+    IndexError
 );
 
 #[derive(Debug, Error, Eq, PartialEq)]
@@ -65,6 +68,9 @@ pub enum OverflowError {
 pub enum NameError {
     #[error("can't access local variable {name} in its own initializer")]
     AccessInsideInitializer { name: String },
+
+    #[error("struct {name} has no field {name}")]
+    StructFieldNotFound { name: String, struct_name: String },
 
     #[error("struct {name} is not defined")]
     StructNameNotFound { name: String },
@@ -122,6 +128,10 @@ pub enum SyntaxError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum TypeError {
+    #[error("array is not indexable type: {type_}")]
+    NotIndexable { type_: String },
+    #[error("array index must be int")]
+    ArrayIndexMustBeInt,
     #[error("array type must be {expected:?}, got {actual:?}")]
     ArrayTypeMismatch { expected: String, actual: String },
     #[error("cannot set expected type {expected:?}, got {actual:?}")]
@@ -168,6 +178,12 @@ pub enum TypeError {
 pub enum AttributeError {
     #[error("no such attribute: {name} on {type_}")]
     NoSuchAttribute { name: String, type_: String },
+}
+
+#[derive(Debug, Error, Eq, PartialEq)]
+pub enum IndexError {
+    #[error("index out of range index: {index}, len: {len}")]
+    IndexOutOfRange { index: usize, len: usize },
 }
 
 //

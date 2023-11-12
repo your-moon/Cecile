@@ -14,7 +14,7 @@ use std::hash::BuildHasherDefault;
 use std::{mem, ptr};
 
 use self::compiler::Compiler;
-use self::error::{AttributeError, Error, ErrorS, OverflowError, Result, TypeError};
+use self::error::{AttributeError, Error, ErrorS, IndexError, OverflowError, Result, TypeError};
 use self::object::{
     BoundMethodObject, ClosureObject, InstanceObject, Native, ObjectFunction, ObjectNative,
     ObjectType, StructObject, UpvalueObject,
@@ -102,6 +102,7 @@ impl<'a> VM<'a> {
             (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
+                op::ARRAY_ACCESS => self.op_array_access(),
                 op::ARRAY => self.op_array(),
                 op::GET_SUPER => self.op_get_super(),
                 op::INHERIT => self.op_inherit(),
@@ -169,6 +170,69 @@ impl<'a> VM<'a> {
             }
             println!();
         }
+        Ok(())
+    }
+
+    fn op_array_access(&mut self) -> Result<()> {
+        let index = self.pop();
+        let array = self.pop();
+        let len = match array.as_object().type_() {
+            ObjectType::Array => {
+                let array = unsafe { array.as_object().array };
+                unsafe { (*array).values.len() }
+            }
+            // ObjectType::String => {
+            //     let string = unsafe { array.as_object().string };
+            //     unsafe { (*string).value.len() }
+            // }
+            _ => {
+                return self.err(TypeError::NotIndexable {
+                    type_: array.type_().to_string(),
+                })
+            }
+        };
+
+        if index.is_number() && index.as_number() as usize >= len {
+            return self.err(IndexError::IndexOutOfRange {
+                index: index.as_number() as usize,
+                len: (len - 1),
+            });
+        }
+
+        let value = match array.as_object().type_() {
+            ObjectType::Array => {
+                let array = unsafe { array.as_object().array };
+                if index.is_number() {
+                    let index = index.as_number() as usize;
+                    let value = unsafe { (*array).values.get_unchecked(index) };
+                    *value
+                } else {
+                    return self.err(TypeError::NotIndexable {
+                        type_: unsafe { (*array).main.type_.to_string().clone() },
+                    });
+                }
+            }
+            // ObjectType::String => {
+            //     let string = unsafe { array.as_object().string };
+            //     let value = if index.is_number() {
+            //         let index = index.as_number() as usize;
+            //         let value = Value::from(string);
+            //         value
+            //     } else {
+            //         let array = unsafe { array.as_object().array };
+            //         return self.err(TypeError::NotIndexable {
+            //             type_: unsafe { (*array).main.type_.to_string().clone() },
+            //         });
+            //     };
+            //     Value::from(value)
+            // }
+            _ => {
+                return self.err(TypeError::NotIndexable {
+                    type_: array.type_().to_string(),
+                })
+            }
+        };
+        self.push_to_stack(value);
         Ok(())
     }
 

@@ -33,6 +33,8 @@ impl Chunk {
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
         print!("{:04} ", offset);
         match self.code[offset] {
+            op::ARRAY => self.code_byte("ARRAY", offset),
+            op::ARRAY_ACCESS => self.simple_instruction("ARRAY_ACCESS", offset),
             op::SUPER_INVOKE => self.debug_op_invoke("SUPER_INVOKE", offset),
             op::GET_SUPER => self.constant_instruction("GET_SUPER", offset),
             op::INHERIT => self.simple_instruction("INHERIT", offset),

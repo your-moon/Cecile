@@ -6,7 +6,7 @@ use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
 use crate::cc_parser::ast::{
-    ExprArray, ExprGet, ExprSet, ExprSuper, Field, StatementImpl, StatementStruct,
+    ExprArray, ExprArrayAccess, ExprGet, ExprSet, ExprSuper, Field, StatementImpl, StatementStruct,
 };
 use crate::vm::error::NameError;
 use crate::{
@@ -183,23 +183,48 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn get_current_struct_mut(&mut self) -> Option<&mut StructCell> {
-        match self.current_struct {
-            Some(id) => self.structs.get_mut(id as usize),
-            None => None,
+    pub fn get_current_struct_mut(&mut self, range: &Range<usize>) -> Result<&mut StructCell> {
+        if let Some(current_struct) = self.current_struct {
+            return Ok(&mut self.structs[current_struct as usize]);
         }
+        Err((
+            Error::NameError(NameError::StructNameNotFound {
+                name: "None".to_string(),
+            }),
+            range.clone(),
+        ))
     }
 
-    pub fn find_struct(&self, name: &str) -> Option<&StructCell> {
-        self.structs
+    pub fn find_struct(&self, name: &str, range: &Range<usize>) -> Result<&StructCell> {
+        let result = self
+            .structs
             .iter()
-            .find(|s| unsafe { (*s.name).value } == name)
+            .find(|s| unsafe { (*s.name).value } == name);
+        if result.is_none() {
+            return Err((
+                Error::NameError(NameError::StructNameNotFound {
+                    name: name.to_string(),
+                }),
+                range.clone(),
+            ));
+        }
+        Ok(result.unwrap())
     }
 
-    pub fn find_struct_mut(&mut self, name: &str) -> Option<&mut StructCell> {
-        self.structs
+    pub fn find_struct_mut(&mut self, name: &str, range: &Range<usize>) -> Result<&mut StructCell> {
+        let result = self
+            .structs
             .iter_mut()
-            .find(|s| unsafe { (*s.name).value } == name)
+            .find(|s| unsafe { (*s.name).value } == name);
+        if result.is_none() {
+            return Err((
+                Error::NameError(NameError::StructNameNotFound {
+                    name: name.to_string(),
+                }),
+                range.clone(),
+            ));
+        }
+        Ok(result.unwrap())
     }
 
     pub fn new(allocator: &mut CeAllocation) -> Self {
@@ -339,27 +364,17 @@ impl Compiler {
                 .var
                 .name
                 .clone();
-            let super_struct = self.find_struct_mut(&super_name);
-            super_methods = super_struct.as_ref().unwrap().methods.clone();
+            let super_struct = self.find_struct_mut(&super_name, &range)?;
+            super_methods = super_struct.methods.clone();
         }
         // self.current_struct = Some(impl_.name.clone());
 
-        let current_struct = self.get_current_struct_mut();
-        current_struct.unwrap().methods = super_methods;
+        let current_struct = self.get_current_struct_mut(&range)?;
+        current_struct.methods = super_methods;
 
-        let current_struct = self.get_current_struct_mut();
+        let current_struct = self.get_current_struct_mut(&range)?;
 
-        if !current_struct.is_some() {
-            let result = Err((
-                Error::NameError(NameError::StructNameNotFound {
-                    name: impl_.name.clone(),
-                }),
-                range.clone(),
-            ));
-            return result;
-        }
-
-        let fields = current_struct.as_ref().unwrap().fields.clone();
+        let fields = current_struct.fields.clone();
         let methods = impl_.methods.clone();
 
         let name = allocator.alloc(&impl_.name).into();
@@ -381,7 +396,7 @@ impl Compiler {
             self.declare_local(&impl_.name, &Type::Struct(impl_.name.clone()), &range)?;
         }
 
-        let current_struct = self.get_current_struct_mut().unwrap();
+        let current_struct = self.get_current_struct_mut(&range)?;
         current_struct.has_super = has_super;
 
         if let Some(super_) = &impl_.super_ {
@@ -432,7 +447,7 @@ impl Compiler {
                     }),
                 };
 
-                let current_struct = self.get_current_struct_mut().unwrap();
+                let current_struct = self.get_current_struct_mut(&range)?;
                 current_struct.methods.push(strct_method);
             }
             self.emit_u8(op::POP, &range);
@@ -602,8 +617,7 @@ impl Compiler {
                 &range,
             )?,
             FunctionType::Initializer | FunctionType::Method => {
-                let current_struct =
-                    unsafe { (*self.get_current_struct_mut().unwrap().name).value };
+                let current_struct = unsafe { (*self.get_current_struct_mut(&range)?.name).value };
                 self.declare_local("self", &Type::Struct(current_struct.to_string()), &range)?;
             }
         }
@@ -614,21 +628,8 @@ impl Compiler {
                     // TODO Add more type
                     Type::String | Type::Int => self.declare_local(&param_string, &t, &range)?,
                     Type::Struct(name) => {
-                        let found_struct = self.find_struct_mut(&name);
-                        match found_struct {
-                            Some(struct_) => {
-                                self.declare_local(&param_string, &t, &range)?;
-                            }
-                            None => {
-                                let result = Err((
-                                    Error::NameError(NameError::StructNameNotFound {
-                                        name: name.clone(),
-                                    }),
-                                    range.clone(),
-                                ));
-                                return result;
-                            }
-                        }
+                        self.find_struct_mut(&name, &range)?;
+                        self.declare_local(&param_string, &t, &range)?;
                     }
                     _ => todo!("type not implemented"),
                 },
@@ -845,60 +846,97 @@ impl Compiler {
             Expression::Set(set) => self.compile_set((set, range), allocator),
             Expression::Super(super_) => self.compile_super((super_, range), allocator),
             Expression::Array(arr) => self.compile_array((arr, range), allocator),
+            Expression::ArrayAccess(arr_access) => {
+                self.compile_array_access((arr_access, range), allocator)
+            }
+
             _ => todo!(),
         }?;
         Ok(expr_type)
     }
 
-    fn find_struct_field_or_method_type(
-        &mut self,
-        struct_name: &Type,
+    fn get_method_type(
+        &self,
+        struct_: &StructCell,
+        method_name: String,
+        range: &Span,
+    ) -> Result<Type> {
+        let method = struct_.methods.iter().find(|m| m.name == method_name);
+        let method_type = match method {
+            Some(method) => method.return_type.clone(),
+            None => {
+                let result = Err((
+                    Error::NameError(NameError::StructMethodNotFound {
+                        name: method_name.clone(),
+                        struct_name: unsafe { (*struct_.name).value }.to_string(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
+            }
+        };
+        Ok(method_type)
+    }
+
+    fn get_field_type(
+        &self,
+        struct_: &StructCell,
+        field_name: &str,
+        range: &Range<usize>,
+    ) -> Result<Type> {
+        let field = struct_
+            .fields
+            .iter()
+            .find(|f| (*f.name) == field_name.to_string());
+        let strct_type = match field {
+            Some(field) => field.type_.clone(),
+            None => {
+                let result = Err((
+                    Error::NameError(NameError::StructFieldNotFound {
+                        name: field_name.to_string(),
+                        struct_name: unsafe { (*struct_.name).value }.to_string(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
+            }
+        };
+        return Ok(strct_type);
+    }
+
+    fn find_struct_type_of_field_or_method(
+        &self,
+        struct_name: String,
         check_field: String,
         range: &Span,
     ) -> Result<Type> {
-        let result_type = match struct_name {
-            Type::Struct(strct) => {
-                let found_struct = self.find_struct_mut(&strct);
-                if !found_struct.is_some() {
-                    let result = Err((
-                        Error::NameError(NameError::StructNameNotFound {
-                            name: strct.clone(),
-                        }),
-                        range.clone(),
-                    ));
-                    return result;
-                }
-                let found_struct = found_struct.unwrap();
-                let field = found_struct
-                    .fields
-                    .iter()
-                    .find(|f| (*f.name) == check_field);
-                let strct_type = match field {
-                    Some(field) => field.type_.clone(),
-                    None => {
-                        let method = found_struct.methods.iter().find(|m| m.name == check_field);
-                        let method_type = match method {
-                            Some(method) => method.return_type.clone(),
-                            None => {
-                                let result = Err((
-                                    Error::NameError(NameError::StructMethodNotFound {
-                                        name: check_field.clone(),
-                                        struct_name: strct.clone(),
-                                    }),
-                                    range.clone(),
-                                ));
-                                return result;
-                            }
-                        };
-                        method_type
-                    }
-                };
+        let found_struct = self.find_struct(&struct_name, &range)?;
+        let field = self.get_field_type(found_struct, check_field.as_str(), &range);
+        if !field.is_ok() {
+            let method = self.get_method_type(found_struct, check_field.clone(), &range)?;
+            return Ok(method);
+        }
 
-                strct_type
-            }
-            _ => todo!("Only struct can use get"),
-        };
-        return Ok(result_type);
+        return Ok(field.unwrap());
+    }
+
+    fn compile_array_access(
+        &mut self,
+        (arr_access, range): (&ExprArrayAccess, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        let array_type = self.compile_expression(&arr_access.array, allocator)?;
+        let index_type = self.compile_expression(&arr_access.index, allocator)?;
+        if index_type != Type::Int {
+            let result = Err((
+                Error::TypeError(TypeError::ArrayIndexMustBeInt),
+                range.clone(),
+            ));
+            return result;
+        }
+        self.emit_u8(op::ARRAY_ACCESS, &range);
+        // self.write_constant(name.into(), &range);
+        return Ok(array_type);
     }
 
     fn compile_array(
@@ -932,36 +970,19 @@ impl Compiler {
         (super_, range): (&ExprSuper, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let current_struct = self.get_current_struct_mut();
-        let current_struct_name = unsafe {
-            (*current_struct.as_ref().unwrap().name.clone())
-                .value
-                .to_string()
-        };
-        match current_struct {
-            Some(struct_) => {
-                if !struct_.has_super {
-                    let result = Err((
-                        Error::NameError(NameError::StructHasNoSuper {
-                            name: current_struct_name,
-                        }),
-                        range.clone(),
-                    ));
-                    return result;
-                }
-            }
-            None => {
-                let result = Err((
-                    Error::NameError(NameError::StructNameNotFound {
-                        name: current_struct_name,
-                    }),
-                    range.clone(),
-                ));
-                return result;
-            }
+        let current_struct = self.get_current_struct_mut(&range)?;
+        let current_struct_name = unsafe { (*current_struct.name.clone()).value.to_string() };
+        if !current_struct.has_super {
+            let result = Err((
+                Error::NameError(NameError::StructHasNoSuper {
+                    name: current_struct_name,
+                }),
+                range.clone(),
+            ));
+            return result;
         }
-        let super_type = self.find_struct_field_or_method_type(
-            &Type::Struct(current_struct_name),
+        let super_type = self.find_struct_type_of_field_or_method(
+            current_struct_name,
             super_.name.clone(),
             range,
         )?;
@@ -984,8 +1005,12 @@ impl Compiler {
         let value_type = self.compile_expression(&set.value, allocator)?;
         let object_type = self.compile_expression(&set.object, allocator)?;
 
-        let field_type =
-            self.find_struct_field_or_method_type(&object_type, set.name.clone(), range)?;
+        let field_type = match object_type {
+            Type::Struct(ref name) => {
+                self.find_struct_type_of_field_or_method(name.clone(), set.name.clone(), range)?
+            }
+            _ => todo!(),
+        };
 
         if field_type != value_type {
             let result = Err((
@@ -1010,9 +1035,13 @@ impl Compiler {
     ) -> Result<Type> {
         let var_type = self.compile_expression(&get.object, allocator)?;
 
-        let field_type =
-            self.find_struct_field_or_method_type(&var_type, get.name.clone(), range)?;
-        println!("GET OBJECT TYPE: {:?}", field_type);
+        let field_type = match var_type {
+            Type::Struct(name) => {
+                self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
+            }
+            _ => todo!(),
+        };
+        // println!("GET OBJECT TYPE: {:?}", field_type);
 
         let name = allocator.alloc(&get.name);
         self.emit_u8(op::GET_FIELD, &range);
@@ -1132,32 +1161,14 @@ impl Compiler {
             match var_type {
                 Type::String | Type::Int | Type::Nil | Type::Bool => {}
                 Type::Struct(strct) => {
-                    let found_struct = self.find_struct_mut(strct);
-                    if !found_struct.is_some() {
-                        let result = Err((
-                            Error::NameError(NameError::StructNameNotFound {
-                                name: strct.clone(),
-                            }),
-                            range.clone(),
-                        ));
-                        return result;
-                    }
+                    self.find_struct_mut(strct, &range)?;
                 }
                 Type::Array(arr) => {
                     let arr_type = arr.as_ref();
                     match arr_type {
                         Type::String | Type::Int | Type::Nil | Type::Bool => {}
                         Type::Struct(strct) => {
-                            let found_struct = self.find_struct_mut(strct);
-                            if !found_struct.is_some() {
-                                let result = Err((
-                                    Error::NameError(NameError::StructNameNotFound {
-                                        name: strct.clone(),
-                                    }),
-                                    range.clone(),
-                                ));
-                                return result;
-                            }
+                            self.find_struct_mut(strct, &range)?;
                         }
                         _ => todo!("type not implemented"),
                     }
@@ -1194,16 +1205,7 @@ impl Compiler {
                     }
                 }
                 Type::Struct(strct) => {
-                    let found_struct = self.find_struct_mut(strct);
-                    if !found_struct.is_some() {
-                        let result = Err((
-                            Error::NameError(NameError::StructNameNotFound {
-                                name: strct.clone(),
-                            }),
-                            range.clone(),
-                        ));
-                        return result;
-                    }
+                    self.find_struct_mut(strct, &range)?;
                     let name = &var.var.name;
                     if self.is_global() {
                         let string = allocator.alloc(name);
@@ -1233,16 +1235,7 @@ impl Compiler {
                             }
                         }
                         Type::Struct(strct) => {
-                            let found_struct = self.find_struct_mut(strct);
-                            if !found_struct.is_some() {
-                                let result = Err((
-                                    Error::NameError(NameError::StructNameNotFound {
-                                        name: strct.clone(),
-                                    }),
-                                    range.clone(),
-                                ));
-                                return result;
-                            }
+                            self.find_struct_mut(strct, &range)?;
                             let name = &var.var.name;
                             if self.is_global() {
                                 let string = allocator.alloc(name);

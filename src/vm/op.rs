@@ -3,6 +3,7 @@ iota! {
     pub const
     CECILE_CONSTANT: u8 = iota;,
     ARRAY,
+    ARRAY_ACCESS,
     ADD,
     MODULO,
     POP,

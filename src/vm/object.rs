@@ -92,7 +92,7 @@ impl Display for Object {
             ObjectType::BoundMethod => write!(f, "<bound method {}>", unsafe {
                 (*(*(*(*self.bound_method).method).function).name).value
             }),
-            ObjectType::Array => write!(f, "<array {:?}>", unsafe { (*self.array).values.clone() }),
+            ObjectType::Array => write!(f, "<array {:?}>", unsafe { (*self.array).main.type_ }),
         }
     }
 }
