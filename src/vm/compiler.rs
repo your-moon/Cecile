@@ -603,13 +603,6 @@ impl Compiler {
                 let current_struct =
                     unsafe { (*self.get_current_struct_mut().unwrap().name).value };
                 self.declare_local("self", &Type::Struct(current_struct.to_string()), &range)?;
-                // self.declare_local(
-                //     &func.name,
-                //     &Type::Fn(Fn {
-                //         return_type: Box::new(func.return_type.clone()),
-                //     }),
-                //     &range,
-                // )?;
             }
         }
         //TODO check param type
@@ -849,6 +842,7 @@ impl Compiler {
             Expression::Get(get) => self.compile_get((get, range), allocator),
             Expression::Set(set) => self.compile_set((set, range), allocator),
             Expression::Super(super_) => self.compile_super((super_, range), allocator),
+            _ => todo!(),
         }?;
         Ok(expr_type)
     }

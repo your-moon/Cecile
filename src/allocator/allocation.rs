@@ -83,14 +83,12 @@ impl CeAllocation {
     pub fn sweep(&mut self) {
         for idx in (0..self.objects.len()).rev() {
             let object = *unsafe { self.objects.get_unchecked(idx) };
-            let is_marked = unsafe { (*object.main).is_marked };
             if !mem::take(unsafe { &mut (*object.main).is_marked }) {
                 self.objects.swap_remove(idx);
-                // println!("SWEEPING: {:?}", object);
+                println!("SWEEPING: {:?}", object);
                 object.free();
             }
         }
-
         // self.strings.retain(|_, &mut string| {
         //     if mem::take(unsafe { &mut (*string).main.is_marked }) {
         //         false

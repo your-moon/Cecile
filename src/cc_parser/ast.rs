@@ -142,6 +142,7 @@ pub enum Expression {
     Get(Box<ExprGet>),
     Set(Box<ExprSet>),
     Super(ExprSuper),
+    Array(Box<ExprArray>),
     // Struct(Box<ExprStruct>),
 }
 
@@ -152,6 +153,11 @@ impl Expression {
             _ => None,
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprArray {
+    pub elements: Vec<ExprS>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -287,6 +293,7 @@ pub enum Type {
     Int,
     #[default]
     UnInitialized,
+    Array(Box<Type>),
 }
 
 impl Type {
@@ -316,6 +323,7 @@ impl Display for Type {
             Type::Struct(name) => format!("Struct({:?})", name),
             Type::UnInitialized => "UnInitialized".to_string(),
             Type::Self_ => "Self".to_string(),
+            Type::Array(type_) => format!("Array({:?})", type_),
         };
         write!(f, "{type_}")
     }

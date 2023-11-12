@@ -8,6 +8,8 @@ use logos::{Logos, SpannedIter};
 #[logos(skip r"//.*")]
 pub enum Token {
     // Төрөл
+    #[token("Vec")]
+    TypeVec,
     #[token("String")]
     TypeString,
     #[token("int")]
@@ -88,6 +90,10 @@ pub enum Token {
     LeftParen,
     #[token(")")]
     RightParen,
+    #[token("[")]
+    LeftBracket,
+    #[token("]")]
+    RightBracket,
     #[token("{")]
     LeftBrace,
     #[token("}")]

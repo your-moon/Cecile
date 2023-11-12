@@ -242,6 +242,10 @@ ExprPrimary: ast::Expression = {
     "true" => ast::Expression::Literal(ast::ExprLiteral::Bool(true)),
     string => ast::Expression::Literal(ast::ExprLiteral::String(<>)),
     number => ast::Expression::Literal(ast::ExprLiteral::Number(<>)),
+
+    //Array
+    ExprArray,
+
     
     // Variables
     ExprVar,
@@ -249,6 +253,19 @@ ExprPrimary: ast::Expression = {
 
     // Grouping
     "(" <Expression> ")",
+}
+
+ExprArray: ast::Expression = {
+   "[" <arr:Array> "]" => 
+        ast::Expression::Array(Box::new(ast::ExprArray { elements:arr } ))
+} 
+
+Array: Vec<ast::ExprS> = {
+    <first:ExprS> <mut arr:("," <ExprS>)*> => {
+        arr.insert(0, first);
+        arr 
+    },
+    () => Vec::new(),
 }
 
 
@@ -265,7 +282,13 @@ Types: ast::Type = {
   type_int => ast::Type::Int,
   type_bool => ast::Type::Bool,
   "fn" => ast::Type::Fn(ast::Fn { return_type: Box::new(None) }),
-  <name:identifier> => ast::Type::Struct(name)
+  <name:identifier> => ast::Type::Struct(name),
+  ArrayType
+}
+
+ArrayType: ast::Type = {
+    "Vec" "<" <type_:Types> ">" =>
+        ast::Type::Array(Box::new(type_))
 }
 
 
@@ -310,6 +333,7 @@ extern {
     "impl" => Token::Impl,
     "self" => Token::Self_,
     "super" => Token::Super,
+    "Vec" => Token::TypeVec,
 
     // Literals
     string => Token::String(<String>),
@@ -327,6 +351,8 @@ extern {
     ")" => Token::RightParen,
     "{" => Token::LeftBrace,
     "}" => Token::RightBrace,
+    "[" => Token::LeftBracket,
+    "]" => Token::RightBracket,
     "=" => Token::Equal,
     ";" => Token::Semicolon,
     ":" => Token::Colon,
