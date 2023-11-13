@@ -643,6 +643,10 @@ impl Compiler {
                         self.find_struct_mut(&name, &range)?;
                         self.declare_local(&param_string, &t, &range)?;
                     }
+                    Type::Array(arr) => match **arr {
+                        Type::Int => self.declare_local(&param_string, &t, &range)?,
+                        _ => todo!("type not implemented"),
+                    },
                     _ => todo!("type not implemented"),
                 },
                 //TODO identify param type
@@ -947,7 +951,7 @@ impl Compiler {
             return result;
         }
         self.emit_u8(op::ARRAY_ACCESS, &range);
-        // self.write_constant(name.into(), &range);
+        println!("ARR TYPE: {:?}", array_type);
         return Ok(array_type);
     }
 
@@ -1126,6 +1130,11 @@ impl Compiler {
     ) -> Result<Type> {
         let var_type = self.compile_expression(&assign.rhs, allocator)?;
 
+        let var_type = match var_type {
+            Type::Array(type_) => *type_,
+            _ => var_type,
+        };
+
         let lhs_type = {
             if self.globals.get(&assign.lhs.name).is_some() {
                 self.globals.get(&assign.lhs.name).cloned()
@@ -1186,6 +1195,10 @@ impl Compiler {
                 Ok(val_type)
             })?;
 
+        let value_var_type = match value_var_type {
+            Type::Array(type_) => *type_,
+            _ => value_var_type,
+        };
         if var.var.type_.is_some() {
             let var_type = var.var.type_.as_ref().unwrap();
             match var_type {

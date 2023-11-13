@@ -92,7 +92,17 @@ impl Display for Object {
             ObjectType::BoundMethod => write!(f, "<bound method {}>", unsafe {
                 (*(*(*(*self.bound_method).method).function).name).value
             }),
-            ObjectType::Array => write!(f, "<array {:?}>", unsafe { (*self.array).main.type_ }),
+            ObjectType::Array => {
+                for (i, value) in unsafe { (*self.array).values.iter().enumerate() } {
+                    if i == 0 {
+                        write!(f, "[{}", value)?;
+                    } else {
+                        write!(f, ", {}", value)?;
+                    }
+                }
+                write!(f, "]")?;
+                Ok(())
+            }
         }
     }
 }

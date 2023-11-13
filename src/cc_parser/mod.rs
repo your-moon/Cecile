@@ -32,6 +32,7 @@ pub fn parse(source: &str) -> Result<Program, Vec<ErrorS>> {
         }
     };
     for (statement, _range) in &program.statements {
+        println!("");
         println!("{:?}", statement);
     }
     errors.extend(parse_errors.into_iter().map(|err| match err {
