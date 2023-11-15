@@ -279,6 +279,7 @@ impl<'a> VM<'a> {
         for _ in 0..arg_count {
             array.push(self.pop());
         }
+        // When type is compile time known
         let val = array.get(0).unwrap();
         let mut array_type = None;
         if val.is_object() {

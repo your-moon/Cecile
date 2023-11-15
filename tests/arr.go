@@ -1,21 +1,21 @@
-type Point {
-    x: int,
-    y: int
-}
-
-impl Point {
-    fn new(x: int, y: int) {
-        self.x = x;
-        self.y = y;
-    }
-}
 
 
-let point = Point(1, 2);
-let arr = [123, 456, 101, 112, 543];
-println arr.get_type();
 
-arr.push(point);
+
+
+
+// Compile time known type because of array's elements are defined, type is Vec<int>
+// Decide type with first element
+let arr = [123, 456, 101, 112, 543, "s"];
+
+// Create empty array with type
+let arr2: Vec<String> = [];
+
+//This should be error because of type is unknown 
+let arr3 = []; 
+
+
+
 // fn bubble_sort(arr: Vec<int>) {
 //     let n = 5;
 //     for (let i = 0; i < n - 1; i = i + 1) {
@@ -45,19 +45,3 @@ arr.push(point);
 //
 // println find_max(arr);
 
-//
-// type Point {
-//     x: int,
-//     y: int
-// }
-//
-// impl Point {
-//     fn new(x: int, y: int) {
-//         self.x = x;
-//         self.y = y;
-//     }
-// }
-//
-// let p = Point(1, 2);
-// println p.x;
-// println p.y;
