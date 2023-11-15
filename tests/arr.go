@@ -1,14 +1,21 @@
+type Point {
+    x: int,
+    y: int
+}
+
+impl Point {
+    fn new(x: int, y: int) {
+        self.x = x;
+        self.y = y;
+    }
+}
+
+
+let point = Point(1, 2);
 let arr = [123, 456, 101, 112, 543];
+println arr.get_type();
 
-arr.push(5);
-println arr;
-let last = arr.pop();
-println arr;
-
-println arr.len();
-println last;
-println arr.get(3);
-
+arr.push(point);
 // fn bubble_sort(arr: Vec<int>) {
 //     let n = 5;
 //     for (let i = 0; i < n - 1; i = i + 1) {

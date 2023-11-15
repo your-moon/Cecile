@@ -133,6 +133,8 @@ pub enum SyntaxError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum TypeError {
+    #[error("array type must be {expected:?}, got {actual:?}")]
+    ArrayValueTypeMismatch { expected: String, actual: String },
     #[error("array is not indexable type: {type_}")]
     NotIndexable { type_: String },
     #[error("array index must be int")]

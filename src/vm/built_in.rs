@@ -12,6 +12,7 @@ pub enum ArrayMethod {
     Reverse,
     Sort,
     Get,
+    Type,
     None_,
 }
 
@@ -34,6 +35,8 @@ impl ArrayMethod {
             "reverse" => Self::Reverse,
             "sort" => Self::Sort,
             "get" => Self::Get,
+            "get_type" => Self::Type,
+
             _ => panic!("Unknown array method: {}", name),
         }
     }
@@ -43,7 +46,7 @@ impl ArrayMethod {
 
 pub fn builtin_array_methods_contains(name: &str) -> bool {
     let arr = vec![
-        "len", "push", "pop", "peek", "insert", "remove", "clear", "reverse", "sort", "get",
+        "len", "push", "pop", "peek", "insert", "remove", "clear", "reverse", "sort", "get_type",
     ];
 
     arr.contains(&name)

@@ -28,7 +28,7 @@ pub union Object {
 
 impl Object {
     pub fn type_(&self) -> ObjectType {
-        unsafe { (*self.main).type_ }
+        unsafe { (*self.main).type_.clone() }
     }
 
     pub fn free(self) {
@@ -57,7 +57,7 @@ impl Object {
             ObjectType::BoundMethod => {
                 let _free = unsafe { Box::from_raw(self.bound_method) };
             }
-            ObjectType::Array => {
+            ObjectType::Array(type_) => {
                 let _free = unsafe { Box::from_raw(self.array) };
             }
             ObjectType::BoundArrayMethod => {
@@ -96,7 +96,7 @@ impl Display for Object {
             ObjectType::BoundMethod => write!(f, "<bound method {}>", unsafe {
                 (*(*(*(*self.bound_method).method).function).name).value
             }),
-            ObjectType::Array => {
+            ObjectType::Array(type_) => {
                 for (i, value) in unsafe { (*self.array).values.iter().enumerate() } {
                     if i == 0 {
                         write!(f, "[{}", value)?;
@@ -141,7 +141,7 @@ impl PartialEq for Object {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ObjectType {
     String,
@@ -153,7 +153,7 @@ pub enum ObjectType {
     Instance,
     BoundMethod,
     BoundArrayMethod,
-    Array,
+    Array(Type),
 }
 
 impl Display for ObjectType {
@@ -167,7 +167,9 @@ impl Display for ObjectType {
             Self::Struct => write!(f, "{}", "struct"),
             Self::Instance => write!(f, "{}", "instance"),
             Self::BoundMethod => write!(f, "{}", "bound_method"),
-            Self::Array => write!(f, "{}", "array"),
+            Self::Array(type_) => {
+                write!(f, "Vec<{:?}>", type_)
+            }
             Self::BoundArrayMethod => write!(f, "{}", "bound_array_method"),
         }
     }
@@ -240,16 +242,18 @@ impl ObjectFunction {
 pub struct ArrayObject {
     pub main: MainObject,
     pub values: Vec<Value>,
+    pub value_type: Type,
 }
 
 impl ArrayObject {
-    pub fn new(values: Vec<Value>) -> Self {
+    pub fn new(values: Vec<Value>, type_: Type) -> Self {
         Self {
             main: MainObject {
-                type_: ObjectType::Array,
+                type_: ObjectType::Array(type_.clone()),
                 is_marked: false,
             },
             values,
+            value_type: type_,
         }
     }
 
@@ -264,19 +268,20 @@ impl ArrayObject {
             "reverse" => Some(ArrayMethod::Reverse),
             "sort" => Some(ArrayMethod::Sort),
             "get" => Some(ArrayMethod::Get),
+            "get_type" => Some(ArrayMethod::Type),
             _ => None,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct MainObject {
     pub type_: ObjectType,
     pub is_marked: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct StringObject {
     pub main: MainObject,
@@ -360,7 +365,7 @@ impl InstanceObject {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct BoundArrayMethodObject {
     pub common: MainObject,

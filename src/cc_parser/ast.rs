@@ -3,6 +3,8 @@ use std::fmt::{self, Display, Formatter};
 use std::ops::Range;
 
 use hashbrown::HashMap;
+
+use crate::vm::object::ObjectType;
 pub type Spanned<T> = (T, Span);
 pub type Span = Range<usize>;
 
@@ -327,6 +329,13 @@ pub enum Type {
     #[default]
     UnInitialized,
     Array(Box<Type>),
+    Object(Box<ObjectType>),
+}
+
+impl From<ObjectType> for Type {
+    fn from(object_type: ObjectType) -> Self {
+        Type::Object(Box::new(object_type))
+    }
 }
 
 impl Type {
@@ -363,6 +372,7 @@ impl Display for Type {
             Type::UnInitialized => "UnInitialized".to_string(),
             Type::Self_ => "Self".to_string(),
             Type::Array(type_) => format!("Array({:?})", type_),
+            Type::Object(type_) => format!("{:?}", type_),
         };
         write!(f, "{type_}")
     }

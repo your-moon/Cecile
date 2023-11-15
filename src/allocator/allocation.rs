@@ -33,7 +33,7 @@ impl CeAllocation {
 
     pub fn trace(&mut self) {
         while let Some(object) = self.gray_objects.pop() {
-            match unsafe { (*object.main).type_ } {
+            match unsafe { (*object.main).type_.clone() } {
                 ObjectType::BoundMethod => {
                     let method = unsafe { object.bound_method };
                     self.mark(unsafe { (*method).receiver });
@@ -76,7 +76,7 @@ impl CeAllocation {
                     let upvalue = unsafe { object.upvalue };
                     self.mark(unsafe { (*upvalue).value });
                 }
-                ObjectType::Array => {
+                ObjectType::Array(type_) => {
                     let array = unsafe { object.array };
                     for &value in unsafe { &(*array).values } {
                         self.mark(value);
@@ -163,17 +163,17 @@ where
     }
 }
 
-impl<A> CeAlloc<*mut ArrayObject> for A
-where
-    A: IntoIterator<Item = Value>,
-{
-    fn alloc(self, allocation: &mut CeAllocation) -> *mut ArrayObject {
-        let array = ArrayObject::new(self.into_iter().collect());
-        let ptr = Box::into_raw(Box::new(array));
-        allocation.objects.push(ptr.into());
-        ptr
-    }
-}
+// impl<A> CeAlloc<*mut ArrayObject> for A
+// where
+//     A: IntoIterator<Item = Value>,
+// {
+//     fn alloc(self, allocation: &mut CeAllocation) -> *mut ArrayObject {
+//         let array = ArrayObject::new(self.into_iter().collect(), array_type.unwrap());
+//         let ptr = Box::into_raw(Box::new(array));
+//         allocation.objects.push(ptr.into());
+//         ptr
+//     }
+// }
 
 impl<S> CeAlloc<*mut StringObject> for S
 where

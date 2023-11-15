@@ -1,6 +1,8 @@
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::Not;
 
+use crate::cc_parser::ast::Type;
+
 use super::object::{Object, ObjectType};
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
@@ -35,15 +37,15 @@ impl Value {
     pub const FALSE: Self = Self(Self::QUIET_NAN | 0b10);
     pub const TRUE: Self = Self(Self::QUIET_NAN | 0b11);
 
-    pub fn type_(self) -> ValueType {
+    pub fn type_(self) -> Type {
         if self.is_nil() {
-            ValueType::Nil
+            Type::Nil
         } else if self.is_bool() {
-            ValueType::Bool
+            Type::Bool
         } else if self.is_number() {
-            ValueType::Number
+            Type::Int
         } else if self.is_object() {
-            ValueType::Object(self.as_object().type_())
+            Type::Object(Box::new(self.as_object().type_()))
         } else {
             unreachable!()
         }
@@ -150,31 +152,32 @@ impl<O: Into<Object>> From<O> for Value {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-#[repr(u8)]
-pub enum ValueType {
-    Nil,
-    Bool,
-    Number,
-    Object(ObjectType),
-}
-
-impl Display for ValueType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Nil => write!(f, "nil"),
-            Self::Bool => write!(f, "bool"),
-            Self::Number => write!(f, "number"),
-            Self::Object(type_) => write!(f, "{}", type_),
-        }
-    }
-}
-
-impl From<ObjectType> for ValueType {
-    fn from(type_: ObjectType) -> Self {
-        Self::Object(type_)
-    }
-}
+// #[derive(Debug, PartialEq, Clone)]
+// #[repr(u8)]
+// pub enum ValueType {
+//     Nil,
+//     Bool,
+//     Number,
+//     Object(ObjectType),
+// }
+//
+// impl Display for ValueType {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+//         match self {
+//             Self::Nil => write!(f, "nil"),
+//             Self::Bool => write!(f, "bool"),
+//             Self::Number => write!(f, "number"),
+//             Self::Object(type_) => write!(f, "{}", type_),
+//         }
+//     }
+// }
+//
+//
+// impl From<ObjectType> for ValueType {
+//     fn from(type_: ObjectType) -> Self {
+//         Self::Object(type_)
+//     }
+// }
 
 #[cfg(test)]
 
@@ -200,13 +203,13 @@ mod tests {
 
     #[test]
     fn test_value_type() {
-        assert_eq!(Value::NIL.type_(), ValueType::Nil);
-        assert_eq!(Value::FALSE.type_(), ValueType::Bool);
-        assert_eq!(Value::TRUE.type_(), ValueType::Bool);
-        assert_eq!(Value(123).type_(), ValueType::Number);
+        assert_eq!(Value::NIL.type_(), Type::Nil);
+        assert_eq!(Value::FALSE.type_(), Type::Bool);
+        assert_eq!(Value::TRUE.type_(), Type::Bool);
+        assert_eq!(Value(123).type_(), Type::Int);
 
-        assert_eq!(Value::from(0.0).type_(), ValueType::Number);
-        assert_eq!(Value::from(f64::NAN).type_(), ValueType::Number);
+        assert_eq!(Value::from(0.0).type_(), Type::Int);
+        assert_eq!(Value::from(f64::NAN).type_(), Type::Int);
     }
 
     #[test]

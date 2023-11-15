@@ -5,6 +5,7 @@ use rand::Rng;
 use termcolor::StandardStream;
 
 use crate::allocator::GLOBAL;
+use crate::cc_parser::ast::Type;
 use crate::vm::value::Value;
 use crate::{
     allocator::allocation::{CeAlloc, CeAllocation},
@@ -183,7 +184,7 @@ impl<'a> VM<'a> {
         let index = self.pop();
         let array = self.pop();
         let len = match array.as_object().type_() {
-            ObjectType::Array => {
+            ObjectType::Array(type_) => {
                 let array = unsafe { array.as_object().array };
                 unsafe { (*array).values.len() }
             }
@@ -202,7 +203,7 @@ impl<'a> VM<'a> {
         }
 
         match array.as_object().type_() {
-            ObjectType::Array => {
+            ObjectType::Array(type_) => {
                 let array = unsafe { array.as_object().array };
                 if index.is_number() {
                     let index = index.as_number() as usize;
@@ -227,7 +228,7 @@ impl<'a> VM<'a> {
         let index = self.pop();
         let array = self.pop();
         let len = match array.as_object().type_() {
-            ObjectType::Array => {
+            ObjectType::Array(type_) => {
                 let array = unsafe { array.as_object().array };
                 unsafe { (*array).values.len() }
             }
@@ -250,7 +251,7 @@ impl<'a> VM<'a> {
         }
 
         let value = match array.as_object().type_() {
-            ObjectType::Array => {
+            ObjectType::Array(type_) => {
                 let array = unsafe { array.as_object().array };
                 if index.is_number() {
                     let index = index.as_number() as usize;
@@ -278,8 +279,22 @@ impl<'a> VM<'a> {
         for _ in 0..arg_count {
             array.push(self.pop());
         }
+        let val = array.get(0).unwrap();
+        let mut array_type = None;
+        if val.is_object() {
+            let object = val.as_object();
+            match object.type_() {
+                ObjectType::Array(t) => {
+                    array_type = Some(t);
+                }
+                _ => {}
+            }
+        } else if val.is_number() {
+            array_type = Some(Type::Int)
+        }
+        println!("array_type {:?}", array_type);
         array.reverse();
-        let array = self.alloc(ArrayObject::new(array));
+        let array = self.alloc(ArrayObject::new(array, array_type.unwrap()));
         self.push_to_stack(array.into());
         Ok(())
     }
@@ -382,8 +397,16 @@ impl<'a> VM<'a> {
             let value = unsafe { *self.peek(0) };
             let object = value.as_object();
 
-            if value.is_object() && object.type_() == ObjectType::Array {
-                unsafe { object.array }
+            if value.is_object() {
+                match object.type_() {
+                    ObjectType::Array(t) => unsafe { object.array },
+                    _ => {
+                        return self.err(AttributeError::NoSuchAttribute {
+                            type_: value.type_().to_string(),
+                            name: unsafe { (*name).value.to_string() },
+                        });
+                    }
+                }
             } else {
                 return self.err(AttributeError::NoSuchAttribute {
                     type_: value.type_().to_string(),
@@ -602,6 +625,18 @@ impl<'a> VM<'a> {
                     });
                 }
                 let value = self.pop();
+                if unsafe { (*array).value_type.clone() } != value.type_() {
+                    return self.err(TypeError::ArrayValueTypeMismatch {
+                        expected: unsafe { (*array).value_type.to_string() },
+                        actual: value.type_().to_string(),
+                    });
+                }
+                // if unsafe { (*array).main.type_ } != value.type_() {
+                //     return self.err(TypeError::TypeMisMatch {
+                //         expected: unsafe { (*array).main.type_.to_string() },
+                //         actual: value.type_().to_string(),
+                //     });
+                // }
                 let array = unsafe { &mut (*array) };
                 array.values.push(value);
             }
@@ -654,6 +689,20 @@ impl<'a> VM<'a> {
                 let array = unsafe { (*bound_arr_method).array };
                 let len = unsafe { (*array).values.len() } as f64;
                 self.push_to_stack(Value::from(len));
+            }
+            ArrayMethod::Type => {
+                self.pop();
+                if arg_count != 0 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "type".to_string(),
+                        expected: 0,
+                        actual: arg_count,
+                    });
+                }
+                let array = unsafe { (*bound_arr_method).array };
+                let type_ = unsafe { ((*array).main.type_).to_string() };
+                let name = self.alloc(type_);
+                self.push_to_stack(name.into());
             }
             _ => todo!(),
         }
