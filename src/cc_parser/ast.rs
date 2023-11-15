@@ -136,6 +136,7 @@ pub enum Expression {
     Infix(Box<ExprInfix>),
     Prefix(Box<ExprPrefix>),
     Assign(Box<ExprAssign>),
+    ArrayAccessAssign(Box<ExprArrayAccessAssign>),
     Call(Box<ExprCall>),
     Literal(ExprLiteral),
     Var(ExprVar),
@@ -151,6 +152,12 @@ impl Expression {
     pub fn as_var(&self) -> Option<ExprVar> {
         match self {
             Expression::Var(var) => Some(var.clone()),
+            _ => None,
+        }
+    }
+    pub fn as_arr_access(&self) -> Option<ExprArrayAccess> {
+        match self {
+            Expression::ArrayAccess(arr_access) => Some(*arr_access.clone()),
             _ => None,
         }
     }
@@ -210,6 +217,13 @@ pub enum ExprLiteral {
     Nil,
     Number(f64),
     String(String),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExprArrayAccessAssign {
+    pub array: ExprS,
+    pub index: ExprS,
+    pub value: ExprS,
 }
 
 #[derive(Clone, Debug, PartialEq)]

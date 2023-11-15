@@ -82,6 +82,11 @@ impl CeAllocation {
                         self.mark(value);
                     }
                 }
+                ObjectType::BoundArrayMethod => {
+                    let method = unsafe { object.bound_array_method };
+                    self.mark(unsafe { (*method).array });
+                    // self.mark(unsafe { (*method).method });
+                }
             }
         }
     }

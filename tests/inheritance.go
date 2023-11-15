@@ -25,8 +25,13 @@ impl Cruller < Doughnut {
     fn finish(ingredient: String) {
         super.finish("icing");
     }
+    
+    fn cook() {
+        super.cook();
+    }
 
 }
 
 let crul = Cruller();
 crul.finish("S");
+crul.cook();

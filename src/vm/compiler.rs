@@ -6,7 +6,8 @@ use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
 use crate::cc_parser::ast::{
-    ExprArray, ExprArrayAccess, ExprGet, ExprSet, ExprSuper, Field, StatementImpl, StatementStruct,
+    ExprArray, ExprArrayAccess, ExprArrayAccessAssign, ExprGet, ExprSet, ExprSuper, Field,
+    StatementImpl, StatementStruct,
 };
 use crate::vm::error::NameError;
 use crate::{
@@ -23,7 +24,7 @@ use crate::{
     vm::error::TypeError,
 };
 
-use super::built_in::{self, builtin_array_methods_contains_int};
+use super::built_in::builtin_array_methods_contains;
 use super::error::OverflowError;
 use super::object::StringObject;
 use super::{
@@ -304,7 +305,7 @@ impl Compiler {
             Statement::Block(block) => self.compile_block_stmt((block, range), allocator),
             Statement::If(if_) => self.compile_if_stmt((if_, range), allocator),
             Statement::While(while_) => self.compile_while_stmt((while_, range), allocator),
-            Statement::For(for_) => self.compile_fun_stmt((for_, range), allocator),
+            Statement::For(for_) => self.compile_for_stmt((for_, range), allocator),
             Statement::Fun(func) => {
                 let func_type =
                     self.compile_statement_fun((func, range), FunctionType::Function, allocator)?;
@@ -696,7 +697,7 @@ impl Compiler {
         (cell.function, cell.upvalues)
     }
 
-    fn compile_fun_stmt(
+    fn compile_for_stmt(
         &mut self,
         (for_, range): (&StatementFor, &Range<usize>),
         allocator: &mut CeAllocation,
@@ -865,6 +866,9 @@ impl Compiler {
             Expression::ArrayAccess(arr_access) => {
                 self.compile_array_access((arr_access, range), allocator)
             }
+            Expression::ArrayAccessAssign(arr_access_assign) => {
+                self.compile_array_access_assign((arr_access_assign, range), allocator)
+            }
 
             _ => todo!(),
         }?;
@@ -934,6 +938,18 @@ impl Compiler {
         }
 
         return Ok(field.unwrap());
+    }
+
+    fn compile_array_access_assign(
+        &mut self,
+        (arr_access_assign, range): (&ExprArrayAccessAssign, &Range<usize>),
+        allocator: &mut CeAllocation,
+    ) -> Result<Type> {
+        let array_type = self.compile_expression(&arr_access_assign.array, allocator)?;
+        let index_type = self.compile_expression(&arr_access_assign.index, allocator)?;
+        let value_type = self.compile_expression(&arr_access_assign.value, allocator)?;
+        self.emit_u8(op::ARRAY_ACCESS_ASSIGN, &range);
+        return Ok(array_type);
     }
 
     fn compile_array_access(
@@ -1050,15 +1066,15 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let var_type = self.compile_expression(&get.object, allocator)?;
-
+        println!("GET OBJECT TYPE: {:?}", var_type);
         let field_type = match var_type {
             Type::Struct(name) => {
                 self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
             }
             Type::Array(type_) => {
-                if builtin_array_methods_contains_int(&get.name) {
+                if builtin_array_methods_contains(&get.name) {
                     let name = allocator.alloc(&get.name);
-                    self.emit_u8(op::GET_FIELD, &range);
+                    self.emit_u8(op::GET_ARRAY, &range);
                     self.emit_constant_w(name.into(), &range)?;
 
                     return Ok(Type::Fn(Fn {
@@ -1160,24 +1176,26 @@ impl Compiler {
             }
         }
 
-        if let Ok(Some((local_index, _local_type))) =
-            self.current_compiler
-                .resolve_local(&assign.lhs.name, false, &range)
-        {
-            self.emit_u8(op::SET_LOCAL, &range);
-            self.emit_u8(local_index, &range);
-        } else if let Ok(Some((upvalue, _upvalue_type))) = self
-            .current_compiler
-            .resolve_upvalue(&assign.lhs.name, &range)
-        {
-            self.emit_u8(op::SET_UPVALUE, &range);
-            self.emit_u8(upvalue, &range);
-        } else {
-            let name = allocator.alloc(&assign.lhs.name);
-            self.emit_u8(op::SET_GLOBAL, &range);
-            self.write_constant(name.into(), &range);
-        }
-        Ok(var_type)
+        return self.set_variable(&assign.lhs.name, range, allocator);
+
+        // if let Ok(Some((local_index, _local_type))) =
+        //     self.current_compiler
+        //         .resolve_local(&assign.lhs.name, false, &range)
+        // {
+        //     self.emit_u8(op::SET_LOCAL, &range);
+        //     self.emit_u8(local_index, &range);
+        // } else if let Ok(Some((upvalue, _upvalue_type))) = self
+        //     .current_compiler
+        //     .resolve_upvalue(&assign.lhs.name, &range)
+        // {
+        //     self.emit_u8(op::SET_UPVALUE, &range);
+        //     self.emit_u8(upvalue, &range);
+        // } else {
+        //     let name = allocator.alloc(&assign.lhs.name);
+        //     self.emit_u8(op::SET_GLOBAL, &range);
+        //     self.write_constant(name.into(), &range);
+        // }
+        // Ok(var_type)
     }
 
     fn compile_var_stmt(
@@ -1195,41 +1213,41 @@ impl Compiler {
                 Ok(val_type)
             })?;
 
-        let value_var_type = match value_var_type {
-            Type::Array(type_) => *type_,
-            _ => value_var_type,
-        };
-        if var.var.type_.is_some() {
-            let var_type = var.var.type_.as_ref().unwrap();
-            match var_type {
-                Type::String | Type::Int | Type::Nil | Type::Bool => {}
-                Type::Struct(strct) => {
-                    self.find_struct_mut(strct, &range)?;
-                }
-                Type::Array(arr) => {
-                    let arr_type = arr.as_ref();
-                    match arr_type {
-                        Type::String | Type::Int | Type::Nil | Type::Bool => {}
-                        Type::Struct(strct) => {
-                            self.find_struct_mut(strct, &range)?;
-                        }
-                        _ => todo!("type not implemented"),
-                    }
-                }
-                _ => todo!("type not implemented"),
-            }
-            println!("var type: {:?}", var_type);
-            if var_type != &value_var_type {
-                let result = Err((
-                    Error::TypeError(TypeError::VariableTypeMismatch {
-                        expected: var_type.to_string(),
-                        actual: value_var_type.to_string(),
-                    }),
-                    range.clone(),
-                ));
-                return result;
-            }
-        }
+        // let value_var_type = match value_var_type {
+        //     Type::Array(type_) => *type_,
+        //     _ => value_var_type,
+        // };
+        // if var.var.type_.is_some() {
+        //     let var_type = var.var.type_.as_ref().unwrap();
+        //     match var_type {
+        //         Type::String | Type::Int | Type::Nil | Type::Bool => {}
+        //         Type::Struct(strct) => {
+        //             self.find_struct_mut(strct, &range)?;
+        //         }
+        //         Type::Array(arr) => {
+        //             let arr_type = arr.as_ref();
+        //             match arr_type {
+        //                 Type::String | Type::Int | Type::Nil | Type::Bool => {}
+        //                 Type::Struct(strct) => {
+        //                     self.find_struct_mut(strct, &range)?;
+        //                 }
+        //                 _ => todo!("type not implemented"),
+        //             }
+        //         }
+        //         _ => todo!("type not implemented"),
+        //     }
+        //     println!("var type: {:?}", var_type);
+        //     if var_type != &value_var_type {
+        //         let result = Err((
+        //             Error::TypeError(TypeError::VariableTypeMismatch {
+        //                 expected: var_type.to_string(),
+        //                 actual: value_var_type.to_string(),
+        //             }),
+        //             range.clone(),
+        //         ));
+        //         return result;
+        //     }
+        // }
 
         //Check if variable type is declared
         match &var.var.type_ {
@@ -1333,6 +1351,36 @@ impl Compiler {
         } else {
             let allocated_name = gc.alloc(name);
             self.emit_u8(op::GET_GLOBAL, span);
+            self.write_constant(allocated_name.into(), span);
+            let type_ = self.globals.get(&name.to_string());
+
+            let expr_var_type = match type_ {
+                Some(type_) => Ok(type_.clone()),
+                None => Err((
+                    Error::NameError(NameError::IdentifierNotDefined { name: name.into() }),
+                    span.clone(),
+                )),
+            };
+            return expr_var_type;
+        }
+    }
+
+    fn set_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<Type> {
+        if let Some((local_idx, local_type)) =
+            self.current_compiler.resolve_local(name, false, span)?
+        {
+            self.emit_u8(op::SET_LOCAL, span);
+            self.emit_u8(local_idx, span);
+            return Ok(local_type);
+        } else if let Some((upvalue_idx, upvalue_type)) =
+            self.current_compiler.resolve_upvalue(name, span)?
+        {
+            self.emit_u8(op::SET_UPVALUE, span);
+            self.emit_u8(upvalue_idx, span);
+            return Ok(upvalue_type);
+        } else {
+            let allocated_name = gc.alloc(name);
+            self.emit_u8(op::SET_GLOBAL, span);
             self.write_constant(allocated_name.into(), span);
             let type_ = self.globals.get(&name.to_string());
 

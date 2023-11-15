@@ -138,6 +138,12 @@ impl From<f64> for Value {
     }
 }
 
+impl From<usize> for Value {
+    fn from(value: usize) -> Self {
+        Self(value as u64)
+    }
+}
+
 impl<O: Into<Object>> From<O> for Value {
     fn from(object: O) -> Self {
         Self((unsafe { object.into().main } as u64) | Self::SIGN_BIT | Self::QUIET_NAN)

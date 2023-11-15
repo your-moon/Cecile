@@ -10,15 +10,18 @@ impl Rectangle {
     }
 
 fn area(s: int) -> int {
-        return self.width * self.height;
+        return self.width * self.height + s;
     }
 }
 
 let rect = Rectangle(2, 2);
-let sum = 0;
-for (let i = 0; i < 10; i = i + 1) {
-    sum = sum + rect.area(i);
-}
+rect.area(1);
 
-println sum;
-
+// let rect = Rectangle(2, 2);
+// let sum = 0;
+// for (let i = 0; i < 10; i = i + 1) {
+//     sum = sum + rect.area(i);
+// }
+//
+// println sum;
+//

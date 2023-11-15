@@ -170,12 +170,18 @@ ExprAssign = {
             lhs: ast::Var { name, type_: None },
             rhs: value,
         })),
-        <object:Spanned<ExprCall>> "." <name:identifier> "=" <value:ExprS> =>
+
+    <object:Spanned<ExprCall>> "." <name:identifier> "=" <value:ExprS> =>
         ast::Expression::Set(Box::new(ast::ExprSet { <> })),
 
+    <array:Spanned<ExprCall>> "[" <index:ExprS> "]" "=" <value:ExprS> =>
+        ast::Expression::ArrayAccessAssign(Box::new(ast::ExprArrayAccessAssign { array, index, value })),
 
     ExprLogicOr,
 }
+
+
+
 
 ExprLogicOr = ExprInfix<ExprLogicOr, OpLogicOr, ExprLogicAnd>;
 OpLogicOr: ast::OpInfix = "or" => ast::OpInfix::LogicOr;
@@ -224,13 +230,13 @@ ExprPrefix: ast::Expression = {
 }
 
 ExprCall: ast::Expression = {
-    <array:Spanned<ExprCall>> "[" <index:ExprS> "]" =>
-      ast::Expression::ArrayAccess(Box::new(ast::ExprArrayAccess { <> })),
 
     <callee:Spanned<ExprCall>> "(" <args:Args> ")" =>
       ast::Expression::Call(Box::new(ast::ExprCall { callee, args })),
     <object:Spanned<ExprCall>> "." <name:identifier> =>
         ast::Expression::Get(Box::new(ast::ExprGet { <> })),
+    <array:Spanned<ExprCall>> "[" <index:ExprS> "]" =>
+      ast::Expression::ArrayAccess(Box::new(ast::ExprArrayAccess { <> })),
     "super" "." <name:identifier> =>
         ast::Expression::Super(ast::ExprSuper {
             super_: ast::Var {
@@ -241,6 +247,7 @@ ExprCall: ast::Expression = {
         }),
       ExprPrimary
 }
+
 
 ExprPrimary: ast::Expression = {
     // Literals

@@ -4,6 +4,8 @@ iota! {
     CECILE_CONSTANT: u8 = iota;,
     ARRAY,
     ARRAY_ACCESS,
+    ARRAY_ACCESS_ASSIGN,
+    GET_ARRAY,
     ADD,
     MODULO,
     POP,

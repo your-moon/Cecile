@@ -14,11 +14,12 @@ use rustc_hash::FxHasher;
 use std::hash::BuildHasherDefault;
 use std::{mem, ptr};
 
+use self::built_in::ArrayMethod;
 use self::compiler::Compiler;
 use self::error::{AttributeError, Error, ErrorS, IndexError, OverflowError, Result, TypeError};
 use self::object::{
-    ArrayObject, BoundMethodObject, ClosureObject, InstanceObject, Native, ObjectFunction,
-    ObjectNative, ObjectType, StructObject, UpvalueObject,
+    ArrayObject, BoundArrayMethodObject, BoundMethodObject, ClosureObject, InstanceObject, Native,
+    ObjectFunction, ObjectNative, ObjectType, StructObject, UpvalueObject,
 };
 pub mod built_in;
 pub mod chunk;
@@ -105,7 +106,9 @@ impl<'a> VM<'a> {
 
             match self.read_u8() {
                 op::ARRAY_ACCESS => self.op_array_access(),
+                op::ARRAY_ACCESS_ASSIGN => self.op_array_access_assign(),
                 op::ARRAY => self.op_array(),
+                op::GET_ARRAY => self.op_get_array(),
                 op::GET_SUPER => self.op_get_super(),
                 op::INHERIT => self.op_inherit(),
                 op::SUPER_INVOKE => self.op_super_invoke(),
@@ -175,6 +178,51 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    fn op_array_access_assign(&mut self) -> Result<()> {
+        let value = self.pop();
+        let index = self.pop();
+        let array = self.pop();
+        let len = match array.as_object().type_() {
+            ObjectType::Array => {
+                let array = unsafe { array.as_object().array };
+                unsafe { (*array).values.len() }
+            }
+            _ => {
+                return self.err(TypeError::NotIndexable {
+                    type_: array.type_().to_string(),
+                })
+            }
+        };
+
+        if index.is_number() && index.as_number() as usize >= len {
+            return self.err(IndexError::IndexOutOfRange {
+                index: index.as_number() as usize,
+                len: (len - 1),
+            });
+        }
+
+        match array.as_object().type_() {
+            ObjectType::Array => {
+                let array = unsafe { array.as_object().array };
+                if index.is_number() {
+                    let index = index.as_number() as usize;
+                    let arr_value = unsafe { (*array).values.get_unchecked_mut(index) };
+                    *arr_value = value;
+                } else {
+                    return self.err(TypeError::NotIndexable {
+                        type_: unsafe { (*array).main.type_.to_string().clone() },
+                    });
+                }
+            }
+            _ => {
+                return self.err(TypeError::NotIndexable {
+                    type_: array.type_().to_string(),
+                })
+            }
+        };
+        self.push_to_stack(value);
+        Ok(())
+    }
     fn op_array_access(&mut self) -> Result<()> {
         let index = self.pop();
         let array = self.pop();
@@ -214,20 +262,6 @@ impl<'a> VM<'a> {
                     });
                 }
             }
-            // ObjectType::String => {
-            //     let string = unsafe { array.as_object().string };
-            //     let value = if index.is_number() {
-            //         let index = index.as_number() as usize;
-            //         let value = Value::from(string);
-            //         value
-            //     } else {
-            //         let array = unsafe { array.as_object().array };
-            //         return self.err(TypeError::NotIndexable {
-            //             type_: unsafe { (*array).main.type_.to_string().clone() },
-            //         });
-            //     };
-            //     Value::from(value)
-            // }
             _ => {
                 return self.err(TypeError::NotIndexable {
                     type_: array.type_().to_string(),
@@ -342,12 +376,44 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    fn op_get_array(&mut self) -> Result<()> {
+        let name = unsafe { self.read_constant().as_object().string };
+        let array = {
+            let value = unsafe { *self.peek(0) };
+            let object = value.as_object();
+
+            if value.is_object() && object.type_() == ObjectType::Array {
+                unsafe { object.array }
+            } else {
+                return self.err(AttributeError::NoSuchAttribute {
+                    type_: value.type_().to_string(),
+                    name: unsafe { (*name).value.to_string() },
+                });
+            }
+        };
+        let method_type = unsafe { (*array).get_method(name) };
+        if method_type.is_none() {
+            return self.err(AttributeError::NoSuchAttribute {
+                type_: unsafe { ((*array).main.type_).to_string() },
+                name: unsafe { (*name).value.to_string() },
+            });
+        }
+        let method_type = method_type.unwrap();
+
+        let bound_arr_method = self.alloc(BoundArrayMethodObject::new(array, method_type));
+        self.pop();
+        self.push_to_stack(bound_arr_method.into());
+
+        Ok(())
+    }
+
     fn op_get_field(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let instance = {
             let value = unsafe { *self.peek(0) };
             let object = value.as_object();
 
+            println!("ObjectType {:?}", object.type_());
             if value.is_object() && object.type_() == ObjectType::Instance {
                 unsafe { object.instance }
             } else {
@@ -390,6 +456,7 @@ impl<'a> VM<'a> {
         unsafe { (*cstruct).fields.insert(name, Value::NIL) };
         Ok(())
     }
+
     fn op_cstruct(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let cstruct = self.alloc(StructObject::new(name));
@@ -502,6 +569,9 @@ impl<'a> VM<'a> {
                 ObjectType::BoundMethod => {
                     self.call_bound_method(unsafe { object.bound_method }, arg_count)
                 }
+                ObjectType::BoundArrayMethod => {
+                    self.call_bound_arr_method(unsafe { object.bound_array_method }, arg_count)
+                }
                 // ObjectType::Array => self.call_array_method(unsafe { object.array }, arg_count),
                 ObjectType::Native => self.call_native(unsafe { object.native }, arg_count),
                 _ => self.err(TypeError::NotCallable {
@@ -513,6 +583,81 @@ impl<'a> VM<'a> {
                 type_: callee.type_().to_string(),
             })
         }
+    }
+
+    fn call_bound_arr_method(
+        &mut self,
+        bound_arr_method: *mut BoundArrayMethodObject,
+        arg_count: usize,
+    ) -> Result<()> {
+        let method = unsafe { (*bound_arr_method).method };
+        let array = unsafe { (*bound_arr_method).array };
+        match method {
+            ArrayMethod::Push => {
+                if arg_count != 1 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "push".to_string(),
+                        expected: 1,
+                        actual: arg_count,
+                    });
+                }
+                let value = self.pop();
+                let array = unsafe { &mut (*array) };
+                array.values.push(value);
+            }
+            ArrayMethod::Pop => {
+                self.pop();
+                if arg_count != 0 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "pop".to_string(),
+                        expected: 0,
+                        actual: arg_count,
+                    });
+                }
+                let array = unsafe { &mut (*array) };
+                let value = array.values.pop();
+                match value {
+                    Some(value) => self.push_to_stack(value),
+                    None => return self.err(IndexError::IndexOutOfRange { index: 0, len: 0 }),
+                }
+            }
+            ArrayMethod::Get => {
+                self.pop();
+                if arg_count != 1 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "get".to_string(),
+                        expected: 1,
+                        actual: arg_count,
+                    });
+                }
+                let index = self.pop();
+                let array = unsafe { (*bound_arr_method).array };
+                let len = unsafe { (*array).values.len() };
+                if index.is_number() && index.as_number() as usize >= len {
+                    return self.err(IndexError::IndexOutOfRange {
+                        index: index.as_number() as usize,
+                        len: (len - 1),
+                    });
+                }
+                let value = unsafe { (*array).values.get_unchecked(index.as_number() as usize) };
+                self.push_to_stack(*value);
+            }
+            ArrayMethod::Len => {
+                self.pop();
+                if arg_count != 0 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "len".to_string(),
+                        expected: 0,
+                        actual: arg_count,
+                    });
+                }
+                let array = unsafe { (*bound_arr_method).array };
+                let len = unsafe { (*array).values.len() } as f64;
+                self.push_to_stack(Value::from(len));
+            }
+            _ => todo!(),
+        }
+        Ok(())
     }
 
     fn call_native(&mut self, native: *mut ObjectNative, arg_count: usize) -> Result<()> {
@@ -542,7 +687,7 @@ impl<'a> VM<'a> {
                     });
                 }
 
-                let mut number = rand::thread_rng().gen_range(1..=100) as f64;
+                let number = rand::thread_rng().gen_range(1..=100) as f64;
                 Value::from(number)
             }
         };

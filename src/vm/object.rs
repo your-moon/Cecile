@@ -23,6 +23,7 @@ pub union Object {
     pub instance: *mut InstanceObject,
     pub bound_method: *mut BoundMethodObject,
     pub array: *mut ArrayObject,
+    pub bound_array_method: *mut BoundArrayMethodObject,
 }
 
 impl Object {
@@ -58,6 +59,9 @@ impl Object {
             }
             ObjectType::Array => {
                 let _free = unsafe { Box::from_raw(self.array) };
+            }
+            ObjectType::BoundArrayMethod => {
+                let _free = unsafe { Box::from_raw(self.bound_array_method) };
             }
         };
     }
@@ -103,6 +107,9 @@ impl Display for Object {
                 write!(f, "]")?;
                 Ok(())
             }
+            ObjectType::BoundArrayMethod => write!(f, "<bound array method {:?}>", unsafe {
+                (*self.bound_array_method).method
+            }),
         }
     }
 }
@@ -126,6 +133,7 @@ impl_from_object!(cstruct, StructObject);
 impl_from_object!(instance, InstanceObject);
 impl_from_object!(bound_method, BoundMethodObject);
 impl_from_object!(array, ArrayObject);
+impl_from_object!(bound_array_method, BoundArrayMethodObject);
 
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
@@ -144,6 +152,7 @@ pub enum ObjectType {
     Struct,
     Instance,
     BoundMethod,
+    BoundArrayMethod,
     Array,
 }
 
@@ -159,6 +168,7 @@ impl Display for ObjectType {
             Self::Instance => write!(f, "{}", "instance"),
             Self::BoundMethod => write!(f, "{}", "bound_method"),
             Self::Array => write!(f, "{}", "array"),
+            Self::BoundArrayMethod => write!(f, "{}", "bound_array_method"),
         }
     }
 }
@@ -230,7 +240,6 @@ impl ObjectFunction {
 pub struct ArrayObject {
     pub main: MainObject,
     pub values: Vec<Value>,
-    pub methods: ArrayMethod,
 }
 
 impl ArrayObject {
@@ -241,7 +250,21 @@ impl ArrayObject {
                 is_marked: false,
             },
             values,
-            methods: ArrayMethod::default(),
+        }
+    }
+
+    pub fn get_method(&self, name: *mut StringObject) -> Option<ArrayMethod> {
+        match unsafe { (*name).value } {
+            "push" => Some(ArrayMethod::Push),
+            "pop" => Some(ArrayMethod::Pop),
+            "len" => Some(ArrayMethod::Len),
+            "remove" => Some(ArrayMethod::Remove),
+            "insert" => Some(ArrayMethod::Insert),
+            "clear" => Some(ArrayMethod::Clear),
+            "reverse" => Some(ArrayMethod::Reverse),
+            "sort" => Some(ArrayMethod::Sort),
+            "get" => Some(ArrayMethod::Get),
+            _ => None,
         }
     }
 }
@@ -333,6 +356,27 @@ impl InstanceObject {
             },
             struct_,
             fields: HashMap::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct BoundArrayMethodObject {
+    pub common: MainObject,
+    pub array: *mut ArrayObject,
+    pub method: ArrayMethod,
+}
+
+impl BoundArrayMethodObject {
+    pub fn new(array: *mut ArrayObject, method: ArrayMethod) -> Self {
+        Self {
+            common: MainObject {
+                type_: ObjectType::BoundArrayMethod,
+                is_marked: false,
+            },
+            array,
+            method,
         }
     }
 }

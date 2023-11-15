@@ -1,6 +1,6 @@
-use super::value::Value;
+use super::{error::Result, object::ArrayObject, value::Value};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ArrayMethod {
     Len,
     Push,
@@ -41,8 +41,8 @@ impl ArrayMethod {
     // pub fn call(&self, array: &mut ArrayObject, args: Vec<Value>) -> Object {}
 }
 
-pub fn builtin_array_methods_contains_int(name: &str) -> bool {
-    let mut arr = vec![
+pub fn builtin_array_methods_contains(name: &str) -> bool {
+    let arr = vec![
         "len", "push", "pop", "peek", "insert", "remove", "clear", "reverse", "sort", "get",
     ];
 
