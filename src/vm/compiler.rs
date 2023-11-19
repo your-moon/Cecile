@@ -1066,7 +1066,6 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let var_type = self.compile_expression(&get.object, allocator)?;
-        println!("GET OBJECT TYPE: {:?}", var_type);
         let field_type = match var_type {
             Type::Struct(name) => {
                 self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
@@ -1091,7 +1090,6 @@ impl Compiler {
             }
             _ => todo!(),
         };
-        // println!("GET OBJECT TYPE: {:?}", field_type);
 
         let name = allocator.alloc(&get.name);
         self.emit_u8(op::GET_FIELD, &range);
@@ -1212,7 +1210,6 @@ impl Compiler {
                 let val_type = self.compile_expression(value, allocator)?;
                 Ok(val_type)
             })?;
-
         // let value_var_type = match value_var_type {
         //     Type::Array(type_) => *type_,
         //     _ => value_var_type,

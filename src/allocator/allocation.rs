@@ -77,8 +77,9 @@ impl CeAllocation {
                     self.mark(unsafe { (*upvalue).value });
                 }
                 ObjectType::Array(type_) => {
+                    self.mark(unsafe { object.array });
                     let array = unsafe { object.array };
-                    for &value in unsafe { &(*array).values } {
+                    for &value in unsafe { (*array).values.iter() } {
                         self.mark(value);
                     }
                 }
@@ -94,6 +95,7 @@ impl CeAllocation {
     pub fn sweep(&mut self) {
         for idx in (0..self.objects.len()).rev() {
             let object = *unsafe { self.objects.get_unchecked(idx) };
+            let is_marked = unsafe { (*object.main).is_marked };
             if !mem::take(unsafe { &mut (*object.main).is_marked }) {
                 self.objects.swap_remove(idx);
                 println!("SWEEPING: {:?}", object);
@@ -133,6 +135,9 @@ impl<T: Into<Object>> GcMark for T {
         if !unsafe { (*object.main).is_marked } {
             // println!("mark {}: {object}", object.type_());
             unsafe { (*object.main).is_marked = true };
+            // println!("object {object} is marked: {:?}", unsafe {
+            //     (*object.main).is_marked
+            // });
             allocator.gray_objects.push(object);
         }
     }

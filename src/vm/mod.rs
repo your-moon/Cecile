@@ -276,26 +276,38 @@ impl<'a> VM<'a> {
     fn op_array(&mut self) -> Result<()> {
         let arg_count = self.read_u8() as usize;
         let mut array = Vec::with_capacity(arg_count);
-        for _ in 0..arg_count {
-            array.push(self.pop());
+        for i in 0..arg_count {
+            array.push(unsafe { *self.peek(i) });
         }
         // When type is compile time known
-        let val = array.get(0).unwrap();
+
+        let val = match array.get(0) {
+            Some(val) => val,
+            None => &Value::NIL,
+        };
+
         let mut array_type = None;
         if val.is_object() {
             let object = val.as_object();
             match object.type_() {
                 ObjectType::Array(t) => {
-                    array_type = Some(t);
+                    array_type = Some(Type::Array(Box::new(t)));
+                }
+                ObjectType::String => {
+                    array_type = Some(Type::String);
                 }
                 _ => {}
             }
         } else if val.is_number() {
             array_type = Some(Type::Int)
+        } else {
+            array_type = Some(Type::UnInitialized)
         }
-        println!("array_type {:?}", array_type);
         array.reverse();
         let array = self.alloc(ArrayObject::new(array, array_type.unwrap()));
+        for _ in 0..arg_count {
+            self.pop();
+        }
         self.push_to_stack(array.into());
         Ok(())
     }
@@ -626,18 +638,16 @@ impl<'a> VM<'a> {
                     });
                 }
                 let value = self.pop();
-                if unsafe { (*array).value_type.clone() } != value.type_() {
+                println!("value type: {:?}", value.type_());
+                if unsafe { (*array).value_type.clone() } == Type::UnInitialized {
+                    unsafe { (*array).value_type = value.type_() };
+                    unsafe { (*array).main.type_ = ObjectType::Array(value.type_()) };
+                } else if unsafe { (*array).value_type.clone() } != value.type_() {
                     return self.err(TypeError::ArrayValueTypeMismatch {
                         expected: unsafe { (*array).value_type.to_string() },
                         actual: value.type_().to_string(),
                     });
                 }
-                // if unsafe { (*array).main.type_ } != value.type_() {
-                //     return self.err(TypeError::TypeMisMatch {
-                //         expected: unsafe { (*array).main.type_.to_string() },
-                //         actual: value.type_().to_string(),
-                //     });
-                // }
                 let array = unsafe { &mut (*array) };
                 array.values.push(value);
             }
@@ -1055,9 +1065,10 @@ impl<'a> VM<'a> {
     }
 
     fn gc(&mut self) {
-        println!("--- gc start");
-        let mut stack_ptr = self.stack_top;
-        while stack_ptr < self.stack.as_mut_ptr() {
+        // println!("--- gc start");
+        let mut stack_ptr = self.stack.as_ptr();
+        while stack_ptr < self.stack_top {
+            // println!("marking stack: {:?}", unsafe { *stack_ptr });
             self.allocator.mark(unsafe { *stack_ptr });
             stack_ptr = unsafe { stack_ptr.add(1) };
         }
@@ -1082,7 +1093,7 @@ impl<'a> VM<'a> {
 
         self.next_gc = GLOBAL.allocated_bytes() * 2;
 
-        println!("--- gc end");
+        // println!("--- gc end");
     }
 
     fn err(&self, err: impl Into<Error>) -> Result<()> {
