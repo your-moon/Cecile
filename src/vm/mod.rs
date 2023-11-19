@@ -101,9 +101,9 @@ impl<'a> VM<'a> {
         };
 
         loop {
-            let function = unsafe { &mut *(*self.frame.closure).function };
-            let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
-            (*function).chunk.disassemble_instruction(idx as usize);
+            // let function = unsafe { &mut *(*self.frame.closure).function };
+            // let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
+            // (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
                 op::ARRAY_ACCESS => self.op_array_access(),
@@ -168,13 +168,13 @@ impl<'a> VM<'a> {
             }?;
 
             // print top of stack element
-            print!("    ");
-            let mut stack_ptr = self.frame.stack;
-            while stack_ptr < self.stack_top {
-                print!("[ {} ]", unsafe { *stack_ptr });
-                stack_ptr = unsafe { stack_ptr.add(1) };
-            }
-            println!();
+            // print!("    ");
+            // let mut stack_ptr = self.frame.stack;
+            // while stack_ptr < self.stack_top {
+            //     print!("[ {} ]", unsafe { *stack_ptr });
+            //     stack_ptr = unsafe { stack_ptr.add(1) };
+            // }
+            // println!();
         }
         Ok(())
     }
@@ -232,10 +232,6 @@ impl<'a> VM<'a> {
                 let array = unsafe { array.as_object().array };
                 unsafe { (*array).values.len() }
             }
-            // ObjectType::String => {
-            //     let string = unsafe { array.as_object().string };
-            //     unsafe { (*string).value.len() }
-            // }
             _ => {
                 return self.err(TypeError::NotIndexable {
                     type_: array.type_().to_string(),

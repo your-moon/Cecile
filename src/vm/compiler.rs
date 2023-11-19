@@ -967,8 +967,8 @@ impl Compiler {
             return result;
         }
         self.emit_u8(op::ARRAY_ACCESS, &range);
-        println!("ARR TYPE: {:?}", array_type);
-        return Ok(array_type);
+        println!("ARR TYPE: {:?}", array_type.get_array_type().unwrap());
+        return Ok(array_type.get_array_type().unwrap());
     }
 
     fn compile_array(
@@ -1326,6 +1326,8 @@ impl Compiler {
                 }
             }
         }
+        println!("var name: {}", var.var.name);
+        println!("var type: {:?}", value_var_type);
         Ok(value_var_type)
     }
 
