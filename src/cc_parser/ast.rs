@@ -339,6 +339,12 @@ impl From<ObjectType> for Type {
 }
 
 impl Type {
+    pub fn is_array(&self) -> bool {
+        match self {
+            Type::Array(_) => true,
+            _ => false,
+        }
+    }
     pub fn get_array_type(&self) -> Option<Type> {
         match self {
             Type::Array(type_) => Some(*type_.clone()),

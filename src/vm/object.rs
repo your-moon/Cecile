@@ -30,6 +30,9 @@ impl Object {
     pub fn type_(&self) -> ObjectType {
         unsafe { (*self.main).type_.clone() }
     }
+    pub fn is_array(&self) -> bool {
+        matches!(self.type_(), ObjectType::Array(_))
+    }
 
     pub fn free(self) {
         match self.type_() {
@@ -269,7 +272,20 @@ impl ArrayObject {
             "sort" => Some(ArrayMethod::Sort),
             "get" => Some(ArrayMethod::Get),
             "get_type" => Some(ArrayMethod::Type),
+            "copy" => Some(ArrayMethod::Copy),
+            "extend" => Some(ArrayMethod::Extend),
             _ => None,
+        }
+    }
+
+    pub fn get_copy(&self) -> Self {
+        Self {
+            main: MainObject {
+                type_: ObjectType::Array(self.value_type.clone()),
+                is_marked: false,
+            },
+            values: self.values.clone(),
+            value_type: self.value_type.clone(),
         }
     }
 }

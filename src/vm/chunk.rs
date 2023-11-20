@@ -28,7 +28,7 @@ impl Chunk {
             op::ARRAY => self.code_byte("ARRAY", offset),
             op::ARRAY_ACCESS => self.simple_instruction("ARRAY_ACCESS", offset),
             op::ARRAY_ACCESS_ASSIGN => self.simple_instruction("ARRAY_ACCESS_ASSIGN", offset),
-            op::GET_ARRAY => self.code_byte("GET_ARRAY", offset),
+            op::GET_ARRAY_METHOD => self.code_byte("GET_ARRAY_METHOD", offset),
             op::SUPER_INVOKE => self.debug_op_invoke("SUPER_INVOKE", offset),
             op::GET_SUPER => self.constant_instruction("GET_SUPER", offset),
             op::INHERIT => self.simple_instruction("INHERIT", offset),

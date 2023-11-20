@@ -1073,7 +1073,7 @@ impl Compiler {
             Type::Array(type_) => {
                 if builtin_array_methods_contains(&get.name) {
                     let name = allocator.alloc(&get.name);
-                    self.emit_u8(op::GET_ARRAY, &range);
+                    self.emit_u8(op::GET_ARRAY_METHOD, &range);
                     self.emit_constant_w(name.into(), &range)?;
 
                     return Ok(Type::Fn(Fn {
@@ -1144,11 +1144,6 @@ impl Compiler {
     ) -> Result<Type> {
         let var_type = self.compile_expression(&assign.rhs, allocator)?;
 
-        let var_type = match var_type {
-            Type::Array(type_) => *type_,
-            _ => var_type,
-        };
-
         let lhs_type = {
             if self.globals.get(&assign.lhs.name).is_some() {
                 self.globals.get(&assign.lhs.name).cloned()
@@ -1157,16 +1152,30 @@ impl Compiler {
                     .current_compiler
                     .resolve_local(&assign.lhs.name, false, &range)
                     .unwrap();
-                Some(local.unwrap().1)
+                match local {
+                    Some((_, type_)) => Some(type_),
+                    None => None,
+                }
             }
         };
 
-        if lhs_type.is_some() {
-            if lhs_type.as_ref().unwrap() != &var_type {
+        match lhs_type {
+            Some(type_) => {
+                if type_ != var_type && !type_.is_array() {
+                    let result = Err((
+                        Error::TypeError(TypeError::VariableTypeMismatch {
+                            expected: type_.to_string(),
+                            actual: var_type.to_string(),
+                        }),
+                        range.clone(),
+                    ));
+                    return result;
+                }
+            }
+            None => {
                 let result = Err((
-                    Error::TypeError(TypeError::VariableTypeMismatch {
-                        expected: lhs_type.unwrap().to_string(),
-                        actual: var_type.to_string(),
+                    Error::NameError(NameError::VariableNameNotFound {
+                        name: assign.lhs.name.clone(),
                     }),
                     range.clone(),
                 ));
@@ -1174,26 +1183,23 @@ impl Compiler {
             }
         }
 
-        return self.set_variable(&assign.lhs.name, range, allocator);
-
-        // if let Ok(Some((local_index, _local_type))) =
-        //     self.current_compiler
-        //         .resolve_local(&assign.lhs.name, false, &range)
-        // {
-        //     self.emit_u8(op::SET_LOCAL, &range);
-        //     self.emit_u8(local_index, &range);
-        // } else if let Ok(Some((upvalue, _upvalue_type))) = self
-        //     .current_compiler
-        //     .resolve_upvalue(&assign.lhs.name, &range)
-        // {
-        //     self.emit_u8(op::SET_UPVALUE, &range);
-        //     self.emit_u8(upvalue, &range);
-        // } else {
-        //     let name = allocator.alloc(&assign.lhs.name);
-        //     self.emit_u8(op::SET_GLOBAL, &range);
-        //     self.write_constant(name.into(), &range);
+        // if lhs_type.is_some() {
+        //     if lhs_type.unwrap()
+        //     if lhs_type.as_ref().unwrap() != &var_type
+        //         && lhs_type.as_ref().unwrap() != &Type::Array(Box::new(Type::UnInitialized))
+        //     {
+        //         let result = Err((
+        //             Error::TypeError(TypeError::VariableTypeMismatch {
+        //                 expected: lhs_type.unwrap().to_string(),
+        //                 actual: var_type.to_string(),
+        //             }),
+        //             range.clone(),
+        //         ));
+        //         return result;
+        //     }
         // }
-        // Ok(var_type)
+
+        return self.set_variable(&assign.lhs.name, range, allocator);
     }
 
     fn compile_var_stmt(

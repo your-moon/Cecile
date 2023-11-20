@@ -17,7 +17,9 @@ use std::{mem, ptr};
 
 use self::built_in::ArrayMethod;
 use self::compiler::Compiler;
-use self::error::{AttributeError, Error, ErrorS, IndexError, OverflowError, Result, TypeError};
+use self::error::{
+    ArrayError, AttributeError, Error, ErrorS, IndexError, OverflowError, Result, TypeError,
+};
 use self::object::{
     ArrayObject, BoundArrayMethodObject, BoundMethodObject, ClosureObject, InstanceObject, Native,
     ObjectFunction, ObjectNative, ObjectType, StructObject, UpvalueObject,
@@ -101,15 +103,15 @@ impl<'a> VM<'a> {
         };
 
         loop {
-            // let function = unsafe { &mut *(*self.frame.closure).function };
-            // let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
-            // (*function).chunk.disassemble_instruction(idx as usize);
+            let function = unsafe { &mut *(*self.frame.closure).function };
+            let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
+            (*function).chunk.disassemble_instruction(idx as usize);
 
             match self.read_u8() {
                 op::ARRAY_ACCESS => self.op_array_access(),
                 op::ARRAY_ACCESS_ASSIGN => self.op_array_access_assign(),
                 op::ARRAY => self.op_array(),
-                op::GET_ARRAY => self.op_get_array(),
+                op::GET_ARRAY_METHOD => self.op_get_array_method(),
                 op::GET_SUPER => self.op_get_super(),
                 op::INHERIT => self.op_inherit(),
                 op::SUPER_INVOKE => self.op_super_invoke(),
@@ -168,13 +170,13 @@ impl<'a> VM<'a> {
             }?;
 
             // print top of stack element
-            // print!("    ");
-            // let mut stack_ptr = self.frame.stack;
-            // while stack_ptr < self.stack_top {
-            //     print!("[ {} ]", unsafe { *stack_ptr });
-            //     stack_ptr = unsafe { stack_ptr.add(1) };
-            // }
-            // println!();
+            print!("    ");
+            let mut stack_ptr = self.frame.stack;
+            while stack_ptr < self.stack_top {
+                print!("[ {} ]", unsafe { *stack_ptr });
+                stack_ptr = unsafe { stack_ptr.add(1) };
+            }
+            println!();
         }
         Ok(())
     }
@@ -400,7 +402,7 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn op_get_array(&mut self) -> Result<()> {
+    fn op_get_array_method(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let array = {
             let value = unsafe { *self.peek(0) };
@@ -411,8 +413,8 @@ impl<'a> VM<'a> {
                     ObjectType::Array(t) => unsafe { object.array },
                     _ => {
                         return self.err(AttributeError::NoSuchAttribute {
-                            type_: value.type_().to_string(),
                             name: unsafe { (*name).value.to_string() },
+                            type_: value.type_().to_string(),
                         });
                     }
                 }
@@ -633,7 +635,7 @@ impl<'a> VM<'a> {
                         actual: arg_count,
                     });
                 }
-                let value = self.pop();
+                let value = unsafe { *self.peek(0) };
                 println!("value type: {:?}", value.type_());
                 if unsafe { (*array).value_type.clone() } == Type::UnInitialized {
                     unsafe { (*array).value_type = value.type_() };
@@ -710,6 +712,60 @@ impl<'a> VM<'a> {
                 let type_ = unsafe { ((*array).main.type_).to_string() };
                 let name = self.alloc(type_);
                 self.push_to_stack(name.into());
+            }
+            ArrayMethod::Copy => {
+                self.pop();
+                if arg_count != 0 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "copy".to_string(),
+                        expected: 0,
+                        actual: arg_count,
+                    });
+                }
+                let array = unsafe { (*bound_arr_method).array };
+                let array = unsafe { &mut (*array) };
+                let copy = array.values.clone();
+                let array = self.alloc(ArrayObject::new(copy, unsafe {
+                    (*array).value_type.clone()
+                }));
+                self.push_to_stack(array.into());
+            }
+            ArrayMethod::Extend => {
+                if arg_count != 1 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "extend".to_string(),
+                        expected: 1,
+                        actual: arg_count,
+                    });
+                }
+                let value = unsafe { *self.peek(0) };
+                if value.is_object() && value.as_object().is_array() {
+                    let array = unsafe { (*bound_arr_method).array };
+                    let value_array = unsafe { value.as_object().array };
+                    let array = unsafe { &mut (*array) };
+                    let value_array = unsafe { &(*value_array) };
+
+                    // if unsafe { (*array).value_type.clone() } == Type::UnInitialized {
+                    //     unsafe { (*array).value_type = value_array.value_type.clone() };
+                    //     unsafe {
+                    //         (*array).main.type_ = ObjectType::Array(value_array.value_type.clone())
+                    //     };
+                    // } else
+                    if unsafe { (*array).value_type.clone() } != value_array.value_type
+                        && unsafe { (*array).value_type.clone() } == Type::UnInitialized
+                    {
+                        return self.err(TypeError::ArrayValueTypeMismatch {
+                            expected: unsafe { (*array).value_type.to_string() },
+                            actual: value_array.value_type.to_string(),
+                        });
+                    }
+                    let array = unsafe { &mut (*array) };
+                    array.values.extend(value_array.values.clone());
+                } else {
+                    return self.err(ArrayError::ExtendMethodOnlyAcceptsArray {
+                        type_: value.type_().to_string(),
+                    });
+                }
             }
             _ => todo!(),
         }
@@ -827,19 +883,19 @@ impl<'a> VM<'a> {
     }
 
     fn greater(&mut self) -> Result<()> {
-        self.binary_op_number(|a, b| Value::from(a > b))
+        self.binary_op_number(|a, b| Value::from(a > b), ">")
     }
 
     fn greater_equal(&mut self) -> Result<()> {
-        self.binary_op_number(|a, b| Value::from(a >= b))
+        self.binary_op_number(|a, b| Value::from(a >= b), ">=")
     }
 
     fn less(&mut self) -> Result<()> {
-        self.binary_op_number(|a, b| Value::from(a < b))
+        self.binary_op_number(|a, b| Value::from(a < b), "<")
     }
 
     fn less_equal(&mut self) -> Result<()> {
-        self.binary_op_number(|a, b| Value::from(a <= b))
+        self.binary_op_number(|a, b| Value::from(a <= b), "<=")
     }
 
     fn loop_(&mut self) -> Result<()> {
@@ -1004,18 +1060,18 @@ impl<'a> VM<'a> {
     }
 
     fn sub(&mut self) -> Result<()> {
-        self.binary_op_number(|a, b| Value::from(a - b))
+        self.binary_op_number(|a, b| Value::from(a - b), "-")
     }
 
     fn mul(&mut self) -> Result<()> {
-        self.binary_op_number(|a, b| Value::from(a * b))
+        self.binary_op_number(|a, b| Value::from(a * b), "*")
     }
 
     fn div(&mut self) -> Result<()> {
-        self.binary_op_number(|a, b| Value::from(a / b))
+        self.binary_op_number(|a, b| Value::from(a / b), "/")
     }
 
-    fn binary_op_number(&mut self, op: fn(f64, f64) -> Value) -> Result<()> {
+    fn binary_op_number(&mut self, op: fn(f64, f64) -> Value, op_syb: &str) -> Result<()> {
         let b = self.pop();
         let a = self.pop();
 
@@ -1025,7 +1081,7 @@ impl<'a> VM<'a> {
             return Ok(());
         }
         self.err(TypeError::UnsupportedOperandInfix {
-            op: "+".to_string(),
+            op: op_syb.to_string(),
             lt_type: a.type_().to_string(),
             rt_type: b.type_().to_string(),
         })

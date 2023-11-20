@@ -2,6 +2,7 @@ use super::{error::Result, object::ArrayObject, value::Value};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ArrayMethod {
+    Extend,
     Len,
     Push,
     Pop,
@@ -14,6 +15,7 @@ pub enum ArrayMethod {
     Get,
     Type,
     None_,
+    Copy,
 }
 
 impl Default for ArrayMethod {
@@ -36,6 +38,8 @@ impl ArrayMethod {
             "sort" => Self::Sort,
             "get" => Self::Get,
             "get_type" => Self::Type,
+            "copy" => Self::Copy,
+            "extend" => Self::Extend,
 
             _ => panic!("Unknown array method: {}", name),
         }
@@ -47,6 +51,7 @@ impl ArrayMethod {
 pub fn builtin_array_methods_contains(name: &str) -> bool {
     let arr = vec![
         "len", "push", "pop", "peek", "insert", "remove", "clear", "reverse", "sort", "get_type",
+        "copy", "extend",
     ];
 
     arr.contains(&name)

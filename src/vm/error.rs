@@ -20,6 +20,8 @@ pub enum Error {
     AttributeError(AttributeError),
     #[error("IndexError {0}")]
     IndexError(IndexError),
+    #[error("ArrayError {0}")]
+    ArrayError(ArrayError),
 }
 
 macro_rules! impl_from_error {
@@ -39,7 +41,8 @@ impl_from_error!(
     SyntaxError,
     TypeError,
     AttributeError,
-    IndexError
+    IndexError,
+    ArrayError
 );
 
 #[derive(Debug, Error, Eq, PartialEq)]
@@ -129,6 +132,12 @@ pub enum SyntaxError {
 
     #[error("already declared in this scope: {name}")]
     AlreadyDeclared { name: String },
+}
+
+#[derive(Debug, Error, Eq, PartialEq)]
+pub enum ArrayError {
+    #[error("extend method only accepts array type, got {type_}")]
+    ExtendMethodOnlyAcceptsArray { type_: String },
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]
