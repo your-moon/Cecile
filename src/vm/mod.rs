@@ -18,7 +18,8 @@ use std::{mem, ptr};
 use self::built_in::ArrayMethod;
 use self::compiler::Compiler;
 use self::error::{
-    ArrayError, AttributeError, Error, ErrorS, IndexError, OverflowError, Result, TypeError,
+    ArrayError, AttributeError, Error, ErrorS, IndexError, NameError, OverflowError, Result,
+    TypeError,
 };
 use self::object::{
     ArrayObject, BoundArrayMethodObject, BoundMethodObject, ClosureObject, InstanceObject, Native,
@@ -935,9 +936,12 @@ impl<'a> VM<'a> {
         match self.globals.entry(name) {
             Entry::Occupied(mut entry) => {
                 entry.insert(value);
+                Ok(())
             }
-            Entry::Vacant(_) => todo!(),
-        }
+            Entry::Vacant(_) => self.err(NameError::IdentifierNotDefined {
+                name: unsafe { (*name).value.to_string() },
+            }),
+        };
         Ok(())
     }
 

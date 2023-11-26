@@ -1224,41 +1224,6 @@ impl Compiler {
                 let val_type = self.compile_expression(value, allocator)?;
                 Ok(val_type)
             })?;
-        // let value_var_type = match value_var_type {
-        //     Type::Array(type_) => *type_,
-        //     _ => value_var_type,
-        // };
-        // if var.var.type_.is_some() {
-        //     let var_type = var.var.type_.as_ref().unwrap();
-        //     match var_type {
-        //         Type::String | Type::Int | Type::Nil | Type::Bool => {}
-        //         Type::Struct(strct) => {
-        //             self.find_struct_mut(strct, &range)?;
-        //         }
-        //         Type::Array(arr) => {
-        //             let arr_type = arr.as_ref();
-        //             match arr_type {
-        //                 Type::String | Type::Int | Type::Nil | Type::Bool => {}
-        //                 Type::Struct(strct) => {
-        //                     self.find_struct_mut(strct, &range)?;
-        //                 }
-        //                 _ => todo!("type not implemented"),
-        //             }
-        //         }
-        //         _ => todo!("type not implemented"),
-        //     }
-        //     println!("var type: {:?}", var_type);
-        //     if var_type != &value_var_type {
-        //         let result = Err((
-        //             Error::TypeError(TypeError::VariableTypeMismatch {
-        //                 expected: var_type.to_string(),
-        //                 actual: value_var_type.to_string(),
-        //             }),
-        //             range.clone(),
-        //         ));
-        //         return result;
-        //     }
-        // }
 
         //Check if variable type is declared
         match &var.var.type_ {
