@@ -1,15 +1,26 @@
+
+// Variable declaration
 let a = "a";
 let b = "b";
+// Concatenation
 let c = a + b;
+// Print
 println c;
 println "";
 
+// Variable declaration
 let a = 1;
 let b = 2;
+
+// Binary operation
 let c = a + b;
+
+// Print
 println c;
 println "";
 
+
+// Function declaration
 fn fizzbuzz(n: int) {
     if (n % 15 == 0) {
         println "FizzBuzz";
@@ -22,33 +33,37 @@ fn fizzbuzz(n: int) {
     }
 }
 
-let sum = 0;
-
-for (let i = 0; i < 20; i = i + 1) {
-    fizzbuzz(i);
-    sum = sum + i;
-}
-print "SUM OF 100: ";
-println sum;
-
 fn add_two_number(a:int, b:int) -> int {
     return a + b;
 }
 
 println add_two_number(5, 15);
-println "Hello, World";
+
+let sum = 0;
 
 
+// For loop
+for (let i = 0; i < 20; i = i + 1) {
+    fizzbuzz(i);
+    sum = sum + i;
+}
+
+// Array declaration
 let n = [];
 let n2 = 2;
+
+// Extending array
 n.extend([n2]);
 println n;
 
+
+// Declaration of structure
 type Point {
   x:int,
   y:int
 }
 
+// Object methods
 impl Point {
   fn new(x:int, y:int) {
     self.x = x;
@@ -56,6 +71,7 @@ impl Point {
   }
 }
 
+// Getting object as parameter, accessing object fields
 fn distance(a: Point, b: Point) -> int {
   let x = (b.x - a.x);
   let y = (b.y - a.y);
