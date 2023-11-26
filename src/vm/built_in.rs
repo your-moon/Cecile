@@ -48,11 +48,15 @@ impl ArrayMethod {
     // pub fn call(&self, array: &mut ArrayObject, args: Vec<Value>) -> Object {}
 }
 
-pub fn builtin_array_methods_contains(name: &str) -> bool {
+pub fn builtin_array_methods_contains(name: &str) -> Option<String> {
     let arr = vec![
         "len", "push", "pop", "peek", "insert", "remove", "clear", "reverse", "sort", "get_type",
         "copy", "extend",
     ];
 
-    arr.contains(&name)
+    if arr.contains(&name) {
+        Some(name.to_string())
+    } else {
+        None
+    }
 }

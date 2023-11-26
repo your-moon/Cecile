@@ -26,12 +26,12 @@ println a;
 }
 
 let arr = [1, 2, 3, 4, 5];
+print "arr: ";
+println arr;
 let pivot = 0;
 let test = arr[pivot];
+println arr.copy();
+arr.push(6);
+println arr;
 println test;
 
-fn recursive() {
-    recursive();
-}
-
-recursive();

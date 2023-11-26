@@ -9,13 +9,23 @@ impl Rectangle {
         self.height = height;
     }
 
-fn area(s: int) -> int {
+    fn area(s: int) -> int {
         return self.width * self.height + s;
     }
 }
 
 let rect = Rectangle(2, 2);
-rect.area(1);
+println rect.area(1);
+
+
+type Point {
+  name: String
+}
+impl Point {
+
+}
+let point = Point();
+println point.name;
 
 // let rect = Rectangle(2, 2);
 // let sum = 0;
@@ -25,3 +35,4 @@ rect.area(1);
 //
 // println sum;
 //
+

@@ -32,9 +32,9 @@ pub mod object;
 pub mod op;
 pub mod value;
 
-const FRAMES_MAX: usize = 64;
-const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
+const FRAMES_MAX: usize = 256;
 const STACK_MAX_PER_FRAME: usize = u8::MAX as usize + 1;
+const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
 
 pub struct VM<'a> {
     stack_top: *mut Value,
@@ -164,6 +164,7 @@ impl<'a> VM<'a> {
                         None => break,
                     }
                     self.push_to_stack(value);
+                    println!("frames : {:?}", self.frames);
                     Ok(())
                 }
                 _ => todo!(),
@@ -294,6 +295,14 @@ impl<'a> VM<'a> {
                 ObjectType::String => {
                     array_type = Some(Type::String);
                 }
+                ObjectType::Struct => {
+                    let struct_name = unsafe { (*(*object.cstruct).name).value };
+                    array_type = Some(Type::Struct(struct_name.to_string()));
+                }
+                ObjectType::Instance => {
+                    let instance_name = unsafe { (*(*(*object.instance).struct_).name).value };
+                    array_type = Some(Type::Instance(instance_name.to_string()));
+                }
                 _ => {}
             }
         } else if val.is_number() {
@@ -385,20 +394,20 @@ impl<'a> VM<'a> {
     fn op_set_field(&mut self) -> Result<()> {
         let name = unsafe { self.read_constant().as_object().string };
         let instance = {
-            let value = self.pop();
-            let object = value.as_object();
+            let instance = self.pop();
+            let object = instance.as_object();
 
-            if value.is_object() && object.type_() == ObjectType::Instance {
+            if instance.is_object() && object.type_() == ObjectType::Instance {
                 unsafe { object.instance }
             } else {
                 return self.err(AttributeError::NoSuchAttribute {
-                    type_: value.type_().to_string(),
+                    type_: instance.type_().to_string(),
                     name: unsafe { (*name).value.to_string() },
                 });
             }
         };
         let value = self.peek(0);
-        unsafe { (*(*instance).struct_).fields.insert(name, *value) };
+        unsafe { (*instance).fields.insert(name, *value) };
         Ok(())
     }
 
@@ -447,7 +456,6 @@ impl<'a> VM<'a> {
             let value = unsafe { *self.peek(0) };
             let object = value.as_object();
 
-            println!("ObjectType {:?}", object.type_());
             if value.is_object() && object.type_() == ObjectType::Instance {
                 unsafe { object.instance }
             } else {
@@ -458,7 +466,7 @@ impl<'a> VM<'a> {
             }
         };
 
-        let value = unsafe { (*(*instance).struct_).fields.get(&name) };
+        let value = unsafe { (*instance).fields.get(&name) };
         match value {
             Some(&value) => {
                 self.pop();
@@ -636,7 +644,6 @@ impl<'a> VM<'a> {
                     });
                 }
                 let value = unsafe { *self.peek(0) };
-                println!("value type: {:?}", value.type_());
                 if unsafe { (*array).value_type.clone() } == Type::UnInitialized {
                     unsafe { (*array).value_type = value.type_() };
                     unsafe { (*array).main.type_ = ObjectType::Array(value.type_()) };
@@ -648,7 +655,9 @@ impl<'a> VM<'a> {
                 }
                 let array = unsafe { &mut (*array) };
                 array.values.push(value);
+                self.pop();
             }
+
             ArrayMethod::Pop => {
                 self.pop();
                 if arg_count != 0 {
@@ -665,6 +674,7 @@ impl<'a> VM<'a> {
                     None => return self.err(IndexError::IndexOutOfRange { index: 0, len: 0 }),
                 }
             }
+
             ArrayMethod::Get => {
                 self.pop();
                 if arg_count != 1 {
@@ -745,15 +755,12 @@ impl<'a> VM<'a> {
                     let array = unsafe { &mut (*array) };
                     let value_array = unsafe { &(*value_array) };
 
-                    // if unsafe { (*array).value_type.clone() } == Type::UnInitialized {
-                    //     unsafe { (*array).value_type = value_array.value_type.clone() };
-                    //     unsafe {
-                    //         (*array).main.type_ = ObjectType::Array(value_array.value_type.clone())
-                    //     };
-                    // } else
-                    if unsafe { (*array).value_type.clone() } != value_array.value_type
-                        && unsafe { (*array).value_type.clone() } == Type::UnInitialized
-                    {
+                    if unsafe { (*array).value_type.clone() } == Type::UnInitialized {
+                        unsafe { (*array).value_type = value_array.value_type.clone() };
+                        unsafe {
+                            (*array).main.type_ = ObjectType::Array(value_array.value_type.clone())
+                        };
+                    } else if unsafe { (*array).value_type.clone() } != value_array.value_type {
                         return self.err(TypeError::ArrayValueTypeMismatch {
                             expected: unsafe { (*array).value_type.to_string() },
                             actual: value_array.value_type.to_string(),
@@ -806,18 +813,6 @@ impl<'a> VM<'a> {
         self.push_to_stack(value);
         Ok(())
     }
-
-    // fn call_array_method(&mut self, array: *mut ArrayObject, arg_count: usize) -> Result<()> {
-    //     let method = self.read_constant();
-    //     let method = unsafe { method.as_object().string };
-    //     match unsafe { (*array).methods.get(&method) } {
-    //         Some(&method) => self.call_closure(method, arg_count),
-    //         None => self.err(AttributeError::NoSuchAttribute {
-    //             type_: unsafe { (*(*array).main.type_).to_string() },
-    //             name: unsafe { (*method).value.to_string() },
-    //         }),
-    //     }
-    // }
 
     fn call_bound_method(
         &mut self,

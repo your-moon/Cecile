@@ -242,7 +242,10 @@ impl Compiler {
         let mut globals = HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default());
         let clock = String::from("clock");
         let clock_type = Type::Int;
+        let random_number = String::from("random_number");
+        let random_type = Type::Int;
         globals.insert(clock, clock_type);
+        globals.insert(random_number, random_type);
         Self {
             current_compiler: CompilerCell {
                 function: allocator.alloc(ObjectFunction::new(name, 0, None)),
@@ -646,6 +649,7 @@ impl Compiler {
                     }
                     Type::Array(arr) => match **arr {
                         Type::Int => self.declare_local(&param_string, &t, &range)?,
+                        Type::String => self.declare_local(&param_string, &t, &range)?,
                         _ => todo!("type not implemented"),
                     },
                     _ => todo!("type not implemented"),
@@ -946,10 +950,10 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let array_type = self.compile_expression(&arr_access_assign.array, allocator)?;
-        let index_type = self.compile_expression(&arr_access_assign.index, allocator)?;
-        let value_type = self.compile_expression(&arr_access_assign.value, allocator)?;
+        self.compile_expression(&arr_access_assign.index, allocator)?;
+        self.compile_expression(&arr_access_assign.value, allocator)?;
         self.emit_u8(op::ARRAY_ACCESS_ASSIGN, &range);
-        return Ok(array_type);
+        Ok(array_type)
     }
 
     fn compile_array_access(
@@ -967,8 +971,8 @@ impl Compiler {
             return result;
         }
         self.emit_u8(op::ARRAY_ACCESS, &range);
-        println!("ARR TYPE: {:?}", array_type.get_array_type().unwrap());
-        return Ok(array_type.get_array_type().unwrap());
+        println!("ARR TYPE {:?}", array_type.get_array_type().unwrap());
+        Ok(array_type.get_array_type().unwrap())
     }
 
     fn compile_array(
@@ -1065,19 +1069,23 @@ impl Compiler {
         (get, range): (&Box<ExprGet>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let var_type = self.compile_expression(&get.object, allocator)?;
+        let mut var_type = self.compile_expression(&get.object, allocator)?;
+        println!("field type: {:?}", var_type);
         let field_type = match var_type {
             Type::Struct(name) => {
                 self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
             }
             Type::Array(type_) => {
-                if builtin_array_methods_contains(&get.name) {
+                if let Some(method_name) = builtin_array_methods_contains(&get.name) {
+                    println!("HERE B {:?}", method_name);
+                    let glob = self.globals.get(&get.name.clone());
+                    println!("glob: {:?}, {:?}", glob, get.name);
                     let name = allocator.alloc(&get.name);
                     self.emit_u8(op::GET_ARRAY_METHOD, &range);
                     self.emit_constant_w(name.into(), &range)?;
 
                     return Ok(Type::Fn(Fn {
-                        return_type: Box::new(Some(Type::Int)),
+                        return_type: Box::new(Some(*type_)),
                     }));
                 }
                 let result = Err((

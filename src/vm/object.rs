@@ -92,9 +92,7 @@ impl Display for Object {
                 write!(f, "<struct {}>", unsafe { (*(*self.cstruct).name).value })
             }
             ObjectType::Instance => {
-                write!(f, "<instance {}>", unsafe {
-                    (*(*(*self.instance).struct_).name).value
-                })
+                write!(f, "<instance {:?}>", unsafe { &(self.instance) })
             }
             ObjectType::BoundMethod => write!(f, "<bound method {}>", unsafe {
                 (*(*(*(*self.bound_method).method).function).name).value
@@ -240,6 +238,27 @@ impl ObjectFunction {
     }
 }
 
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct BoundArrayMethodObject {
+    pub common: MainObject,
+    pub array: *mut ArrayObject,
+    pub method: ArrayMethod,
+}
+
+impl BoundArrayMethodObject {
+    pub fn new(array: *mut ArrayObject, method: ArrayMethod) -> Self {
+        Self {
+            common: MainObject {
+                type_: ObjectType::BoundArrayMethod,
+                is_marked: false,
+            },
+            array,
+            method,
+        }
+    }
+}
+
 #[derive(Debug)]
 #[repr(C)]
 pub struct ArrayObject {
@@ -376,28 +395,7 @@ impl InstanceObject {
                 is_marked: false,
             },
             struct_,
-            fields: HashMap::default(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-#[repr(C)]
-pub struct BoundArrayMethodObject {
-    pub common: MainObject,
-    pub array: *mut ArrayObject,
-    pub method: ArrayMethod,
-}
-
-impl BoundArrayMethodObject {
-    pub fn new(array: *mut ArrayObject, method: ArrayMethod) -> Self {
-        Self {
-            common: MainObject {
-                type_: ObjectType::BoundArrayMethod,
-                is_marked: false,
-            },
-            array,
-            method,
+            fields: unsafe { (*struct_).fields.clone() },
         }
     }
 }

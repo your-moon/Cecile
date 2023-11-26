@@ -321,6 +321,7 @@ pub struct Fn {
 pub enum Type {
     Self_,
     Struct(String),
+    Instance(String),
     Fn(Fn),
     Nil,
     String,
@@ -339,6 +340,18 @@ impl From<ObjectType> for Type {
 }
 
 impl Type {
+    pub fn as_struct(&self) -> Option<String> {
+        match self {
+            Type::Struct(name) => Some(name.clone()),
+            _ => None,
+        }
+    }
+    pub fn is_struct(&self) -> bool {
+        match self {
+            Type::Struct(_) => true,
+            _ => false,
+        }
+    }
     pub fn is_array(&self) -> bool {
         match self {
             Type::Array(_) => true,
@@ -379,6 +392,7 @@ impl Display for Type {
             Type::Self_ => "Self".to_string(),
             Type::Array(type_) => format!("Array({:?})", type_),
             Type::Object(type_) => format!("{:?}", type_),
+            Type::Instance(name) => format!("Instance({:?})", name),
         };
         write!(f, "{type_}")
     }
