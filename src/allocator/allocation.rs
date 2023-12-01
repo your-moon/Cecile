@@ -168,18 +168,6 @@ where
     }
 }
 
-// impl<A> CeAlloc<*mut ArrayObject> for A
-// where
-//     A: IntoIterator<Item = Value>,
-// {
-//     fn alloc(self, allocation: &mut CeAllocation) -> *mut ArrayObject {
-//         let array = ArrayObject::new(self.into_iter().collect(), array_type.unwrap());
-//         let ptr = Box::into_raw(Box::new(array));
-//         allocation.objects.push(ptr.into());
-//         ptr
-//     }
-// }
-
 impl<S> CeAlloc<*mut StringObject> for S
 where
     S: AsRef<str> + Into<String>,

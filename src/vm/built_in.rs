@@ -1,5 +1,3 @@
-use super::{error::Result, object::ArrayObject, value::Value};
-
 #[derive(Debug, Clone, Copy)]
 pub enum ArrayMethod {
     Extend,
@@ -25,7 +23,7 @@ impl Default for ArrayMethod {
 }
 
 impl ArrayMethod {
-    pub fn from_str(name: &str) -> Self {
+    pub fn _from_str(name: &str) -> Self {
         match name {
             "len" => Self::Len,
             "push" => Self::Push,

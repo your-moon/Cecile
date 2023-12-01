@@ -1069,7 +1069,7 @@ impl Compiler {
         (get, range): (&Box<ExprGet>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let mut var_type = self.compile_expression(&get.object, allocator)?;
+        let var_type = self.compile_expression(&get.object, allocator)?;
         println!("field type: {:?}", var_type);
         let field_type = match var_type {
             Type::Struct(name) => {

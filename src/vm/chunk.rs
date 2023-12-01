@@ -118,7 +118,7 @@ impl Chunk {
         let constant_idx = self.code[idx + 1];
         let constant = &self.constants[constant_idx as usize];
         let arg_count = self.code[idx + 2];
-        eprintln!("{name:16} ({arg_count} args) {constant_idx:>4} '{constant}'");
+        println!("{name:16} ({arg_count} args) {constant_idx:>4} '{constant}'");
         idx + 3
     }
 

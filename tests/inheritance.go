@@ -6,13 +6,17 @@ impl Doughnut {
     fn new() {
     }
 
+    fn do(s: String) {
+        println "Do something with doughnut";
+    }
+ 
     fn finish(ingredient: String) {
         println "Finish with " + ingredient;
     }
 
-    fn cook() {
+    fn cook(s: String) {
         println "Dunk in the fryer.";
-        self.finish("sprinkles");
+        self.do("fry");
     }
 
 }
@@ -21,17 +25,21 @@ impl Doughnut {
 impl Cruller < Doughnut {
     fn new() {
     }
+    
+    fn do(s: String) {
+        println "Do something with cruller";
+    }
 
     fn finish(ingredient: String) {
         super.finish("icing");
     }
     
-    fn cook() {
-        super.cook();
+    fn cook(s: String) {
+        super.cook("S");
     }
 
 }
 
 let crul = Cruller();
 crul.finish("S");
-crul.cook();
+crul.cook("S");

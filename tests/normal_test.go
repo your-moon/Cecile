@@ -44,7 +44,7 @@ let sum = 0;
 
 // For loop
 for (let i = 0; i < 20; i = i + 1) {
-    fizzbuzz(i);
+    // fizzbuzz(i);
     sum = sum + i;
 }
 
@@ -54,6 +54,7 @@ let n2 = 2;
 
 // Extending array
 n.extend([n2]);
+n.push(5);
 println n;
 
 

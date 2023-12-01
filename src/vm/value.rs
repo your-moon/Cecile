@@ -3,7 +3,7 @@ use std::ops::Not;
 
 use crate::cc_parser::ast::Type;
 
-use super::object::{Object, ObjectType};
+use super::object::Object;
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
 #[repr(C)]
@@ -65,6 +65,10 @@ impl Value {
 
     pub const fn is_object(self) -> bool {
         self.0 & (Self::QUIET_NAN | Self::SIGN_BIT) == (Self::QUIET_NAN | Self::SIGN_BIT)
+    }
+
+    pub fn _is_iterable(self) -> bool {
+        self.is_object() && self.as_object()._is_iterable()
     }
 
     pub fn is_false(self) -> bool {
@@ -182,7 +186,6 @@ impl<O: Into<Object>> From<O> for Value {
 #[cfg(test)]
 
 mod tests {
-    use std::ptr;
 
     use super::*;
 

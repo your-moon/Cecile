@@ -27,6 +27,10 @@ pub union Object {
 }
 
 impl Object {
+    pub fn _is_iterable(&self) -> bool {
+        matches!(self.type_(), ObjectType::Array(_))
+    }
+
     pub fn type_(&self) -> ObjectType {
         unsafe { (*self.main).type_.clone() }
     }
@@ -60,7 +64,7 @@ impl Object {
             ObjectType::BoundMethod => {
                 let _free = unsafe { Box::from_raw(self.bound_method) };
             }
-            ObjectType::Array(type_) => {
+            ObjectType::Array(_) => {
                 let _free = unsafe { Box::from_raw(self.array) };
             }
             ObjectType::BoundArrayMethod => {
@@ -92,12 +96,14 @@ impl Display for Object {
                 write!(f, "<struct {}>", unsafe { (*(*self.cstruct).name).value })
             }
             ObjectType::Instance => {
-                write!(f, "<instance {:?}>", unsafe { &(self.instance) })
+                write!(f, "<instance {:?}>", unsafe {
+                    &(*(*(*self.instance).struct_).name).value
+                })
             }
             ObjectType::BoundMethod => write!(f, "<bound method {}>", unsafe {
                 (*(*(*(*self.bound_method).method).function).name).value
             }),
-            ObjectType::Array(type_) => {
+            ObjectType::Array(_) => {
                 for (i, value) in unsafe { (*self.array).values.iter().enumerate() } {
                     if i == 0 {
                         write!(f, "[{}", value)?;
@@ -297,7 +303,7 @@ impl ArrayObject {
         }
     }
 
-    pub fn get_copy(&self) -> Self {
+    pub fn _get_copy(&self) -> Self {
         Self {
             main: MainObject {
                 type_: ObjectType::Array(self.value_type.clone()),
@@ -445,7 +451,6 @@ impl UpvalueObject {
 #[cfg(test)]
 
 mod tests {
-    use super::*;
 
     #[test]
     fn test_string_object_to_value() {}

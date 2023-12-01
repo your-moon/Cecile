@@ -48,18 +48,10 @@ impl_from_error!(
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum OverflowError {
     #[error("jump body is too large")]
-    JumpTooLarge,
-    #[error("stack overflow")]
     StackOverflow,
     #[error("cannot use more than 256 arguments in a function")]
-    TooManyArgs,
-    #[error("cannot define more than 256 constants in a function")]
     TooManyConstants,
     #[error("cannot define more than 256 local variables in a function")]
-    TooManyLocals,
-    #[error("cannot define more than 256 parameters in a function")]
-    TooManyParams,
-    #[error("cannot use more than 256 closure variables in a function")]
     TooManyUpvalues,
     #[error("cannot use more than 256 arguments in a function")]
     TooManyArguments,
@@ -110,12 +102,6 @@ pub enum SyntaxError {
     InvalidToken,
     #[error(r#"init() should not return a value"#)]
     ReturnInInitializer,
-    #[error(r#""return" used outside function"#)]
-    ReturnOutsideFunction,
-    #[error(r#""super" used outside class"#)]
-    SuperOutsideClass,
-    #[error(r#""super" used in class without a superclass"#)]
-    SuperWithoutSuperclass,
     #[error(r#""this" used outside class"#)]
     SelfOutsideClass,
     #[error("unexpected input")]
@@ -127,8 +113,6 @@ pub enum SyntaxError {
         token: String,
         expected: Vec<String>,
     },
-    #[error("unterminated string")]
-    UnterminatedString,
 
     #[error("already declared in this scope: {name}")]
     AlreadyDeclared { name: String },
@@ -174,8 +158,6 @@ pub enum TypeError {
 
     #[error("loop must be boolean")]
     LoopMustBeBoolean,
-    #[error("if must be boolean")]
-    IfMustBeBoolean,
 
     #[error("return type must be nil")]
     ReturnTypeMustBeNil,

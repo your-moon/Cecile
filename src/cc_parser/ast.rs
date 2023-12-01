@@ -1,8 +1,5 @@
-use std::default;
 use std::fmt::{self, Display, Formatter};
 use std::ops::Range;
-
-use hashbrown::HashMap;
 
 use crate::vm::object::ObjectType;
 pub type Spanned<T> = (T, Span);
@@ -101,13 +98,6 @@ pub struct StatementVar {
     pub value: Option<ExprS>,
 }
 
-impl StatementVar {
-    pub fn new(name: String, type_: Option<Type>, value: Option<ExprS>) -> Self {
-        let var = Var { name, type_ };
-        Self { var, value }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct StatementReturn {
     pub value: Option<ExprS>,
@@ -154,12 +144,6 @@ impl Expression {
     pub fn as_var(&self) -> Option<ExprVar> {
         match self {
             Expression::Var(var) => Some(var.clone()),
-            _ => None,
-        }
-    }
-    pub fn as_arr_access(&self) -> Option<ExprArrayAccess> {
-        match self {
-            Expression::ArrayAccess(arr_access) => Some(*arr_access.clone()),
             _ => None,
         }
     }
@@ -319,7 +303,6 @@ pub struct Fn {
 
 #[derive(Clone, Debug, PartialEq, Default, Eq)]
 pub enum Type {
-    Self_,
     Struct(String),
     Instance(String),
     Fn(Fn),
@@ -340,13 +323,13 @@ impl From<ObjectType> for Type {
 }
 
 impl Type {
-    pub fn as_struct(&self) -> Option<String> {
+    pub fn _as_struct(&self) -> Option<String> {
         match self {
             Type::Struct(name) => Some(name.clone()),
             _ => None,
         }
     }
-    pub fn is_struct(&self) -> bool {
+    pub fn _is_struct(&self) -> bool {
         match self {
             Type::Struct(_) => true,
             _ => false,
@@ -389,7 +372,6 @@ impl Display for Type {
             Type::Int => "Int".to_string(),
             Type::Struct(name) => format!("Struct({:?})", name),
             Type::UnInitialized => "UnInitialized".to_string(),
-            Type::Self_ => "Self".to_string(),
             Type::Array(type_) => format!("Array({:?})", type_),
             Type::Object(type_) => format!("{:?}", type_),
             Type::Instance(name) => format!("Instance({:?})", name),

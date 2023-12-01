@@ -165,7 +165,6 @@ impl<'a> VM<'a> {
                         None => break,
                     }
                     self.push_to_stack(value);
-                    println!("frames : {:?}", self.frames);
                     Ok(())
                 }
                 _ => todo!(),
@@ -188,7 +187,7 @@ impl<'a> VM<'a> {
         let index = self.pop();
         let array = self.pop();
         let len = match array.as_object().type_() {
-            ObjectType::Array(type_) => {
+            ObjectType::Array(_type_) => {
                 let array = unsafe { array.as_object().array };
                 unsafe { (*array).values.len() }
             }
@@ -207,7 +206,7 @@ impl<'a> VM<'a> {
         }
 
         match array.as_object().type_() {
-            ObjectType::Array(type_) => {
+            ObjectType::Array(_type_) => {
                 let array = unsafe { array.as_object().array };
                 if index.is_number() {
                     let index = index.as_number() as usize;
@@ -232,7 +231,7 @@ impl<'a> VM<'a> {
         let index = self.pop();
         let array = self.pop();
         let len = match array.as_object().type_() {
-            ObjectType::Array(type_) => {
+            ObjectType::Array(_type_) => {
                 let array = unsafe { array.as_object().array };
                 unsafe { (*array).values.len() }
             }
@@ -251,7 +250,7 @@ impl<'a> VM<'a> {
         }
 
         let value = match array.as_object().type_() {
-            ObjectType::Array(type_) => {
+            ObjectType::Array(_type_) => {
                 let array = unsafe { array.as_object().array };
                 if index.is_number() {
                     let index = index.as_number() as usize;
@@ -363,7 +362,6 @@ impl<'a> VM<'a> {
         let name = unsafe { self.read_constant().as_object().string };
         let arg_count = self.read_u8() as usize;
         let super_ = unsafe { self.pop().as_object().cstruct };
-        let instance = unsafe { (*self.peek(arg_count)).as_object().instance };
 
         match unsafe { (*super_).methods.get(&name) } {
             Some(&method) => self.call_closure(method, arg_count),
@@ -371,7 +369,8 @@ impl<'a> VM<'a> {
                 type_: unsafe { (*(*super_).name).value.to_string() },
                 name: unsafe { (*name).value.to_string() },
             }),
-        };
+        }?;
+
         Ok(())
     }
 
@@ -389,7 +388,7 @@ impl<'a> VM<'a> {
                     name: unsafe { (*name).value.to_string() },
                 }),
             },
-        };
+        }?;
         Ok(())
     }
     fn op_set_field(&mut self) -> Result<()> {
@@ -420,7 +419,7 @@ impl<'a> VM<'a> {
 
             if value.is_object() {
                 match object.type_() {
-                    ObjectType::Array(t) => unsafe { object.array },
+                    ObjectType::Array(_t) => unsafe { object.array },
                     _ => {
                         return self.err(AttributeError::NoSuchAttribute {
                             name: unsafe { (*name).value.to_string() },
@@ -474,6 +473,9 @@ impl<'a> VM<'a> {
                 self.push_to_stack(value);
             }
             None => {
+                for mthd in unsafe { (*(*instance).struct_).methods.keys() } {
+                    println!("{}", unsafe { (*(*mthd)).value });
+                }
                 let method = unsafe { (*(*instance).struct_).methods.get(&name) };
                 match method {
                     Some(&method) => {
@@ -554,14 +556,6 @@ impl<'a> VM<'a> {
         let value = self.peek(0);
         unsafe { (*upvalue).value = *value };
         Ok(())
-    }
-
-    fn get_current_closure_name(&self) -> String {
-        unsafe { (*(*(*self.frame.closure).function).name).value.to_string() }
-    }
-
-    fn get_current_closure_upvalues(&self) -> Vec<*mut UpvalueObject> {
-        unsafe { (*self.frame.closure).upvalues.clone() }
     }
 
     fn get_upvalue(&mut self) -> Result<()> {
@@ -736,9 +730,7 @@ impl<'a> VM<'a> {
                 let array = unsafe { (*bound_arr_method).array };
                 let array = unsafe { &mut (*array) };
                 let copy = array.values.clone();
-                let array = self.alloc(ArrayObject::new(copy, unsafe {
-                    (*array).value_type.clone()
-                }));
+                let array = self.alloc(ArrayObject::new(copy, (*array).value_type.clone()));
                 self.push_to_stack(array.into());
             }
             ArrayMethod::Extend => {
@@ -756,18 +748,16 @@ impl<'a> VM<'a> {
                     let array = unsafe { &mut (*array) };
                     let value_array = unsafe { &(*value_array) };
 
-                    if unsafe { (*array).value_type.clone() } == Type::UnInitialized {
-                        unsafe { (*array).value_type = value_array.value_type.clone() };
-                        unsafe {
-                            (*array).main.type_ = ObjectType::Array(value_array.value_type.clone())
-                        };
-                    } else if unsafe { (*array).value_type.clone() } != value_array.value_type {
+                    if (*array).value_type.clone() == Type::UnInitialized {
+                        (*array).value_type = value_array.value_type.clone();
+                        (*array).main.type_ = ObjectType::Array(value_array.value_type.clone())
+                    } else if (*array).value_type.clone() != value_array.value_type {
                         return self.err(TypeError::ArrayValueTypeMismatch {
-                            expected: unsafe { (*array).value_type.to_string() },
+                            expected: (*array).value_type.to_string(),
                             actual: value_array.value_type.to_string(),
                         });
                     }
-                    let array = unsafe { &mut (*array) };
+                    let array = &mut (*array);
                     array.values.extend(value_array.values.clone());
                 } else {
                     return self.err(ArrayError::ExtendMethodOnlyAcceptsArray {
@@ -941,7 +931,7 @@ impl<'a> VM<'a> {
             Entry::Vacant(_) => self.err(NameError::IdentifierNotDefined {
                 name: unsafe { (*name).value.to_string() },
             }),
-        };
+        }?;
         Ok(())
     }
 
