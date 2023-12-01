@@ -25,10 +25,12 @@ Decl = {
     DeclImpl,
 }
 
-DeclImpl: ast::Statement = 
+DeclImpl: ast::Statement = {
    "impl" <name:identifier> <super_:("<" <Spanned<ExprVar>>)?> "{" <methods:Spanned<DeclFun>*> "}" => 
-        ast::Statement::Impl(ast::StatementImpl { <> });
-
+        ast::Statement::Impl(ast::StatementImpl { <> }),
+   "impl" <name:identifier> <super_:("<" <Spanned<ExprVar>>)?> ";" => 
+        ast::Statement::Impl(ast::StatementImpl { name, super_, methods: Vec::new() }),
+}
 
 DeclStruct: ast::Statement = {
   "struct" <name:identifier> 

@@ -14,18 +14,16 @@ impl Rectangle {
     }
 }
 
-let rect = Rectangle(2, 2);
-println rect.area(1);
+// let rect = Rectangle(2, 2);
+// println rect.area(1);
 
 
-type Point {
-  name: String
+type Shape {
+  width: int
 }
-impl Point {
-
-}
-let point = Point();
-println point.name;
+// impl Shape;
+let shape = Shape();
+println shape.width;
 
 // let rect = Rectangle(2, 2);
 // let sum = 0;
