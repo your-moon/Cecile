@@ -1068,7 +1068,6 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let mut var_type = self.compile_expression(&get.object, allocator)?;
-        println!("field type: {:?}", var_type);
         let field_type = match var_type {
             Type::Struct(name) => {
                 self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
@@ -1110,6 +1109,8 @@ impl Compiler {
         return Ok(field_type);
     }
 
+    /// [Stable]
+    /// [Not Tested]
     fn compile_call(
         &mut self,
         (call, range): (&Box<ExprCall>, &Range<usize>),
@@ -1150,14 +1151,24 @@ impl Compiler {
         Ok(callee_type)
     }
 
+    /// [Stable]
+    /// [Not Tested]
+    /// # Examples
+    /// ```
+    /// let value: String = "string";
+    /// value = "change";
+    ///
+    /// let uninitialized;
+    /// uninitialized = 1; // uninitialized variable's type is now int
+    /// ```
     fn compile_assign(
         &mut self,
         (assign, range): (&Box<ExprAssign>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let var_type = self.compile_expression(&assign.rhs, allocator)?;
+        let rhs_type = self.compile_expression(&assign.rhs, allocator)?;
 
-        let lhs_type = {
+        let lhs = {
             if self.globals.get(&assign.lhs.name).is_some() {
                 self.globals.get(&assign.lhs.name).cloned()
             } else if let Some((_, type_)) = self
@@ -1177,13 +1188,17 @@ impl Compiler {
             }
         };
 
-        match lhs_type {
-            Some(type_) => {
-                if type_ != var_type && !type_.is_array() && !(type_ == Type::UnInitialized) {
+        match lhs {
+            Some(lhs_type) => {
+                // This means lhs can uninitialized
+                if lhs_type != rhs_type
+                    && !lhs_type.is_array()
+                    && !(lhs_type == Type::UnInitialized)
+                {
                     let result = Err((
                         Error::TypeError(TypeError::VariableTypeMismatch {
-                            expected: type_.to_string(),
-                            actual: var_type.to_string(),
+                            expected: lhs_type.to_string(),
+                            actual: rhs_type.to_string(),
                         }),
                         range.clone(),
                     ));
@@ -1200,22 +1215,6 @@ impl Compiler {
                 return result;
             }
         }
-
-        // if lhs_type.is_some() {
-        //     if lhs_type.unwrap()
-        //     if lhs_type.as_ref().unwrap() != &var_type
-        //         && lhs_type.as_ref().unwrap() != &Type::Array(Box::new(Type::UnInitialized))
-        //     {
-        //         let result = Err((
-        //             Error::TypeError(TypeError::VariableTypeMismatch {
-        //                 expected: lhs_type.unwrap().to_string(),
-        //                 actual: var_type.to_string(),
-        //             }),
-        //             range.clone(),
-        //         ));
-        //         return result;
-        //     }
-        // }
 
         return self.set_variable(&assign.lhs.name, range, allocator);
     }
@@ -1394,6 +1393,16 @@ impl Compiler {
         self.get_variable(name, &range, allocator)
     }
 
+    /// [Stable]
+    /// [Not Tested]
+    /// Only Integer, Boolean can be Parsed by this function
+    /// # Examples:
+    /// ```
+    /// !true => pass
+    /// -1 => pass
+    /// -"string" => fail
+    /// !object => fail
+    /// ```
     fn compile_prefix(
         &mut self,
         prefix: (&Box<ExprPrefix>, &Range<usize>),
@@ -1401,33 +1410,34 @@ impl Compiler {
     ) -> Result<Type> {
         let (prefix, range) = prefix;
         let rt_type = self.compile_expression(&(prefix.rt), allocator)?;
-        // if rt_type != Type::Int || rt_type != Type::Bool {
-        //     let spanned_error = Err((
-        //         Error::TypeError(TypeError::UnsupportedOperandPrefix {
-        //             op: prefix.op.to_string(),
-        //             rt_type: rt_type.to_string(),
-        //         }),
-        //         range.clone(),
-        //     ));
-        //     return spanned_error;
-        // }
+        match rt_type {
+            Type::Int | Type::Bool => {}
+            _ => {
+                let spanned_error = Err((
+                    Error::TypeError(TypeError::UnsupportedOperandPrefix {
+                        op: prefix.op.to_string(),
+                        rt_type: rt_type.to_string(),
+                    }),
+                    range.clone(),
+                ));
+                return spanned_error;
+            }
+        }
         match prefix.op {
             OpPrefix::Negate => self.emit_u8(op::NEG, &range),
             OpPrefix::Not => self.emit_u8(op::NOT, &range),
         }
-        return Ok(rt_type);
+        Ok(rt_type)
     }
 
+    /// [Unstable]
     fn compile_infix(
         &mut self,
-        infix: (&Box<ExprInfix>, &Range<usize>),
+        (infix, range): (&Box<ExprInfix>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let (infix, range) = infix;
         let lhs_type = self.compile_expression(&(infix.lhs), allocator)?;
         let rhs_type = self.compile_expression(&(infix.rhs), allocator)?;
-
-        let return_type = lhs_type.clone();
 
         // if lhs_type != rhs_type {
         //     todo!("type mismatch");
@@ -1436,7 +1446,7 @@ impl Compiler {
         match infix.op {
             OpInfix::Modulo => {
                 self.emit_u8(op::MODULO, &range);
-                return Ok(return_type);
+                return Ok(lhs_type);
             }
             OpInfix::Add => {
                 if lhs_type == Type::String && rhs_type == Type::String {
@@ -1445,19 +1455,19 @@ impl Compiler {
                 } else {
                     self.emit_u8(op::ADD, &range);
                 }
-                return Ok(return_type);
+                return Ok(lhs_type);
             }
             OpInfix::Sub => {
                 self.emit_u8(op::SUB, &range);
-                return Ok(return_type);
+                return Ok(lhs_type);
             }
             OpInfix::Mul => {
                 self.emit_u8(op::MUL, &range);
-                return Ok(return_type);
+                return Ok(lhs_type);
             }
             OpInfix::Div => {
                 self.emit_u8(op::DIV, &range);
-                return Ok(return_type);
+                return Ok(lhs_type);
             }
             OpInfix::Equal => {
                 self.emit_u8(op::EQUAL, &range);
@@ -1494,6 +1504,16 @@ impl Compiler {
         }
     }
 
+    /// [Stable]
+    /// [Not Tested]
+    ///
+    /// # Compile literal expression
+    /// ```
+    /// 1 => Type::Int
+    /// "String" => Type::String
+    /// true | false => Type::Bool
+    /// nil => Type::Nil
+    /// ```
     fn compile_literal(
         &mut self,
         (literal, range): (&ExprLiteral, &Range<usize>),
@@ -1525,10 +1545,14 @@ impl Compiler {
         }
     }
 
+    /// [Stable]
+    /// [Not Tested]
     fn begin_scope(&mut self) {
         self.current_compiler.scope_depth += 1;
     }
 
+    /// [Stable]
+    /// [Not Tested]
     fn end_scope(&mut self, span: Range<usize>) {
         self.current_compiler.scope_depth -= 1;
 
@@ -1577,6 +1601,8 @@ impl Compiler {
         Ok(())
     }
 
+    /// [Stable]
+    /// [Not Tested]
     fn define_local(&mut self) {
         let local = self
             .current_compiler
@@ -1586,10 +1612,14 @@ impl Compiler {
         local.is_initialized = true;
     }
 
+    /// [Stable]
+    /// [Not Tested]
     fn is_global(&self) -> bool {
         self.current_compiler.scope_depth == 0
     }
 
+    /// [Stable]
+    /// [Not Tested]
     fn emit_jump(&mut self, instruction: u8, span: &Span) -> usize {
         self.emit_u8(instruction, span);
         self.emit_u8(0xff, span);
@@ -1597,7 +1627,10 @@ impl Compiler {
         unsafe { (*self.current_compiler.function).chunk.code.len() - 2 }
     }
 
+    /// [Stable]
+    /// [Not Tested]
     fn patch_jump(&mut self, offset_idx: usize, span: &Span) -> Result<()> {
+        /// [Not Tested]
         let offset = unsafe { (*self.current_compiler.function).chunk.code.len() - offset_idx - 2 };
         if offset > u16::MAX as usize {
             Err((
@@ -1613,6 +1646,8 @@ impl Compiler {
         Ok(())
     }
 
+    /// [Stable]
+    /// [Not Tested]
     fn emit_constant_w(&mut self, value: Value, span: &Span) -> Result<()> {
         let constant_idx = unsafe {
             (*self.current_compiler.function)
@@ -1623,12 +1658,19 @@ impl Compiler {
         Ok(())
     }
 
+    /// [Stable]
+    /// [Not Tested]
+    /// Emit a  u8 operation to the current compiler's chunk
     fn emit_u8(&mut self, byte: u8, span: &Span) {
         unsafe {
             (*self.current_compiler.function).chunk.write_u8(byte, span);
         }
     }
 
+    /// [Stable]
+    /// [Not Tested]
+    /// Emit a constant to the current compiler's chunk
+    /// This will do Writing value to constant table and emitting CECILE CONSTANT instruction
     fn emit_constant(&mut self, value: Value, span: &Span) {
         unsafe {
             (*self.current_compiler.function)
@@ -1637,6 +1679,8 @@ impl Compiler {
         }
     }
 
+    /// [Stable]
+    /// [Not Tested]
     fn write_constant(&mut self, value: Value, span: &Span) {
         unsafe {
             (*self.current_compiler.function)
