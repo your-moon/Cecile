@@ -1,0 +1,2 @@
+// out: TypeError: unsupported operand type(s) for +: "string" and "nil"
+"s" + nil;

@@ -1,0 +1,8 @@
+{
+  var a = "local";
+  {
+    var a = "shadow";
+    print a; // out: shadow
+  }
+  print a; // out: local
+}

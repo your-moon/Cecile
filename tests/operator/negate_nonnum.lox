@@ -1,0 +1,2 @@
+// out: TypeError: unsupported operand type for -: "string"
+-"s";

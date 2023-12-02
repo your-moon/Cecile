@@ -10,7 +10,7 @@ use crate::{
 
 use self::ast::Program;
 
-pub fn parse(source: &str) -> Result<Program, Vec<ErrorS>> {
+pub fn parse(source: &str, debug: bool) -> Result<Program, Vec<ErrorS>> {
     let lexer = Lexer::new(source).map(|token| match token {
         Ok((l, token, r)) => {
             // println!("{:?}", token);
@@ -31,9 +31,11 @@ pub fn parse(source: &str) -> Result<Program, Vec<ErrorS>> {
             Program::default()
         }
     };
-    for (statement, _range) in &program.statements {
-        println!("");
-        println!("{:?}", statement);
+    if debug {
+        for (statement, _range) in &program.statements {
+            println!("");
+            println!("{:?}", statement);
+        }
     }
     errors.extend(parse_errors.into_iter().map(|err| match err {
         ParseError::ExtraToken {

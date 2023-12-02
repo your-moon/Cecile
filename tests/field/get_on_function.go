@@ -1,0 +1,3 @@
+fn foo() {}
+
+foo.bar; // out: AttributeError: "function" object has no attribute "bar"

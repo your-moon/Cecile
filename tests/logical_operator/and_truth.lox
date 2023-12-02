@@ -1,0 +1,8 @@
+// False and nil are false.
+print false and "bad"; // out: false
+print nil and "bad"; // out: nil
+
+// Everything else is true.
+print true and "ok"; // out: ok
+print 0 and "ok"; // out: ok
+print "" and "ok"; // out: ok

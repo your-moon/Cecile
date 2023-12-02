@@ -1,0 +1,25 @@
+print 1 < 2;    // out: true
+print 2 < 2;    // out: false
+print 2 < 1;    // out: false
+
+print 1 <= 2;    // out: true
+print 2 <= 2;    // out: true
+print 2 <= 1;    // out: false
+
+print 1 > 2;    // out: false
+print 2 > 2;    // out: false
+print 2 > 1;    // out: true
+
+print 1 >= 2;    // out: false
+print 2 >= 2;    // out: true
+print 2 >= 1;    // out: true
+
+// Zero and negative zero compare the same.
+print 0 < -0; // out: false
+print -0 < 0; // out: false
+print 0 > -0; // out: false
+print -0 > 0; // out: false
+print 0 <= -0; // out: true
+print -0 <= 0; // out: true
+print 0 >= -0; // out: true
+print -0 >= 0; // out: true

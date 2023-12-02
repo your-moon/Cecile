@@ -1,0 +1,10 @@
+var a = "outer";
+{
+  fun foo() {
+    print a;
+  }
+
+  foo(); // out: outer
+  var a = "inner";
+  foo(); // out: outer
+}

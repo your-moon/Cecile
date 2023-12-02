@@ -9,7 +9,7 @@ use crate::cc_parser::ast::{
     ExprArray, ExprArrayAccess, ExprArrayAccessAssign, ExprGet, ExprSet, ExprSuper, Field,
     StatementImpl, StatementStruct,
 };
-use crate::vm::error::NameError;
+use crate::vm::error::{AttributeError, NameError};
 use crate::{
     allocator::allocation::CeAllocation,
     cc_parser::{
@@ -268,8 +268,9 @@ impl Compiler {
         source: &str,
         allocator: &mut CeAllocation,
         stdout: &mut StandardStream,
+        debug: bool,
     ) -> Result<*mut ObjectFunction, Vec<ErrorS>> {
-        let program = parse(source)?;
+        let program = parse(source, debug)?;
 
         for statement in &program.statements {
             let type_ = self.compile_statement(statement, allocator);
@@ -903,7 +904,7 @@ impl Compiler {
             Some(method) => method.return_type.clone(),
             None => {
                 let result = Err((
-                    Error::NameError(NameError::StructMethodNotFound {
+                    Error::NameError(NameError::StructMethodOrFieldNotFound {
                         name: method_name.clone(),
                         struct_name: unsafe { (*struct_.name).value }.to_string(),
                     }),
@@ -1090,9 +1091,7 @@ impl Compiler {
             }
             Type::Array(type_) => {
                 if let Some(method_name) = builtin_array_methods_contains(&get.name) {
-                    println!("HERE B {:?}", method_name);
                     let glob = self.globals.get(&get.name.clone());
-                    println!("glob: {:?}, {:?}", glob, get.name);
                     let name = allocator.alloc(&get.name);
                     self.emit_u8(op::GET_ARRAY_METHOD, &range);
                     self.emit_constant_w(name.into(), &range)?;
@@ -1109,7 +1108,16 @@ impl Compiler {
                 ));
                 return result;
             }
-            _ => todo!(),
+            _ => {
+                let result = Err((
+                    Error::AttributeError(AttributeError::NoSuchAttribute {
+                        name: get.name.clone(),
+                        type_: var_type.to_string(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
+            }
         };
 
         let name = allocator.alloc(&get.name);
@@ -1168,21 +1176,26 @@ impl Compiler {
         let lhs_type = {
             if self.globals.get(&assign.lhs.name).is_some() {
                 self.globals.get(&assign.lhs.name).cloned()
+            } else if let Some((_, type_)) = self
+                .current_compiler
+                .resolve_local(&assign.lhs.name, false, &range)
+                .unwrap()
+            {
+                Some(type_)
+            } else if let Some((_, type_)) = self
+                .current_compiler
+                .resolve_upvalue(&assign.lhs.name, &range)
+                .unwrap()
+            {
+                Some(type_)
             } else {
-                let local = self
-                    .current_compiler
-                    .resolve_local(&assign.lhs.name, false, &range)
-                    .unwrap();
-                match local {
-                    Some((_, type_)) => Some(type_),
-                    None => None,
-                }
+                None
             }
         };
 
         match lhs_type {
             Some(type_) => {
-                if type_ != var_type && !type_.is_array() {
+                if type_ != var_type && !type_.is_array() && !(type_ == Type::UnInitialized) {
                     let result = Err((
                         Error::TypeError(TypeError::VariableTypeMismatch {
                             expected: type_.to_string(),
@@ -1237,6 +1250,10 @@ impl Compiler {
                 let val_type = self.compile_expression(value, allocator)?;
                 Ok(val_type)
             })?;
+
+        if value_var_type == Type::UnInitialized {
+            self.emit_u8(op::NIL, &range);
+        }
 
         //Check if variable type is declared
         match &var.var.type_ {
@@ -1318,8 +1335,6 @@ impl Compiler {
                 }
             }
         }
-        println!("var name: {}", var.var.name);
-        println!("var type: {:?}", value_var_type);
         Ok(value_var_type)
     }
 
@@ -1402,16 +1417,16 @@ impl Compiler {
     ) -> Result<Type> {
         let (prefix, range) = prefix;
         let rt_type = self.compile_expression(&(prefix.rt), allocator)?;
-        if rt_type != Type::Int || rt_type != Type::Bool {
-            let spanned_error = Err((
-                Error::TypeError(TypeError::UnsupportedOperandPrefix {
-                    op: prefix.op.to_string(),
-                    rt_type: rt_type.to_string(),
-                }),
-                range.clone(),
-            ));
-            return spanned_error;
-        }
+        // if rt_type != Type::Int || rt_type != Type::Bool {
+        //     let spanned_error = Err((
+        //         Error::TypeError(TypeError::UnsupportedOperandPrefix {
+        //             op: prefix.op.to_string(),
+        //             rt_type: rt_type.to_string(),
+        //         }),
+        //         range.clone(),
+        //     ));
+        //     return spanned_error;
+        // }
         match prefix.op {
             OpPrefix::Negate => self.emit_u8(op::NEG, &range),
             OpPrefix::Not => self.emit_u8(op::NOT, &range),

@@ -84,14 +84,19 @@ impl<'a> VM<'a> {
         }
     }
 
-    pub fn run(&mut self, source: &str, stdout: &mut StandardStream) -> Result<(), Vec<ErrorS>> {
+    pub fn run(
+        &mut self,
+        source: &str,
+        stdout: &mut StandardStream,
+        debug: bool,
+    ) -> Result<(), Vec<ErrorS>> {
         let mut compiler = Compiler::new(self.allocator);
-        let function = compiler.compile(source, self.allocator, stdout)?;
-        self.run_function(function).map_err(|e| vec![e])?;
+        let function = compiler.compile(source, self.allocator, stdout, debug)?;
+        self.run_function(function, debug).map_err(|e| vec![e])?;
         Ok(())
     }
 
-    pub fn run_function(&mut self, function: *mut ObjectFunction) -> Result<()> {
+    pub fn run_function(&mut self, function: *mut ObjectFunction, debug: bool) -> Result<()> {
         self.stack_top = self.stack.as_mut_ptr();
 
         self.frames.clear();
@@ -104,9 +109,11 @@ impl<'a> VM<'a> {
         };
 
         loop {
-            let function = unsafe { &mut *(*self.frame.closure).function };
-            let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
-            (*function).chunk.disassemble_instruction(idx as usize);
+            if debug {
+                let function = unsafe { &mut *(*self.frame.closure).function };
+                let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
+                (*function).chunk.disassemble_instruction(idx as usize);
+            }
 
             match self.read_u8() {
                 op::ARRAY_ACCESS => self.op_array_access(),
@@ -129,6 +136,7 @@ impl<'a> VM<'a> {
                 op::MUL => self.mul(),
                 op::DIV => self.div(),
                 op::EQUAL => self.equal(),
+                op::NOT => self.op_not(),
                 op::NOT_EQUAL => self.not_equal(),
                 op::NEG => self.negate(),
                 op::MODULO => self.modulo(),
@@ -171,13 +179,15 @@ impl<'a> VM<'a> {
             }?;
 
             // print top of stack element
-            print!("    ");
-            let mut stack_ptr = self.frame.stack;
-            while stack_ptr < self.stack_top {
-                print!("[ {} ]", unsafe { *stack_ptr });
-                stack_ptr = unsafe { stack_ptr.add(1) };
+            if debug {
+                print!("    ");
+                let mut stack_ptr = self.frame.stack;
+                while stack_ptr < self.stack_top {
+                    print!("[ {} ]", unsafe { *stack_ptr });
+                    stack_ptr = unsafe { stack_ptr.add(1) };
+                }
+                println!();
             }
-            println!();
         }
         Ok(())
     }
@@ -474,7 +484,7 @@ impl<'a> VM<'a> {
             }
             None => {
                 for mthd in unsafe { (*(*instance).struct_).methods.keys() } {
-                    println!("{}", unsafe { (*(*mthd)).value });
+                    // println!("{}", unsafe { (*(*mthd)).value });
                 }
                 let method = unsafe { (*(*instance).struct_).methods.get(&name) };
                 match method {
@@ -1080,6 +1090,12 @@ impl<'a> VM<'a> {
         let rhs = self.pop();
         let lhs = self.pop();
         self.push_to_stack((rhs == lhs).into());
+        Ok(())
+    }
+
+    fn op_not(&mut self) -> Result<()> {
+        let value = self.pop();
+        self.push_to_stack((!value.to_bool()).into());
         Ok(())
     }
 

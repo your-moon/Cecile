@@ -1,0 +1,6 @@
+if (false) {
+  print notDefined;
+}
+
+// out: ok
+print "ok";

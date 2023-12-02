@@ -1,0 +1,2 @@
+// out: TypeError: unsupported operand type(s) for <=: "number" and "string"
+1 <= "1";

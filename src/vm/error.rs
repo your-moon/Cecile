@@ -78,6 +78,9 @@ pub enum NameError {
     #[error("struct {struct_name} has no method {name}")]
     StructMethodNotFound { name: String, struct_name: String },
 
+    #[error("struct {struct_name} has no method or field {name}")]
+    StructMethodOrFieldNotFound { name: String, struct_name: String },
+
     #[error("identifier {name} is not defined")]
     IdentifierNotDefined { name: String },
 
