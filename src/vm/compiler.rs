@@ -408,23 +408,7 @@ impl Compiler {
         let current_struct = self.get_current_struct_mut(&range)?;
         current_struct.methods = super_methods;
 
-        let current_struct = self.get_current_struct_mut(&range)?;
-
-        // let fields = current_struct.fields.clone();
         let methods = impl_.methods.clone();
-
-        // let name = allocator.alloc(&impl_.name).into();
-        // self.emit_u8(op::STRUCT, &range);
-        // self.write_constant(name, &range);
-
-        // if self.is_global() {
-        //     // self.globals
-        //     //     .insert(impl_.name.clone(), Type::Struct(impl_.name.clone()));
-        //     // self.emit_u8(op::DEFINE_GLOBAL, range);
-        //     // self.write_constant(name, range);
-        // } else {
-        //     self.declare_local(&impl_.name, &Type::Struct(impl_.name.clone()), &range)?;
-        // }
 
         let current_struct = self.get_current_struct_mut(&range)?;
         current_struct.has_super = has_super;
