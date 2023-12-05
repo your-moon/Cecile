@@ -7,8 +7,11 @@ use hashbrown::HashMap;
 use rustc_hash::FxHasher;
 
 use crate::cc_parser::ast::Type;
+use std::mem;
 
 use super::{built_in::ArrayMethod, chunk::Chunk, value::Value};
+
+const _: () = assert!(mem::size_of::<Object>() == 4 || mem::size_of::<Object>() == 8);
 
 #[derive(Clone, Copy, Eq)]
 #[repr(C)]
@@ -88,10 +91,10 @@ impl Display for Object {
                 (*(*self.function).name).value
             }),
             ObjectType::Native => write!(f, "<native {}>", unsafe { (*self.native).native }),
-            ObjectType::Closure => write!(f, "<closure {:?}>", unsafe {
-                (*(*(*self.closure).function).name).value
-            }),
-            ObjectType::Upvalue => write!(f, "<upvalue {}>", unsafe { (*self.upvalue).value }),
+            ObjectType::Closure => {
+                write!(f, "{}", unsafe { Object::from((*self.closure).function) })
+            }
+            ObjectType::Upvalue => write!(f, "<upvalue>"),
             ObjectType::Struct => {
                 write!(f, "<struct {}>", unsafe { (*(*self.cstruct).name).value })
             }
@@ -221,7 +224,7 @@ impl Display for Native {
 pub struct ObjectFunction {
     pub main: MainObject,
     pub name: *mut StringObject,
-    pub arity_count: u8,
+    pub arity: u8,
     pub upvalue_count: u16,
     pub chunk: Chunk,
     pub return_type: Option<Type>,
@@ -236,7 +239,7 @@ impl ObjectFunction {
         Self {
             main: common,
             name,
-            arity_count,
+            arity: arity_count,
             upvalue_count: 0,
             return_type,
             chunk: Chunk::default(),
@@ -430,20 +433,21 @@ impl BoundMethodObject {
 #[derive(Debug)]
 #[repr(C)]
 pub struct UpvalueObject {
-    pub common: MainObject,
+    pub main: MainObject,
+    pub location: *mut Value,
     pub closed: Value,
-    pub value: Value,
 }
 
 impl UpvalueObject {
-    pub fn new(value: Value) -> Self {
+    pub fn new(location: *mut Value) -> Self {
+        let main = MainObject {
+            type_: ObjectType::Upvalue,
+            is_marked: false,
+        };
         Self {
-            common: MainObject {
-                type_: ObjectType::Upvalue,
-                is_marked: false,
-            },
+            main,
+            location,
             closed: Value::default(),
-            value,
         }
     }
 }

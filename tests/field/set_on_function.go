@@ -1,3 +1,3 @@
-fun foo() {}
+fn foo() {}
 
 foo.bar = "value"; // out: AttributeError: "function" object has no attribute "bar"

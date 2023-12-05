@@ -1,5 +1,6 @@
-class Foo {
-  init() {
+type Foo;
+impl Foo {
+  fn new() {
     return "result";
   }
 }

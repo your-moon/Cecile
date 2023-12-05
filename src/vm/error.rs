@@ -57,6 +57,9 @@ pub enum OverflowError {
     TooManyArguments,
     #[error("loop body is too large")]
     LoopTooLarge,
+
+    #[error("jump body is too large")]
+    JumpTooLarge,
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]
@@ -131,14 +134,19 @@ pub enum ArrayError {
 pub enum TypeError {
     #[error("array type must be {expected:?}, got {actual:?}")]
     ArrayValueTypeMismatch { expected: String, actual: String },
+
     #[error("array is not indexable type: {type_}")]
     NotIndexable { type_: String },
+
     #[error("array index must be int")]
     ArrayIndexMustBeInt,
+
     #[error("array type must be {expected:?}, got {actual:?}")]
     ArrayTypeMismatch { expected: String, actual: String },
+
     #[error("cannot set expected type {expected:?}, got {actual:?}")]
     SetTypeMisMatch { expected: String, actual: String },
+
     #[error("arity expected {expected:?}, got {actual:?} name: {name:?}")]
     ArityMisMatch {
         expected: usize,
@@ -163,7 +171,10 @@ pub enum TypeError {
     LoopMustBeBoolean,
 
     #[error("return type must be nil")]
-    ReturnTypeMustBeNil,
+    ReturnTypeMustNotReturnValue,
+
+    #[error("initializer must not return a value")]
+    InitializerMustNotReturnValue,
 
     #[error("return type must be {expected:?}, got {actual:?}")]
     ReturnTypeMismatch { expected: String, actual: String },

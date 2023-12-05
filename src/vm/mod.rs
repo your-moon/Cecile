@@ -104,15 +104,15 @@ impl<'a> VM<'a> {
             closure: self
                 .allocator
                 .alloc(ClosureObject::new(function, Vec::new())),
-            ip: unsafe { (*function).chunk.code.as_ptr() },
+            ip: unsafe { (*function).chunk.ops.as_ptr() },
             stack: self.stack_top,
         };
 
         loop {
             if debug {
                 let function = unsafe { &mut *(*self.frame.closure).function };
-                let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) };
-                (*function).chunk.disassemble_instruction(idx as usize);
+                let idx = unsafe { self.frame.ip.offset_from((*function).chunk.ops.as_ptr()) };
+                (*function).chunk.debug_op(idx as usize);
             }
 
             match self.read_u8() {
@@ -144,7 +144,7 @@ impl<'a> VM<'a> {
                 op::GREATER_THAN_EQUAL => self.greater_equal(),
                 op::PRINT => self.op_print(),
                 op::PRINT_LN => self.op_print_ln(),
-                op::CALL => self.call(),
+                op::CALL => self.op_call(),
                 op::CLOSURE => self.closure(),
                 op::LOOP => self.loop_(),
                 op::JUMP => self.jump(),
@@ -153,11 +153,11 @@ impl<'a> VM<'a> {
                 op::SET_LOCAL => self.set_local(),
                 op::SET_UPVALUE => self.set_upvalue(),
                 op::GET_UPVALUE => self.get_upvalue(),
+                op::GET_GLOBAL => self.get_global(),
                 op::SET_GLOBAL => self.set_global(),
+                op::DEFINE_GLOBAL => self.define_global(),
                 op::LESS_THAN => self.less(),
                 op::LESS_THAN_EQUAL => self.less_equal(),
-                op::GET_GLOBAL => self.get_global(),
-                op::DEFINE_GLOBAL => self.define_global(),
                 op::TRUE => self.op_true(),
                 op::FALSE => self.op_false(),
                 op::NIL => self.op_nil(),
@@ -166,13 +166,14 @@ impl<'a> VM<'a> {
 
                 op::RETURN => {
                     let value = self.pop();
+                    self.close_upvalues(self.frame.stack);
 
                     self.stack_top = self.frame.stack;
                     match self.frames.pop() {
                         Some(frame) => self.frame = frame,
                         None => break,
                     }
-                    self.push_to_stack(value);
+                    self.push(value);
                     Ok(())
                 }
                 _ => todo!(),
@@ -190,6 +191,16 @@ impl<'a> VM<'a> {
             }
         }
         Ok(())
+    }
+    fn close_upvalues(&mut self, last: *mut Value) {
+        for idx in (0..self.open_upvalues.len()).rev() {
+            let upvalue = *unsafe { self.open_upvalues.get_unchecked(idx) };
+            if last <= unsafe { (*upvalue).location } {
+                unsafe { (*upvalue).closed = *(*upvalue).location };
+                unsafe { (*upvalue).location = &mut (*upvalue).closed };
+                self.open_upvalues.swap_remove(idx);
+            }
+        }
     }
 
     fn op_array_access_assign(&mut self) -> Result<()> {
@@ -234,7 +245,7 @@ impl<'a> VM<'a> {
                 })
             }
         };
-        self.push_to_stack(value);
+        self.push(value);
         Ok(())
     }
     fn op_array_access(&mut self) -> Result<()> {
@@ -278,7 +289,7 @@ impl<'a> VM<'a> {
                 })
             }
         };
-        self.push_to_stack(value);
+        self.push(value);
         Ok(())
     }
 
@@ -325,19 +336,19 @@ impl<'a> VM<'a> {
         for _ in 0..arg_count {
             self.pop();
         }
-        self.push_to_stack(array.into());
+        self.push(array.into());
         Ok(())
     }
 
     fn op_get_super(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let super_ = unsafe { self.pop().as_object().cstruct };
         match unsafe { (*super_).methods.get(&name) } {
             Some(&method) => {
                 let instance = unsafe { (*self.peek(0)).as_object().instance };
                 let bound_method = self.alloc(BoundMethodObject::new(instance, method));
                 self.pop();
-                self.push_to_stack(bound_method.into());
+                self.push(bound_method.into());
             }
             None => {
                 return self.err(AttributeError::NoSuchAttribute {
@@ -369,7 +380,7 @@ impl<'a> VM<'a> {
     }
 
     fn op_super_invoke(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let arg_count = self.read_u8() as usize;
         let super_ = unsafe { self.pop().as_object().cstruct };
 
@@ -385,7 +396,7 @@ impl<'a> VM<'a> {
     }
 
     fn op_invoke(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let arg_count = self.read_u8() as usize;
         let instance = unsafe { (*self.peek(arg_count)).as_object().instance };
 
@@ -402,7 +413,7 @@ impl<'a> VM<'a> {
         Ok(())
     }
     fn op_set_field(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let instance = {
             let instance = self.pop();
             let object = instance.as_object();
@@ -422,7 +433,7 @@ impl<'a> VM<'a> {
     }
 
     fn op_get_array_method(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let array = {
             let value = unsafe { *self.peek(0) };
             let object = value.as_object();
@@ -455,13 +466,13 @@ impl<'a> VM<'a> {
 
         let bound_arr_method = self.alloc(BoundArrayMethodObject::new(array, method_type));
         self.pop();
-        self.push_to_stack(bound_arr_method.into());
+        self.push(bound_arr_method.into());
 
         Ok(())
     }
 
     fn op_get_field(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let instance = {
             let value = unsafe { *self.peek(0) };
             let object = value.as_object();
@@ -480,7 +491,7 @@ impl<'a> VM<'a> {
         match value {
             Some(&value) => {
                 self.pop();
-                self.push_to_stack(value);
+                self.push(value);
             }
             None => {
                 for mthd in unsafe { (*(*instance).struct_).methods.keys() } {
@@ -491,7 +502,7 @@ impl<'a> VM<'a> {
                     Some(&method) => {
                         let bound_method = self.alloc(BoundMethodObject::new(instance, method));
                         self.pop();
-                        self.push_to_stack(bound_method.into());
+                        self.push(bound_method.into());
                     }
                     None => {
                         return self.err(AttributeError::NoSuchAttribute {
@@ -506,21 +517,21 @@ impl<'a> VM<'a> {
     }
 
     fn op_field(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let cstruct = unsafe { (*self.peek(0)).as_object().cstruct };
         unsafe { (*cstruct).fields.insert(name, Value::NIL) };
         Ok(())
     }
 
     fn op_cstruct(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let cstruct = self.alloc(StructObject::new(name));
-        self.push_to_stack(cstruct.into());
+        self.push(cstruct.into());
         Ok(())
     }
 
     fn op_method(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let method = unsafe { self.pop().as_object().closure };
         let cstruct = unsafe { (*self.peek(0)).as_object().cstruct };
         unsafe { (*cstruct).methods.insert(name, method) };
@@ -545,39 +556,36 @@ impl<'a> VM<'a> {
     }
 
     fn c_constant(&mut self) -> Result<()> {
-        let constant = self.read_constant();
-        self.push_to_stack(constant);
+        let constant = self.read_value();
+        self.push(constant);
         Ok(())
     }
 
     fn close_upvalue(&mut self) -> Result<()> {
+        let last = self.peek(0);
+        self.close_upvalues(last);
         self.pop();
-
         Ok(())
     }
 
     fn set_upvalue(&mut self) -> Result<()> {
-        let upvalue_idx = self.read_u8();
-        let upvalue = unsafe {
-            *(*self.frame.closure)
-                .upvalues
-                .get_unchecked(upvalue_idx as usize)
-        };
-        let value = self.peek(0);
-        unsafe { (*upvalue).value = *value };
+        let upvalue_idx = self.read_u8() as usize;
+        let object = *unsafe { (*self.frame.closure).upvalues.get_unchecked(upvalue_idx) };
+        let value = unsafe { (*object).location };
+        unsafe { *value = *self.peek(0) };
         Ok(())
     }
 
     fn get_upvalue(&mut self) -> Result<()> {
         let upvalue_idx = self.read_u8() as usize;
         let object = *unsafe { (*self.frame.closure).upvalues.get_unchecked(upvalue_idx) };
-        let value = unsafe { (*object).value };
-        self.push_to_stack(value);
+        let value = unsafe { *(*object).location };
+        self.push(value);
         Ok(())
     }
 
     fn closure(&mut self) -> Result<()> {
-        let function = unsafe { self.read_constant().as_object().function };
+        let function = unsafe { self.read_value().as_object().function };
 
         let upvalue_count = unsafe { (*function).upvalue_count } as usize;
         let mut upvalues = Vec::with_capacity(upvalue_count);
@@ -587,7 +595,7 @@ impl<'a> VM<'a> {
             let upvalue_idx = self.read_u8() as usize;
 
             let upvalue = if is_local != 0 {
-                let location = unsafe { *self.frame.stack.add(upvalue_idx) };
+                let location = unsafe { self.frame.stack.add(upvalue_idx) };
                 self.capture_upvalue(location)
             } else {
                 unsafe { *(*self.frame.closure).upvalues.get_unchecked(upvalue_idx) }
@@ -596,15 +604,14 @@ impl<'a> VM<'a> {
         }
 
         let closure = self.alloc(ClosureObject::new(function, upvalues));
-        self.push_to_stack(closure.into());
+        self.push(closure.into());
         Ok(())
     }
 
-    fn call(&mut self) -> Result<()> {
+    fn op_call(&mut self) -> Result<()> {
         let arg_count = self.read_u8() as usize;
-        let callee = self.peek(arg_count);
-        self.call_value(unsafe { *callee }, arg_count as usize)?;
-        Ok(())
+        let callee = unsafe { *self.peek(arg_count) };
+        self.call_value(callee, arg_count)
     }
 
     fn call_value(&mut self, callee: Value, arg_count: usize) -> Result<()> {
@@ -619,7 +626,6 @@ impl<'a> VM<'a> {
                 ObjectType::BoundArrayMethod => {
                     self.call_bound_arr_method(unsafe { object.bound_array_method }, arg_count)
                 }
-                // ObjectType::Array => self.call_array_method(unsafe { object.array }, arg_count),
                 ObjectType::Native => self.call_native(unsafe { object.native }, arg_count),
                 _ => self.err(TypeError::NotCallable {
                     type_: callee.type_().to_string(),
@@ -675,7 +681,7 @@ impl<'a> VM<'a> {
                 let array = unsafe { &mut (*array) };
                 let value = array.values.pop();
                 match value {
-                    Some(value) => self.push_to_stack(value),
+                    Some(value) => self.push(value),
                     None => return self.err(IndexError::IndexOutOfRange { index: 0, len: 0 }),
                 }
             }
@@ -699,7 +705,7 @@ impl<'a> VM<'a> {
                     });
                 }
                 let value = unsafe { (*array).values.get_unchecked(index.as_number() as usize) };
-                self.push_to_stack(*value);
+                self.push(*value);
             }
             ArrayMethod::Len => {
                 self.pop();
@@ -712,7 +718,7 @@ impl<'a> VM<'a> {
                 }
                 let array = unsafe { (*bound_arr_method).array };
                 let len = unsafe { (*array).values.len() } as f64;
-                self.push_to_stack(Value::from(len));
+                self.push(Value::from(len));
             }
             ArrayMethod::Type => {
                 self.pop();
@@ -726,7 +732,7 @@ impl<'a> VM<'a> {
                 let array = unsafe { (*bound_arr_method).array };
                 let type_ = unsafe { ((*array).main.type_).to_string() };
                 let name = self.alloc(type_);
-                self.push_to_stack(name.into());
+                self.push(name.into());
             }
             ArrayMethod::Copy => {
                 self.pop();
@@ -741,7 +747,7 @@ impl<'a> VM<'a> {
                 let array = unsafe { &mut (*array) };
                 let copy = array.values.clone();
                 let array = self.alloc(ArrayObject::new(copy, (*array).value_type.clone()));
-                self.push_to_stack(array.into());
+                self.push(array.into());
             }
             ArrayMethod::Extend => {
                 if arg_count != 1 {
@@ -811,7 +817,7 @@ impl<'a> VM<'a> {
                 Value::from(number)
             }
         };
-        self.push_to_stack(value);
+        self.push(value);
         Ok(())
     }
 
@@ -841,9 +847,9 @@ impl<'a> VM<'a> {
 
     fn call_closure(&mut self, closure: *mut ClosureObject, arg_count: usize) -> Result<()> {
         let function = unsafe { &mut *(*closure).function };
-        if arg_count != (*function).arity_count.into() {
+        if arg_count != (*function).arity.into() {
             return self.err(TypeError::ArityMisMatch {
-                expected: (*function).arity_count.into(),
+                expected: (*function).arity.into(),
                 actual: arg_count,
                 name: unsafe { (*(*function).name).value }.to_string(),
             });
@@ -853,8 +859,8 @@ impl<'a> VM<'a> {
         }
         let frame = CallFrame {
             closure,
-            ip: (*function).chunk.code.as_ptr(),
-            stack: self.peek(arg_count as usize),
+            ip: (*function).chunk.ops.as_ptr(),
+            stack: self.peek(arg_count),
         };
         unsafe {
             self.frames
@@ -863,11 +869,11 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn capture_upvalue(&mut self, location: Value) -> *mut UpvalueObject {
+    fn capture_upvalue(&mut self, location: *mut Value) -> *mut UpvalueObject {
         match self
             .open_upvalues
             .iter()
-            .find(|&&upvalue| unsafe { (*upvalue).value } == location)
+            .find(|&&upvalue| unsafe { (*upvalue).location } == location)
         {
             Some(&upvalue) => upvalue,
             None => {
@@ -918,7 +924,7 @@ impl<'a> VM<'a> {
     fn get_local(&mut self) -> Result<()> {
         let stack_idx = self.read_u8() as usize;
         let local = unsafe { *self.frame.stack.add(stack_idx) };
-        self.push_to_stack(local);
+        self.push(local);
         Ok(())
     }
 
@@ -931,7 +937,7 @@ impl<'a> VM<'a> {
     }
 
     fn set_global(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let value = unsafe { *self.peek(0) };
         match self.globals.entry(name) {
             Entry::Occupied(mut entry) => {
@@ -946,39 +952,47 @@ impl<'a> VM<'a> {
     }
 
     fn get_global(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
-        let value = self.globals.get(&name).unwrap();
-        self.push_to_stack(*value);
-        Ok(())
+        let name = unsafe { self.read_value().as_object().string };
+        match self.globals.get(&name) {
+            Some(&value) => {
+                self.push(value);
+                Ok(())
+            }
+            None => self.err(NameError::IdentifierNotDefined {
+                name: unsafe { (*name).value.to_string() },
+            }),
+        }
     }
 
     fn define_global(&mut self) -> Result<()> {
-        let name = unsafe { self.read_constant().as_object().string };
+        let name = unsafe { self.read_value().as_object().string };
         let value = self.pop();
         self.globals.insert(name, value);
         Ok(())
     }
 
     fn op_nil(&mut self) -> Result<()> {
-        self.push_to_stack(Value::NIL);
+        self.push(Value::NIL);
         Ok(())
     }
 
     fn op_true(&mut self) -> Result<()> {
-        self.push_to_stack(Value::TRUE);
+        self.push(Value::TRUE);
         Ok(())
     }
 
     fn op_false(&mut self) -> Result<()> {
-        self.push_to_stack(Value::FALSE);
+        self.push(Value::FALSE);
         Ok(())
     }
 
-    fn push_to_stack(&mut self, value: Value) {
+    /// Pushes a [`Value`] to the stack.
+    fn push(&mut self, value: Value) {
         unsafe { *self.stack_top = value };
         self.stack_top = unsafe { self.stack_top.add(1) };
     }
 
+    /// Pops a [`Value`] from the stack.
     fn pop(&mut self) -> Value {
         self.stack_top = unsafe { self.stack_top.sub(1) };
         unsafe { *self.stack_top }
@@ -988,10 +1002,10 @@ impl<'a> VM<'a> {
         unsafe { self.stack_top.sub(distance + 1) }
     }
 
-    fn read_constant(&mut self) -> value::Value {
-        let index = self.read_u8() as usize;
+    fn read_value(&mut self) -> value::Value {
+        let constant_idx = self.read_u8() as usize;
         let function = unsafe { (*self.frame.closure).function };
-        *unsafe { (*function).chunk.constants.get_unchecked(index) }
+        *unsafe { (*function).chunk.constants.get_unchecked(constant_idx) }
     }
 
     fn read_u8(&mut self) -> u8 {
@@ -1003,7 +1017,7 @@ impl<'a> VM<'a> {
     fn read_u16(&mut self) -> u16 {
         let byte1 = self.read_u8();
         let byte2 = self.read_u8();
-        (byte1 as u16) << 8 | (byte2 as u16)
+        u16::from_le_bytes([byte1, byte2])
     }
 
     fn modulo(&mut self) -> Result<()> {
@@ -1011,7 +1025,7 @@ impl<'a> VM<'a> {
         let a = self.pop();
 
         if a.is_number() && b.is_number() {
-            self.push_to_stack((a.as_number() % b.as_number()).into());
+            self.push((a.as_number() % b.as_number()).into());
             return Ok(());
         }
         self.err(TypeError::UnsupportedOperandInfix {
@@ -1031,7 +1045,7 @@ impl<'a> VM<'a> {
         if a.type_() == ObjectType::String && b.type_() == ObjectType::String {
             let result = unsafe { [(*a.string).value, (*b.string).value] }.concat();
             let result = Value::from(self.alloc(result));
-            self.push_to_stack(result);
+            self.push(result);
             return Ok(());
         }
 
@@ -1047,7 +1061,7 @@ impl<'a> VM<'a> {
         let a = self.pop();
 
         if a.is_number() && b.is_number() {
-            self.push_to_stack((a.as_number() + b.as_number()).into());
+            self.push((a.as_number() + b.as_number()).into());
             return Ok(());
         }
 
@@ -1076,7 +1090,7 @@ impl<'a> VM<'a> {
 
         if a.is_number() && b.is_number() {
             let value = op(a.as_number(), b.as_number());
-            self.push_to_stack(value);
+            self.push(value);
             return Ok(());
         }
         self.err(TypeError::UnsupportedOperandInfix {
@@ -1089,13 +1103,13 @@ impl<'a> VM<'a> {
     fn equal(&mut self) -> Result<()> {
         let rhs = self.pop();
         let lhs = self.pop();
-        self.push_to_stack((rhs == lhs).into());
+        self.push((rhs == lhs).into());
         Ok(())
     }
 
     fn op_not(&mut self) -> Result<()> {
         let value = self.pop();
-        self.push_to_stack((!value.to_bool()).into());
+        self.push((!value.to_bool()).into());
         Ok(())
     }
 
@@ -1103,13 +1117,13 @@ impl<'a> VM<'a> {
         let rhs = self.pop();
         let lhs = self.pop();
 
-        self.push_to_stack((rhs != lhs).into());
+        self.push((rhs != lhs).into());
         Ok(())
     }
 
     fn negate(&mut self) -> Result<()> {
         let value: value::Value = self.pop();
-        self.push_to_stack(Value::from(-(value.as_number())));
+        self.push(Value::from(-(value.as_number())));
         Ok(())
     }
 
@@ -1155,7 +1169,7 @@ impl<'a> VM<'a> {
 
     fn err(&self, err: impl Into<Error>) -> Result<()> {
         let function = unsafe { (*self.frame.closure).function };
-        let idx = unsafe { self.frame.ip.offset_from((*function).chunk.code.as_ptr()) } as usize;
+        let idx = unsafe { self.frame.ip.offset_from((*function).chunk.ops.as_ptr()) } as usize;
         let span = unsafe { (*function).chunk.spans[idx - 1].clone() };
         Err((err.into(), span))
     }

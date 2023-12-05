@@ -281,16 +281,12 @@ impl Compiler {
 
         self.emit_u8(op::NIL, &(0..0));
         self.emit_u8(op::RETURN, &(0..0));
-        unsafe {
-            (*self.current_compiler.function)
-                .chunk
-                .disassemble("script")
-        };
-        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Cyan)));
+        unsafe { (*self.current_compiler.function).chunk.debug("script") };
+        let _ = stdout.set_color(ColorSpec::new().set_fg(Some(Color::Cyan)));
 
         println!("|--------------Virtual Machine--------------|");
         //reset color
-        stdout.reset();
+        let _ = stdout.reset();
         Ok(self.current_compiler.function)
     }
 
@@ -324,7 +320,7 @@ impl Compiler {
                         }),
                     );
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
-                    self.write_constant(name, &range);
+                    self.emit_constant(name, &range);
                 } else {
                     self.declare_local(
                         &func.name,
@@ -354,19 +350,19 @@ impl Compiler {
         let fields = struct_.fields.clone();
 
         self.emit_u8(op::STRUCT, &range);
-        self.write_constant(name.into(), &range);
+        self.emit_constant(name.into(), &range);
 
         for field in &fields {
             let name = allocator.alloc(&field.name).into();
             self.emit_u8(op::FIELD, &range);
-            self.write_constant(name, &range);
+            self.emit_constant(name, &range);
         }
 
         if self.is_global() {
             self.globals
                 .insert(struct_.name.clone(), Type::Struct(struct_.name.clone()));
             self.emit_u8(op::DEFINE_GLOBAL, range);
-            self.write_constant(name.into(), range);
+            self.emit_constant(name.into(), range);
         } else {
             self.declare_local(&struct_.name, &Type::Struct(struct_.name.clone()), &range)?;
         }
@@ -452,7 +448,7 @@ impl Compiler {
 
                 let name = allocator.alloc(&method.name).into();
                 self.emit_u8(op::METHOD, span);
-                self.write_constant(name, span);
+                self.emit_constant(name, span);
 
                 let strct_method = StructMethod {
                     name: method.name.clone(),
@@ -517,7 +513,7 @@ impl Compiler {
                             None => {
                                 if return_stmt_type != Type::Nil {
                                     let result = Err((
-                                        Error::TypeError(TypeError::ReturnTypeMustBeNil),
+                                        Error::TypeError(TypeError::ReturnTypeMustNotReturnValue),
                                         range.clone(),
                                     ));
                                     return result;
@@ -557,7 +553,7 @@ impl Compiler {
                     let return_type = self.compile_expression(value, allocator)?;
                     if return_type != Type::Nil {
                         let result = Err((
-                            Error::TypeError(TypeError::ReturnTypeMustBeNil),
+                            Error::TypeError(TypeError::InitializerMustNotReturnValue),
                             range.clone(),
                         ));
                         return result;
@@ -594,25 +590,11 @@ impl Compiler {
             )),
             type_,
             locals: ArrayVec::new(),
-            scope_depth: self.current_compiler.scope_depth + 1,
-            parent: None,
             upvalues: ArrayVec::new(),
+            parent: None,
+            scope_depth: self.current_compiler.scope_depth + 1,
         };
         self.begin_cell(cell);
-
-        // match type_ {
-        //     FunctionType::Initializer | FunctionType::Method => {
-        //         self.declare_local("self", &Type::Self_, &range)
-        //     }
-        //     FunctionType::Function | FunctionType::Script => self.declare_local(
-        //         &func.name,
-        //         &Type::Fn(Fn {
-        //             return_type: Box::new(func.return_type.clone()),
-        //         }),
-        //         &range,
-        //     ),
-        // }?;
-        //
 
         match type_ {
             FunctionType::Script => {
@@ -662,16 +644,16 @@ impl Compiler {
             self.compile_statement(&statement, allocator)?;
         }
 
-        if unsafe { (*self.current_compiler.function).chunk.code.last() } != Some(&op::RETURN) {
+        if unsafe { (*self.current_compiler.function).chunk.ops.last() } != Some(&op::RETURN) {
             let stmt = (Statement::Return(StatementReturn { value: None }), (0..0));
             self.compile_statement(&stmt, allocator)?;
         }
 
         let (function, upvalues) = self.end_cell();
-        unsafe { (*function).chunk.disassemble((*name).value) };
+        unsafe { (*function).chunk.debug((*name).value) };
         let function = function.into();
         self.emit_u8(op::CLOSURE, &range);
-        self.write_constant(function, &range);
+        self.emit_constant(function, &range);
         for upvalue in &upvalues {
             self.emit_u8(upvalue.is_local.into(), &range);
             self.emit_u8(upvalue.index, &range);
@@ -711,8 +693,8 @@ impl Compiler {
             compiled_type = Some(compile_init);
         }
 
-        let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
-        let mut exit_jump = None;
+        let loop_start = self.start_loop();
+        let mut just_to_end = None;
         if let Some(cond) = &for_.cond {
             let cond_type = self.compile_expression(cond, allocator)?;
             if cond_type != Type::Bool {
@@ -722,7 +704,7 @@ impl Compiler {
                 ));
                 return result;
             }
-            exit_jump = Some(self.emit_jump(op::JUMP_IF_FALSE, &range));
+            just_to_end = Some(self.emit_jump(op::JUMP_IF_FALSE, &range));
             self.emit_u8(op::POP, &range);
         }
 
@@ -733,7 +715,7 @@ impl Compiler {
         }
         self.emit_loop(loop_start, &range)?;
 
-        if let Some(exit_jump) = exit_jump {
+        if let Some(exit_jump) = just_to_end {
             self.patch_jump(exit_jump, &range)?;
             self.emit_u8(op::POP, &range);
         }
@@ -744,12 +726,16 @@ impl Compiler {
         return Ok(Type::UnInitialized);
     }
 
+    fn start_loop(&self) -> usize {
+        unsafe { (*self.current_compiler.function).chunk.ops.len() }
+    }
+
     fn compile_while_stmt(
         &mut self,
         (while_, range): (&StatementWhile, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let loop_start = unsafe { (*self.current_compiler.function).chunk.code.len() };
+        let loop_start = unsafe { (*self.current_compiler.function).chunk.ops.len() };
         let cond_type = self.compile_expression(&while_.cond, allocator)?;
         if cond_type != Type::Bool {
             let result = Err((
@@ -767,17 +753,18 @@ impl Compiler {
         return Ok(Type::UnInitialized);
     }
 
-    fn emit_loop(&mut self, loop_start: usize, span: &Span) -> Result<()> {
+    fn emit_loop(&mut self, start_idx: usize, span: &Span) -> Result<()> {
+        // The extra +3 is to account for the space taken by the instruction and
+        // the offset.
+        let offset = unsafe { (*self.current_compiler.function).chunk.ops.len() } + 3 - start_idx;
+        let offset = offset
+            .try_into()
+            .map_err(|_| (OverflowError::JumpTooLarge.into(), span.clone()))?;
+        let offset = u16::to_le_bytes(offset);
+
         self.emit_u8(op::LOOP, span);
-        let offset = unsafe { (*self.current_compiler.function).chunk.code.len() - loop_start + 2 };
-        if offset > u16::MAX as usize {
-            return Err((
-                Error::OverflowError(OverflowError::LoopTooLarge),
-                span.clone(),
-            ));
-        }
-        self.emit_u8((offset >> 8) as u8, span);
-        self.emit_u8(offset as u8, span);
+        self.emit_u8(offset[0], span);
+        self.emit_u8(offset[1], span);
 
         Ok(())
     }
@@ -1027,7 +1014,7 @@ impl Compiler {
         self.get_variable("super", range, allocator)?;
 
         self.emit_u8(op::GET_SUPER, &range);
-        self.write_constant(name.into(), &range);
+        self.emit_constant(name.into(), &range);
         Ok(super_type)
     }
 
@@ -1043,7 +1030,16 @@ impl Compiler {
             Type::Struct(ref name) => {
                 self.find_struct_type_of_field_or_method(name.clone(), set.name.clone(), range)?
             }
-            _ => todo!(),
+            _ => {
+                let result = Err((
+                    Error::AttributeError(AttributeError::NoSuchAttribute {
+                        name: set.name.clone(),
+                        type_: object_type.to_string(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
+            }
         };
 
         if field_type != value_type {
@@ -1058,7 +1054,7 @@ impl Compiler {
         }
         let name = allocator.alloc(&set.name);
         self.emit_u8(op::SET_FIELD, &range);
-        self.write_constant(name.into(), &range);
+        self.emit_constant(name.into(), &range);
         Ok(field_type)
     }
 
@@ -1067,17 +1063,17 @@ impl Compiler {
         (get, range): (&Box<ExprGet>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let mut var_type = self.compile_expression(&get.object, allocator)?;
+        let var_type = self.compile_expression(&get.object, allocator)?;
         let field_type = match var_type {
             Type::Struct(name) => {
                 self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
             }
             Type::Array(type_) => {
-                if let Some(method_name) = builtin_array_methods_contains(&get.name) {
+                if let Some(_) = builtin_array_methods_contains(&get.name) {
                     let glob = self.globals.get(&get.name.clone());
                     let name = allocator.alloc(&get.name);
                     self.emit_u8(op::GET_ARRAY_METHOD, &range);
-                    self.emit_constant_w(name.into(), &range)?;
+                    self.emit_constant(name.into(), &range)?;
 
                     return Ok(Type::Fn(Fn {
                         return_type: Box::new(Some(*type_)),
@@ -1105,12 +1101,19 @@ impl Compiler {
 
         let name = allocator.alloc(&get.name);
         self.emit_u8(op::GET_FIELD, &range);
-        self.emit_constant_w(name.into(), &range)?;
+        self.emit_constant(name.into(), &range)?;
         return Ok(field_type);
     }
 
     /// [Stable]
     /// [Not Tested]
+    /// # Examples
+    /// ```
+    /// call(); => INVOKE
+    /// call(1); => CALL
+    /// super.call(); => SUPER_INVOKE
+    /// super.call(1); => CALL
+    /// ```
     fn compile_call(
         &mut self,
         (call, range): (&Box<ExprCall>, &Range<usize>),
@@ -1140,7 +1143,7 @@ impl Compiler {
             self.compile_expression(&arg, allocator)?;
         }
 
-        let ops = unsafe { &mut (*self.current_compiler.function).chunk.code };
+        let ops = unsafe { &mut (*self.current_compiler.function).chunk.ops };
 
         match ops.len().checked_sub(2) {
             Some(idx) if ops[idx] == op::GET_FIELD => ops[idx] = op::INVOKE,
@@ -1247,7 +1250,7 @@ impl Compiler {
                         let string = allocator.alloc(name);
                         self.globals.insert(name.clone(), type_.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
-                        self.write_constant(string.into(), &range);
+                        self.emit_constant(string.into(), &range);
                         // return Ok(Type::String);
                     } else {
                         self.declare_local(name, &value_var_type, &range)?;
@@ -1261,7 +1264,7 @@ impl Compiler {
                         let string = allocator.alloc(name);
                         self.globals.insert(name.clone(), type_.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
-                        self.write_constant(string.into(), &range);
+                        self.emit_constant(string.into(), &range);
                         // return Ok(Type::String);
                     } else {
                         self.declare_local(name, &value_var_type, &range)?;
@@ -1277,7 +1280,7 @@ impl Compiler {
                                 let string = allocator.alloc(name);
                                 self.globals.insert(name.clone(), type_.clone());
                                 self.emit_u8(op::DEFINE_GLOBAL, &range);
-                                self.write_constant(string.into(), &range);
+                                self.emit_constant(string.into(), &range);
                                 // return Ok(Type::String);
                             } else {
                                 self.declare_local(name, &value_var_type, &range)?;
@@ -1291,7 +1294,7 @@ impl Compiler {
                                 let string = allocator.alloc(name);
                                 self.globals.insert(name.clone(), type_.clone());
                                 self.emit_u8(op::DEFINE_GLOBAL, &range);
-                                self.write_constant(string.into(), &range);
+                                self.emit_constant(string.into(), &range);
                                 // return Ok(Type::String);
                             } else {
                                 self.declare_local(name, &value_var_type, &range)?;
@@ -1310,7 +1313,7 @@ impl Compiler {
                 if self.is_global() {
                     self.globals.insert(name.clone(), value_var_type.clone());
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
-                    self.write_constant(string.into(), &range);
+                    self.emit_constant(string.into(), &range);
                 } else {
                     //If variable type is not declared, left hand side expression type will be variable type
                     self.declare_local(name, &value_var_type, &range)?;
@@ -1340,7 +1343,7 @@ impl Compiler {
         } else {
             let allocated_name = gc.alloc(name);
             self.emit_u8(op::GET_GLOBAL, span);
-            self.write_constant(allocated_name.into(), span);
+            self.emit_constant(allocated_name.into(), span);
             let type_ = self.globals.get(&name.to_string());
 
             let expr_var_type = match type_ {
@@ -1370,7 +1373,7 @@ impl Compiler {
         } else {
             let allocated_name = gc.alloc(name);
             self.emit_u8(op::SET_GLOBAL, span);
-            self.write_constant(allocated_name.into(), span);
+            self.emit_constant(allocated_name.into(), span)?;
             let type_ = self.globals.get(&name.to_string());
 
             let expr_var_type = match type_ {
@@ -1522,13 +1525,16 @@ impl Compiler {
         match literal {
             ExprLiteral::Number(value) => {
                 let value = (*value).into();
-                self.emit_constant(value, &range);
+                self.emit_u8(op::CECILE_CONSTANT, range);
+                self.emit_constant(value, range)?;
                 Ok(Type::Int)
             }
             ExprLiteral::String(string) => {
                 let string = allocator.alloc(string);
                 unsafe { (*string).main.is_marked = true };
-                self.emit_constant(string.into(), &range);
+                let value = string.into();
+                self.emit_u8(op::CECILE_CONSTANT, range);
+                self.emit_constant(value, range)?;
                 Ok(Type::String)
             }
             ExprLiteral::Bool(value) => {
@@ -1624,37 +1630,24 @@ impl Compiler {
         self.emit_u8(instruction, span);
         self.emit_u8(0xff, span);
         self.emit_u8(0xff, span);
-        unsafe { (*self.current_compiler.function).chunk.code.len() - 2 }
+        unsafe { (*self.current_compiler.function).chunk.ops.len() - 2 }
     }
 
-    /// [Stable]
-    /// [Not Tested]
+    /// Takes the index of the jump offset to be patched as input, and patches
+    /// it to point to the current instruction.
     fn patch_jump(&mut self, offset_idx: usize, span: &Span) -> Result<()> {
-        /// [Not Tested]
-        let offset = unsafe { (*self.current_compiler.function).chunk.code.len() - offset_idx - 2 };
-        if offset > u16::MAX as usize {
-            Err((
-                Error::OverflowError(OverflowError::TooManyArguments),
-                span.clone(),
-            ))?;
-        }
+        // The extra -2 is to account for the space taken by the offset.
+        let offset = unsafe { (*self.current_compiler.function).chunk.ops.len() - 2 - offset_idx };
+        let offset = offset
+            .try_into()
+            .map_err(|_| (OverflowError::JumpTooLarge.into(), span.clone()))?;
+        let offset = u16::to_le_bytes(offset);
         unsafe {
-            (*self.current_compiler.function).chunk.code[offset_idx] = (offset >> 8) as u8;
-            (*self.current_compiler.function).chunk.code[offset_idx + 1] = offset as u8;
-        }
-
-        Ok(())
-    }
-
-    /// [Stable]
-    /// [Not Tested]
-    fn emit_constant_w(&mut self, value: Value, span: &Span) -> Result<()> {
-        let constant_idx = unsafe {
-            (*self.current_compiler.function)
-                .chunk
-                .write_constant_w(value, span)?
+            [
+                (*self.current_compiler.function).chunk.ops[offset_idx],
+                (*self.current_compiler.function).chunk.ops[offset_idx + 1],
+            ] = offset
         };
-        self.emit_u8(constant_idx, span);
         Ok(())
     }
 
@@ -1671,21 +1664,13 @@ impl Compiler {
     /// [Not Tested]
     /// Emit a constant to the current compiler's chunk
     /// This will do Writing value to constant table and emitting CECILE CONSTANT instruction
-    fn emit_constant(&mut self, value: Value, span: &Span) {
-        unsafe {
+    fn emit_constant(&mut self, value: Value, span: &Span) -> Result<()> {
+        let constant_idx = unsafe {
             (*self.current_compiler.function)
                 .chunk
-                .emit_constant(value, span);
-        }
-    }
-
-    /// [Stable]
-    /// [Not Tested]
-    fn write_constant(&mut self, value: Value, span: &Span) {
-        unsafe {
-            (*self.current_compiler.function)
-                .chunk
-                .write_constant(value, span);
-        }
+                .write_constant(value, span)?
+        };
+        self.emit_u8(constant_idx, span);
+        Ok(())
     }
 }

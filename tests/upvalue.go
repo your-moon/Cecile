@@ -14,4 +14,4 @@ fn outer() -> fn {
 
 let mid = outer();
 let in = mid();
-in();
+in(); // out: 10

@@ -7,8 +7,6 @@ let uninitialized;
 
 type Point;
 
-impl Point {}
-
 fn test() -> fn {
   fn test_2() {
   }
@@ -24,3 +22,5 @@ println object;
 println string;
 println number;
 println bool_;
+println uninitialized;
+println 0 == false;

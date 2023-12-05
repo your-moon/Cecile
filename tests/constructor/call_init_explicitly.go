@@ -1,0 +1,19 @@
+type Foo {
+    field: String
+}
+
+impl Foo {
+   fn new(arg: String) {
+    println "Foo.init(" + arg + ")";
+    self.field = "init";
+  }
+}
+
+let foo = Foo("one"); // out: Foo.init(one)
+foo.field = "field";
+
+let foo2 = foo.new("two"); // out: Foo.init(two)
+println foo2; // out: <object Foo>
+
+// Make sure init() doesn't create a fresh instance.
+println foo.field; // out: init

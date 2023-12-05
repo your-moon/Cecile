@@ -1,3 +1,5 @@
+use std::ops::Index;
+
 use arrayvec::ArrayVec;
 
 use crate::cc_parser::ast::Span;
@@ -6,177 +8,22 @@ use crate::vm::value::Value;
 
 use super::error::{OverflowError, Result};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Chunk {
-    pub code: Vec<u8>,
+    pub ops: Vec<u8>,
     pub constants: ArrayVec<Value, 256>,
-    pub spans: Vec<Span>,
+    pub spans: VecRun<Span>,
 }
 
 impl Chunk {
-    pub fn disassemble(&self, name: &str) {
-        println!("== {} ==", name);
-        let mut offset = 0;
-        while offset < self.code.len() {
-            offset = self.disassemble_instruction(offset);
-        }
-    }
-
-    pub fn disassemble_instruction(&self, offset: usize) -> usize {
-        print!("{:04} ", offset);
-        match self.code[offset] {
-            op::ARRAY => self.code_byte("ARRAY", offset),
-            op::ARRAY_ACCESS => self.simple_instruction("ARRAY_ACCESS", offset),
-            op::ARRAY_ACCESS_ASSIGN => self.simple_instruction("ARRAY_ACCESS_ASSIGN", offset),
-            op::GET_ARRAY_METHOD => self.code_byte("GET_ARRAY_METHOD", offset),
-            op::SUPER_INVOKE => self.debug_op_invoke("SUPER_INVOKE", offset),
-            op::GET_SUPER => self.constant_instruction("GET_SUPER", offset),
-            op::INHERIT => self.simple_instruction("INHERIT", offset),
-            op::INVOKE => self.debug_op_invoke("INVOKE", offset),
-            op::SET_FIELD => self.constant_instruction("SET_FIELD", offset),
-            op::GET_FIELD => self.constant_instruction("GET_FIELD", offset),
-            op::FIELD => self.code_byte("FIELD", offset),
-            op::STRUCT => self.code_byte("STRUCT", offset),
-            op::CLOSE_UPVALUE => self.simple_instruction("CLOSE_UPVALUE", offset),
-            op::SET_UPVALUE => self.code_byte("SET_UPVALUE", offset),
-            op::GET_UPVALUE => self.code_byte("GET_UPVALUE", offset),
-            op::CLOSURE => {
-                let mut idx = offset + 1;
-                let constant_idx = self.code[idx];
-                let constant = &self.constants[constant_idx as usize];
-                println!(
-                    "{name:16} {constant_idx:>4} '{constant}'",
-                    name = "OP_CLOSURE"
-                );
-
-                let function = unsafe { constant.as_object().function };
-                for _ in 0..unsafe { (*function).upvalue_count } {
-                    let offset = idx;
-
-                    idx += 1;
-                    let is_local = self.code[idx];
-                    let label = if is_local == 0 { "upvalue" } else { "local" };
-
-                    idx += 1;
-                    let upvalue_idx = self.code[idx];
-
-                    println!("{offset:04} |                     {label} {upvalue_idx}");
-                }
-
-                idx + 1
-            }
-            op::METHOD => {
-                let constant_idx = self.code[offset + 1];
-                let constant = &self.constants[constant_idx as usize];
-                println!(
-                    "{name:16} {constant_idx:>4} '{constant}'",
-                    name = "OP_METHOD"
-                );
-                offset + 2
-            }
-            op::MODULO => self.simple_instruction("MODULO", offset),
-            op::CALL => self.code_byte("CALL", offset),
-            op::PRINT_LN => self.simple_instruction("PRINT_LN", offset),
-            op::LOOP => self.jump_instruction("LOOP", offset),
-            op::JUMP => self.jump_instruction("JUMP", offset),
-            op::JUMP_IF_FALSE => self.jump_instruction("JUMP_IF_FALSE", offset),
-            op::POP => self.simple_instruction("POP", offset),
-            op::GET_LOCAL => self.code_byte("GET_LOCAL", offset),
-            op::SET_LOCAL => self.code_byte("SET_LOCAL", offset),
-            op::SET_GLOBAL => self.constant_instruction("SET_GLOBAL", offset),
-            op::DEFINE_GLOBAL => self.constant_instruction("DEFINE_GLOBAL", offset),
-            op::GET_GLOBAL => self.constant_instruction("GET_GLOBAL", offset),
-            op::ADD => self.simple_instruction("ADD", offset),
-            op::CONCAT => self.simple_instruction("CONCAT", offset),
-            op::SUB => self.simple_instruction("SUB", offset),
-            op::MUL => self.simple_instruction("MUL", offset),
-            op::DIV => self.simple_instruction("DIV", offset),
-            op::EQUAL => self.simple_instruction("EQUAL", offset),
-            op::NOT_EQUAL => self.simple_instruction("NOT_EQUAL", offset),
-            op::LESS_THAN => self.simple_instruction("LESS_THAN", offset),
-            op::LESS_THAN_EQUAL => self.simple_instruction("LESS_THAN_EQUAL", offset),
-            op::GREATER_THAN => self.simple_instruction("GREATER_THAN", offset),
-            op::GREATER_THAN_EQUAL => self.simple_instruction("GREATER_THAN_EQUAL", offset),
-            op::AND => self.simple_instruction("AND", offset),
-            op::OR => self.simple_instruction("OR", offset),
-            op::NOT => self.simple_instruction("NOT", offset),
-            op::NEG => self.simple_instruction("NEG", offset),
-            op::CECILE_CONSTANT => self.constant_instruction("CECILE_CONSTANT", offset),
-            op::TRUE => self.simple_instruction("TRUE", offset),
-            op::FALSE => self.simple_instruction("FALSE", offset),
-            op::PRINT => self.simple_instruction("PRINT", offset),
-            op::NIL => self.simple_instruction("NIL", offset),
-            op::RETURN => self.simple_instruction("RETURN", offset),
-
-            _ => {
-                println!("Unknown opcode {}", self.code[offset]);
-                return offset + 1;
-            }
-        }
-    }
-    fn debug_op_invoke(&self, name: &str, idx: usize) -> usize {
-        let constant_idx = self.code[idx + 1];
-        let constant = &self.constants[constant_idx as usize];
-        let arg_count = self.code[idx + 2];
-        println!("{name:16} ({arg_count} args) {constant_idx:>4} '{constant}'");
-        idx + 3
-    }
-
-    fn code_byte(&self, name: &str, idx: usize) -> usize {
-        let byte = self.code[idx + 1];
-        println!("{name:16} {byte:>4}");
-        idx + 2
-    }
-
-    fn read_u16(&self, offset: usize) -> u16 {
-        ((self.code[offset] as u16) << 8) | self.code[offset + 1] as u16
-    }
-
-    fn jump_instruction(&self, name: &str, offset: usize) -> usize {
-        let jump = self.read_u16(offset + 1);
-        println!(
-            "{:16} {:4} -> {}",
-            name,
-            offset,
-            offset as isize + 3 + jump as isize
-        );
-        offset + 3
-    }
-
-    fn simple_instruction(&self, name: &str, offset: usize) -> usize {
-        println!("{}", name);
-        offset + 1
-    }
-
-    fn constant_instruction(&self, name: &str, offset: usize) -> usize {
-        let constant_idx = self.code[offset + 1];
-        let constant = &self.constants[constant_idx as usize];
-        println!("{name:16} {constant_idx:>4} '{constant}'");
-        offset + 2
-    }
-
     pub fn write_u8(&mut self, byte: u8, span: &Span) {
-        self.code.push(byte);
+        self.ops.push(byte);
         self.spans.push(span.clone());
     }
 
-    /// Emit a two byte instruction_byte
-    /// Emit CECILE_CONSTANT instruction_byte, followed by the index of the constant
-    /// index is the index of the constant in the chunk's constant table
-    /// [CECILE_CONSTANT, index]
-    pub fn emit_constant(&mut self, value: Value, span: &Span) {
-        let index = self.constants.len() as u8;
-        self.write_u8(op::CECILE_CONSTANT, span);
-        self.write_u8(index, span);
-        self.constants.push(value);
-    }
-
-    pub fn write_constant(&mut self, value: Value, span: &Span) {
-        let index = self.constants.len() as u8;
-        self.write_u8(index, span);
-        self.constants.push(value);
-    }
-    pub fn write_constant_w(&mut self, value: Value, span: &Span) -> Result<u8> {
+    /// Writes a constant to the [`Chunk`] and returns its index. If an equal
+    /// [`Value`] is already present, then its index is returned instead.
+    pub fn write_constant(&mut self, value: Value, span: &Span) -> Result<u8> {
         let idx = match self
             .constants
             .iter()
@@ -192,4 +39,157 @@ impl Chunk {
         };
         Ok(idx.try_into().expect("constant index overflow"))
     }
+
+    pub fn debug(&self, name: &str) {
+        eprintln!("== {name} ==");
+        let mut idx = 0;
+        while idx < self.ops.len() {
+            idx = self.debug_op(idx);
+        }
+    }
+
+    pub fn debug_op(&self, idx: usize) -> usize {
+        eprint!("{idx:04} ");
+        match self.ops[idx] {
+            op::CECILE_CONSTANT => self.debug_op_constant("OP_CONSTANT", idx),
+            op::NIL => self.debug_op_simple("OP_NIL", idx),
+            op::TRUE => self.debug_op_simple("OP_TRUE", idx),
+            op::FALSE => self.debug_op_simple("OP_FALSE", idx),
+            op::POP => self.debug_op_simple("OP_POP", idx),
+            op::GET_LOCAL => self.debug_op_byte("OP_GET_LOCAL", idx),
+            op::SET_LOCAL => self.debug_op_byte("OP_SET_LOCAL", idx),
+            op::GET_GLOBAL => self.debug_op_constant("OP_GET_GLOBAL", idx),
+            op::DEFINE_GLOBAL => self.debug_op_constant("OP_DEFINE_GLOBAL", idx),
+            op::SET_GLOBAL => self.debug_op_constant("OP_SET_GLOBAL", idx),
+            op::GET_UPVALUE => self.debug_op_byte("OP_GET_UPVALUE", idx),
+            op::SET_UPVALUE => self.debug_op_byte("OP_SET_UPVALUE", idx),
+            op::GET_FIELD => self.debug_op_constant("OP_GET_PROPERTY", idx),
+            op::SET_FIELD => self.debug_op_constant("OP_SET_PROPERTY", idx),
+            op::GET_SUPER => self.debug_op_constant("OP_GET_SUPER", idx),
+            op::EQUAL => self.debug_op_simple("OP_EQUAL", idx),
+            op::NOT_EQUAL => self.debug_op_simple("OP_NOT_EQUAL", idx),
+            op::GREATER_THAN => self.debug_op_simple("OP_GREATER", idx),
+            op::GREATER_THAN_EQUAL => self.debug_op_simple("OP_GREATER_EQUAL", idx),
+            op::LESS_THAN => self.debug_op_simple("OP_LESS", idx),
+            op::LESS_THAN_EQUAL => self.debug_op_simple("OP_LESS_EQUAL", idx),
+            op::ADD => self.debug_op_simple("OP_ADD", idx),
+            op::SUB => self.debug_op_simple("OP_SUBTRACT", idx),
+            op::MUL => self.debug_op_simple("OP_MULTIPLY", idx),
+            op::DIV => self.debug_op_simple("OP_DIVIDE", idx),
+            op::NOT => self.debug_op_simple("OP_NOT", idx),
+            op::NEG => self.debug_op_simple("OP_NEGATE", idx),
+            op::PRINT => self.debug_op_simple("OP_PRINT", idx),
+            op::JUMP => self.debug_op_jump("OP_JUMP", idx, true),
+            op::JUMP_IF_FALSE => self.debug_op_jump("OP_JUMP_IF_FALSE", idx, true),
+            op::LOOP => self.debug_op_jump("OP_LOOP", idx, false),
+            op::CALL => self.debug_op_byte("OP_CALL", idx),
+            op::INVOKE => self.debug_op_invoke("OP_INVOKE", idx),
+            op::SUPER_INVOKE => self.debug_op_invoke("OP_SUPER_INVOKE", idx),
+            op::CLOSURE => {
+                let mut idx = idx + 1;
+                let constant_idx = self.ops[idx];
+                let constant = &self.constants[constant_idx as usize];
+                eprintln!(
+                    "{name:16} {constant_idx:>4} '{constant}'",
+                    name = "OP_CLOSURE"
+                );
+
+                let function = unsafe { constant.as_object().function };
+                for _ in 0..unsafe { (*function).upvalue_count } {
+                    let offset = idx;
+
+                    idx += 1;
+                    let is_local = self.ops[idx];
+                    let label = if is_local == 0 { "upvalue" } else { "local" };
+
+                    idx += 1;
+                    let upvalue_idx = self.ops[idx];
+
+                    eprintln!("{offset:04} |                     {label} {upvalue_idx}");
+                }
+
+                idx + 1
+            }
+            op::CLOSE_UPVALUE => self.debug_op_simple("OP_CLOSE_UPVALUE", idx),
+            op::RETURN => self.debug_op_simple("OP_RETURN", idx),
+            op::STRUCT => self.debug_op_constant("OP_STRUCT", idx),
+            op::INHERIT => self.debug_op_simple("OP_INHERIT", idx),
+            op::METHOD => self.debug_op_constant("OP_METHOD", idx),
+            byte => self.debug_op_simple(&format!("OP_UNKNOWN({byte:#X})"), idx),
+        }
+    }
+
+    fn debug_op_simple(&self, name: &str, idx: usize) -> usize {
+        eprintln!("{name}");
+        idx + 1
+    }
+
+    fn debug_op_byte(&self, name: &str, idx: usize) -> usize {
+        let byte = self.ops[idx + 1];
+        eprintln!("{name:16} {byte:>4}");
+        idx + 2
+    }
+
+    fn debug_op_constant(&self, name: &str, idx: usize) -> usize {
+        let constant_idx = self.ops[idx + 1];
+        let constant = &self.constants[constant_idx as usize];
+        eprintln!("{name:16} {constant_idx:>4} '{constant}'");
+        idx + 2
+    }
+
+    fn debug_op_invoke(&self, name: &str, idx: usize) -> usize {
+        let constant_idx = self.ops[idx + 1];
+        let constant = &self.constants[constant_idx as usize];
+        let arg_count = self.ops[idx + 2];
+        eprintln!("{name:16} ({arg_count} args) {constant_idx:>4} '{constant}'");
+        idx + 3
+    }
+
+    fn debug_op_jump(&self, name: &str, idx: usize, is_forward: bool) -> usize {
+        let to_offset = u16::from_le_bytes([self.ops[idx + 1], self.ops[idx + 2]]);
+        let offset_sign = if is_forward { 1 } else { -1 };
+        // The +3 is to account for the 3 byte jump instruction.
+        let to_idx = (idx as isize) + (to_offset as isize) * offset_sign + 3;
+        eprintln!("{name:16} {idx:>4} -> {to_idx}");
+        idx + 3
+    }
+}
+
+/// Run-length encoded [`Vec`]. Useful for storing data with a lot of contiguous
+/// runs of the same value.
+#[derive(Debug, Default)]
+pub struct VecRun<T> {
+    values: Vec<Run<T>>,
+}
+
+impl<T: Eq> VecRun<T> {
+    fn push(&mut self, value: T) {
+        match self.values.last_mut() {
+            Some(run) if run.value == value && run.count < u8::MAX => {
+                run.count += 1;
+            }
+            _ => self.values.push(Run { value, count: 1 }),
+        };
+    }
+}
+
+impl<T> Index<usize> for VecRun<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        let mut count = index;
+        for run in &self.values {
+            match count.checked_sub(run.count as usize) {
+                Some(remaining) => count = remaining,
+                None => return &run.value,
+            }
+        }
+        panic!("index out of bounds");
+    }
+}
+
+#[derive(Debug)]
+struct Run<T> {
+    value: T,
+    count: u8,
 }

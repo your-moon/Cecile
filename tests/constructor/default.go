@@ -1,4 +1,4 @@
-class Foo {}
+type Foo;
 
-var foo = Foo();
+let foo = Foo();
 print foo; // out: <object Foo>

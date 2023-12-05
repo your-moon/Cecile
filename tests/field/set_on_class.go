@@ -1,2 +1,2 @@
-class Foo {}
+type Foo;
 Foo.bar = "value"; // out: AttributeError: "class" object has no attribute "bar"

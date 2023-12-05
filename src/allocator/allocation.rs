@@ -74,7 +74,7 @@ impl CeAllocation {
                 ObjectType::String => {}
                 ObjectType::Upvalue => {
                     let upvalue = unsafe { object.upvalue };
-                    self.mark(unsafe { (*upvalue).value });
+                    self.mark(unsafe { (*upvalue).closed });
                 }
                 ObjectType::Array(type_) => {
                     self.mark(unsafe { object.array });
@@ -98,7 +98,7 @@ impl CeAllocation {
             let is_marked = unsafe { (*object.main).is_marked };
             if !mem::take(unsafe { &mut (*object.main).is_marked }) {
                 self.objects.swap_remove(idx);
-                println!("SWEEPING: {:?}", object);
+                // println!("SWEEPING: {:?}", object);
                 object.free();
             }
         }
