@@ -79,6 +79,7 @@ impl Chunk {
             op::NOT => self.debug_op_simple("OP_NOT", idx),
             op::NEG => self.debug_op_simple("OP_NEGATE", idx),
             op::PRINT => self.debug_op_simple("OP_PRINT", idx),
+            op::PRINT_LN => self.debug_op_simple("OP_PRINT_LN", idx),
             op::JUMP => self.debug_op_jump("OP_JUMP", idx, true),
             op::JUMP_IF_FALSE => self.debug_op_jump("OP_JUMP_IF_FALSE", idx, true),
             op::LOOP => self.debug_op_jump("OP_LOOP", idx, false),

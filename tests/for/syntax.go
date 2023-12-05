@@ -4,7 +4,7 @@
 // out: 2
 // out: 3
 //
-for (var c = 0; c < 3;) print c = c + 1;
+for (let c = 0; c < 3;) println c = c + 1;
 
 // Block body.
 //
@@ -12,26 +12,26 @@ for (var c = 0; c < 3;) print c = c + 1;
 // out: 1
 // out: 2
 //
-for (var a = 0; a < 3; a = a + 1) {
-  print a;
+for (let a = 0; a < 3; a = a + 1) {
+  println a;
 }
 
 // No clauses.
 //
 // out: done
 //
-fun foo() {
+fn foo() -> String {
   for (;;) return "done";
 }
-print foo();
+println foo();
 
 // No variable.
 //
 // out: 0
 // out: 1
 //
-var i = 0;
-for (; i < 2; i = i + 1) print i;
+let i = 0;
+for (; i < 2; i = i + 1) println i;
 
 // No condition.
 //
@@ -39,9 +39,9 @@ for (; i < 2; i = i + 1) print i;
 // out: 1
 // out: 2
 //
-fun bar() {
-  for (var i = 0;; i = i + 1) {
-    print i;
+fn bar() {
+  for (let i = 0;; i = i + 1) {
+    println i;
     if (i >= 2) return;
   }
 }
@@ -53,8 +53,8 @@ bar();
 // out: 0
 // out: 1
 //
-for (var i = 0; i < 2;) {
-  print i;
+for (let i = 0; i < 2;) {
+  println i;
   i = i + 1;
 }
 

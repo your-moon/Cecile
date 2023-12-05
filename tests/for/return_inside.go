@@ -1,8 +1,8 @@
-fun f() {
+fn f() -> String {
   for (;;) {
-    var i = "i";
+    let i = "i";
     return i;
   }
 }
 
-print f(); // out: i
+println f(); // out: i

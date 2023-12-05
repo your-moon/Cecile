@@ -28,6 +28,7 @@ use self::object::{
 pub mod built_in;
 pub mod chunk;
 pub mod compiler;
+pub mod compiler_globals;
 pub mod error;
 pub mod object;
 pub mod op;

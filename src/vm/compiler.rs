@@ -1,4 +1,4 @@
-use std::{fmt::Display, hash::BuildHasherDefault, mem, ops::Range};
+use std::{fmt::Display, mem, ops::Range};
 
 use arrayvec::ArrayVec;
 use hashbrown::HashMap;
@@ -25,6 +25,7 @@ use crate::{
 };
 
 use super::built_in::builtin_array_methods_contains;
+use super::compiler_globals::Globals;
 use super::error::OverflowError;
 use super::object::StringObject;
 use super::{
@@ -178,7 +179,7 @@ pub struct StructMethod {
 }
 
 pub struct Compiler {
-    pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
+    pub globals: Globals,
     pub current_compiler: CompilerCell,
     pub current_struct: Option<String>,
     pub structs: Vec<StructCell>,
@@ -240,7 +241,7 @@ impl Compiler {
 
     pub fn new(allocator: &mut CeAllocation) -> Self {
         let name = allocator.alloc("");
-        let mut globals = HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default());
+        let mut globals = Globals::default();
         let clock = String::from("clock");
         let clock_type = Type::Int;
         let random_number = String::from("random_number");
@@ -270,7 +271,7 @@ impl Compiler {
         stdout: &mut StandardStream,
         debug: bool,
     ) -> Result<*mut ObjectFunction, Vec<ErrorS>> {
-        let program = parse(source, debug)?;
+        let program = parse(source, debug, &mut self.globals)?;
 
         for statement in &program.statements {
             let type_ = self.compile_statement(statement, allocator);
@@ -495,6 +496,7 @@ impl Compiler {
                                 //if function that return function else check return type and
                                 //function's return type
                                 if return_stmt_type.is_both_fn(fn_return_type) {
+                                    println!("return_stmt_type: {:?}", return_stmt_type);
                                     self.emit_u8(op::RETURN, &range);
                                     return Ok(return_stmt_type);
                                 } else if &return_stmt_type != fn_return_type {
@@ -513,7 +515,7 @@ impl Compiler {
                             None => {
                                 if return_stmt_type != Type::Nil {
                                     let result = Err((
-                                        Error::TypeError(TypeError::ReturnTypeMustNotReturnValue),
+                                        Error::TypeError(TypeError::FunctionMustNotReturnValue),
                                         range.clone(),
                                     ));
                                     return result;
@@ -632,6 +634,8 @@ impl Compiler {
                         Type::String => self.declare_local(&param_string, &t, &range)?,
                         _ => todo!("type not implemented"),
                     },
+
+                    Type::Fn(_) => self.declare_local(&param_string, &t, &range)?,
                     _ => todo!("type not implemented"),
                 },
                 //TODO identify param type
@@ -644,9 +648,9 @@ impl Compiler {
             self.compile_statement(&statement, allocator)?;
         }
 
-        if unsafe { (*self.current_compiler.function).chunk.ops.last() } != Some(&op::RETURN) {
-            let stmt = (Statement::Return(StatementReturn { value: None }), (0..0));
-            self.compile_statement(&stmt, allocator)?;
+        if !self.is_have_return_current_compiler() {
+            self.emit_u8(op::NIL, &range);
+            self.emit_u8(op::RETURN, &range);
         }
 
         let (function, upvalues) = self.end_cell();
@@ -664,6 +668,16 @@ impl Compiler {
             None => Type::Nil,
         };
         return Ok(return_type);
+    }
+
+    fn is_have_return_current_compiler(&self) -> bool {
+        for statement in &unsafe { &*self.current_compiler.function }.chunk.ops {
+            if statement == &op::RETURN {
+                return true;
+            }
+        }
+
+        false
     }
 
     fn begin_cell(&mut self, cell: CompilerCell) {
@@ -1063,8 +1077,9 @@ impl Compiler {
         (get, range): (&Box<ExprGet>, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let var_type = self.compile_expression(&get.object, allocator)?;
-        let field_type = match var_type {
+        let get_type = self.compile_expression(&get.object, allocator)?;
+        println!("GET TYPE {:?}", get_type);
+        let field_type = match get_type {
             Type::Struct(name) => {
                 self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
             }
@@ -1091,7 +1106,7 @@ impl Compiler {
                 let result = Err((
                     Error::AttributeError(AttributeError::NoSuchAttribute {
                         name: get.name.clone(),
-                        type_: var_type.to_string(),
+                        type_: get_type.to_string(),
                     }),
                     range.clone(),
                 ));
@@ -1105,7 +1120,7 @@ impl Compiler {
         return Ok(field_type);
     }
 
-    /// [Stable]
+    /// [UnStable]
     /// [Not Tested]
     /// # Examples
     /// ```
@@ -1127,6 +1142,7 @@ impl Compiler {
             ))?;
         }
         let callee_type = self.compile_expression(&call.callee, allocator)?;
+        println!("CALLEE TYPE1 {:?}", callee_type);
         let callee_type = if callee_type.is_fn() {
             let mut callee_type = callee_type.as_fn().unwrap();
             let callee_type = callee_type.return_type.as_mut().clone();
@@ -1139,6 +1155,7 @@ impl Compiler {
             callee_type
         };
 
+        println!("CALLEE TYPE {:?}", callee_type);
         for arg in &call.args {
             self.compile_expression(&arg, allocator)?;
         }

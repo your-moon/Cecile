@@ -1,2 +1,2 @@
 // out: SyntaxError: unexpected "{"
-for (var a = 1; {}; a = a + 1) {}
+for (let a = 1; {}; a = a + 1) {}

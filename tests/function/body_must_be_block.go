@@ -1,2 +1,2 @@
 // out: SyntaxError: unexpected "123"
-fun f() 123;
+fn f() 123;

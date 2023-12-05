@@ -5,12 +5,16 @@ lalrpop_mod!(pub grammar, "/src/cc_parser/grammar.rs");
 // write test
 use crate::{
     cc_lexer::{self as lexer, Lexer},
-    vm::error::{Error, ErrorS, SyntaxError},
+    cc_parser::ast::{Fn, Type},
+    vm::{
+        compiler_globals::Globals,
+        error::{Error, ErrorS, SyntaxError},
+    },
 };
 
 use self::ast::Program;
 
-pub fn parse(source: &str, debug: bool) -> Result<Program, Vec<ErrorS>> {
+pub fn parse(source: &str, debug: bool, globals: &mut Globals) -> Result<Program, Vec<ErrorS>> {
     let lexer = Lexer::new(source).map(|token| match token {
         Ok((l, token, r)) => {
             // println!("{:?}", token);
@@ -31,8 +35,17 @@ pub fn parse(source: &str, debug: bool) -> Result<Program, Vec<ErrorS>> {
             Program::default()
         }
     };
-    if debug {
-        for (statement, _range) in &program.statements {
+    for (statement, _range) in &program.statements {
+        if statement.is_fun() {
+            let fun = statement.as_fun().unwrap();
+            globals.insert(
+                fun.name.clone(),
+                Type::Fn(Fn {
+                    return_type: Box::new(fun.return_type.clone()),
+                }),
+            );
+        }
+        if debug {
             println!("");
             println!("{:?}", statement);
         }

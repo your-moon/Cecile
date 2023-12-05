@@ -1,2 +1,2 @@
-// out: SyntaxError: unexpected "fun"
-for (;;) fun foo() {}
+// out: SyntaxError: unexpected "fn"
+for (;;) fn foo() {}

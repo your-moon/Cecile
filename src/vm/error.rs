@@ -170,8 +170,8 @@ pub enum TypeError {
     #[error("loop must be boolean")]
     LoopMustBeBoolean,
 
-    #[error("return type must be nil")]
-    ReturnTypeMustNotReturnValue,
+    #[error("function must not return a value")]
+    FunctionMustNotReturnValue,
 
     #[error("initializer must not return a value")]
     InitializerMustNotReturnValue,

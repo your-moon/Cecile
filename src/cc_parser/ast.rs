@@ -36,6 +36,10 @@ impl Statement {
             _ => None,
         }
     }
+
+    pub fn is_fun(&self) -> bool {
+        self.as_fun().is_some()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
