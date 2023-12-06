@@ -84,3 +84,7 @@ let a = Point(3, 2);
 let b = Point(5, 6);
 
 println distance(a, b);
+
+let dogs: String = "dog";
+let dogs: int = 1;
+let dogs: Vec<int> = [];

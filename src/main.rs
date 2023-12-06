@@ -39,8 +39,10 @@ fn main() -> std::io::Result<()> {
     if let Err(e) = vm.run(source.as_str(), &mut stdout, debug) {
         report_err(&source, e);
     } else {
-        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
-        writeln!(&mut stdout, "Program exited successfully")?;
+        if debug {
+            stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
+            writeln!(&mut stdout, "Program exited successfully")?;
+        }
     }
     Ok(())
 }

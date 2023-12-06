@@ -1004,7 +1004,10 @@ impl Compiler {
             }
         };
 
-        if field_type != value_type {
+        if field_type != value_type
+            && field_type != Type::UnInitialized
+            && value_type != Type::Array(Box::new(Type::UnInitialized))
+        {
             let result = Err((
                 Error::TypeError(TypeError::SetTypeMisMatch {
                     expected: object_type.to_string(),
