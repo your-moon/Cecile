@@ -1,7 +1,7 @@
 // out: 1
 // out: 2
 // out: 3
-var a = "1
+let a = "1
 2
 3";
 print a;

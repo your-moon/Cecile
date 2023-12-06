@@ -1,6 +1,6 @@
-fun foo() {}
+fn foo() {}
 {
-  var a = 1;
+  let a = 1;
   // out: OverflowError: cannot use more than 256 arguments in a function
   foo(
      a, // 1

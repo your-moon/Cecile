@@ -1,6 +1,6 @@
 // 256 parameters.
 // out: OverflowError: cannot define more than 256 parameters in a function
-fun f(
+fn f(
     a1,
     a2,
     a3,

@@ -1,5 +1,0 @@
-print "(" + "" + ")";   // out: ()
-print "a string"; // out: a string
-
-// Non-ASCII.
-print "A~¶Þॐஃ"; // out: A~¶Þॐஃ

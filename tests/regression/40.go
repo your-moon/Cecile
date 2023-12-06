@@ -1,14 +1,14 @@
-fun caller(g) {
+fn caller(g: fn) {
   g();
   // g should be a function, not nil.
   print g == nil; // out: false
 }
 
-fun callCaller() {
-  var capturedVar = "before";
-  var a = "a";
+fn callCaller() {
+  let capturedVar = "before";
+  let a = "a";
 
-  fun f() {
+  fn f() {
     // Commenting the next line out prevents the bug!
     capturedVar = "after";
 

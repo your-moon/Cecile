@@ -1,4 +1,4 @@
-fun f() {
+fn f() -> String {
   return "ok";
   print "bad";
 }

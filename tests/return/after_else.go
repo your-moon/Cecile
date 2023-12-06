@@ -1,4 +1,4 @@
-fun f() {
+fn f() -> String {
   if (false) "no"; else return "ok";
 }
 

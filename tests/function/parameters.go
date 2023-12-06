@@ -1,26 +1,26 @@
-fun f0() { return 0; }
-print f0(); // out: 0
+fn f0() -> int { return 0; }
+println f0(); // out: 0
 
-fun f1(a) { return a; }
-print f1(1); // out: 1
+fn f1(a:int) -> int { return a; }
+println f1(1); // out: 1
 
-fun f2(a, b) { return a + b; }
-print f2(1, 2); // out: 3
+fn f2(a:int, b:int) -> int { return a + b; }
+println f2(1, 2); // out: 3
 
-fun f3(a, b, c) { return a + b + c; }
-print f3(1, 2, 3); // out: 6
-
-fun f4(a, b, c, d) { return a + b + c + d; }
-print f4(1, 2, 3, 4); // out: 10
-
-fun f5(a, b, c, d, e) { return a + b + c + d + e; }
-print f5(1, 2, 3, 4, 5); // out: 15
-
-fun f6(a, b, c, d, e, f) { return a + b + c + d + e + f; }
-print f6(1, 2, 3, 4, 5, 6); // out: 21
-
-fun f7(a, b, c, d, e, f, g) { return a + b + c + d + e + f + g; }
-print f7(1, 2, 3, 4, 5, 6, 7); // out: 28
-
-fun f8(a, b, c, d, e, f, g, h) { return a + b + c + d + e + f + g + h; }
-print f8(1, 2, 3, 4, 5, 6, 7, 8); // out: 36
+fn f3(a:int, b:int, c:int) -> int { return a + b + c; }
+println f3(1, 2, 3); // out: 6
+//
+fn f4(a:int, b:int, c:int, d:int) -> int { return a + b + c + d; }
+println f4(1, 2, 3, 4); // out: 10
+//
+fn f5(a:int, b:int, c:int, d:int, e:int) -> int { return a + b + c + d + e; }
+println f5(1, 2, 3, 4, 5); // out: 15
+//
+fn f6(a:int, b:int, c:int, d:int, e:int, f:int) -> int { return a + b + c + d + e + f; }
+println f6(1, 2, 3, 4, 5, 6); // out: 21
+//
+fn f7(a:int, b:int, c:int, d:int, e:int, f:int, g:int) -> int { return a + b + c + d + e + f + g; }
+println f7(1, 2, 3, 4, 5, 6, 7); // out: 28
+//
+fn f8(a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int) -> int { return a + b + c + d + e + f + g + h; }
+println f8(1, 2, 3, 4, 5, 6, 7, 8); // out: 36

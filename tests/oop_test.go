@@ -6,9 +6,15 @@ type Shape {
 let shape = Shape();
 
 impl Shape {
+  fn new() {
+    self.width = 10;
+  }
   fn method() {
     println self;
   }
 }
 
-shape.method();
+let shape = Shape();
+
+
+println shape.width;

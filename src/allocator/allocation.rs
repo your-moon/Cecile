@@ -102,14 +102,15 @@ impl CeAllocation {
                 object.free();
             }
         }
-        // self.strings.retain(|_, &mut string| {
-        //     if mem::take(unsafe { &mut (*string).main.is_marked }) {
-        //         false
-        //     } else {
-        //         unsafe { Box::from_raw(string) };
-        //         true
-        //     }
-        // });
+
+        self.strings.drain_filter(|_, &mut string| {
+            if mem::take(unsafe { &mut (*string).main.is_marked }) {
+                false
+            } else {
+                unsafe { Box::from_raw(string) };
+                true
+            }
+        });
     }
 }
 

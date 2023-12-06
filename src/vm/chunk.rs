@@ -51,6 +51,10 @@ impl Chunk {
     pub fn debug_op(&self, idx: usize) -> usize {
         eprint!("{idx:04} ");
         match self.ops[idx] {
+            op::ARRAY => self.debug_op_byte("ARRAY", idx),
+            op::ARRAY_ACCESS => self.debug_op_simple("ARRAY_ACCESS", idx),
+            op::ARRAY_ACCESS_ASSIGN => self.debug_op_simple("ARRAY_ACCESS_ASSIGN", idx),
+            op::GET_ARRAY_METHOD => self.debug_op_byte("GET_ARRAY_METHOD", idx),
             op::CECILE_CONSTANT => self.debug_op_constant("OP_CONSTANT", idx),
             op::NIL => self.debug_op_simple("OP_NIL", idx),
             op::TRUE => self.debug_op_simple("OP_TRUE", idx),
@@ -63,8 +67,8 @@ impl Chunk {
             op::SET_GLOBAL => self.debug_op_constant("OP_SET_GLOBAL", idx),
             op::GET_UPVALUE => self.debug_op_byte("OP_GET_UPVALUE", idx),
             op::SET_UPVALUE => self.debug_op_byte("OP_SET_UPVALUE", idx),
-            op::GET_FIELD => self.debug_op_constant("OP_GET_PROPERTY", idx),
-            op::SET_FIELD => self.debug_op_constant("OP_SET_PROPERTY", idx),
+            op::GET_FIELD => self.debug_op_constant("OP_GET_FIELD", idx),
+            op::SET_FIELD => self.debug_op_constant("OP_SET_FIELD", idx),
             op::GET_SUPER => self.debug_op_constant("OP_GET_SUPER", idx),
             op::EQUAL => self.debug_op_simple("OP_EQUAL", idx),
             op::NOT_EQUAL => self.debug_op_simple("OP_NOT_EQUAL", idx),
@@ -114,6 +118,7 @@ impl Chunk {
             op::CLOSE_UPVALUE => self.debug_op_simple("OP_CLOSE_UPVALUE", idx),
             op::RETURN => self.debug_op_simple("OP_RETURN", idx),
             op::STRUCT => self.debug_op_constant("OP_STRUCT", idx),
+            op::FIELD => self.debug_op_constant("FIELD", idx),
             op::INHERIT => self.debug_op_simple("OP_INHERIT", idx),
             op::METHOD => self.debug_op_constant("OP_METHOD", idx),
             byte => self.debug_op_simple(&format!("OP_UNKNOWN({byte:#X})"), idx),

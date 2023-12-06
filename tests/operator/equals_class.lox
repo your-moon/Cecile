@@ -1,13 +1,13 @@
 // Bound methods have identity equality.
-class Foo {}
-class Bar {}
+type Foo;
+type Bar;
 
-print Foo == Foo; // out: true
-print Foo == Bar; // out: false
-print Bar == Foo; // out: false
-print Bar == Bar; // out: true
+println Foo == Foo; // out: true
+println Foo == Bar; // out: false
+println Bar == Foo; // out: false
+println Bar == Bar; // out: true
 
-print Foo == "Foo"; // out: false
-print Foo == nil;   // out: false
-print Foo == 123;   // out: false
-print Foo == true;  // out: false
+println Foo == "Foo"; // out: false
+println Foo == nil;   // out: false
+println Foo == 123;   // out: false
+println Foo == true;  // out: false

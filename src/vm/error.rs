@@ -47,6 +47,8 @@ impl_from_error!(
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum OverflowError {
+    #[error("cannot define more than 256 local variables in a function")]
+    TooManyLocals,
     #[error("jump body is too large")]
     StackOverflow,
     #[error("cannot use more than 256 arguments in a function")]
@@ -102,6 +104,8 @@ pub enum IoError {}
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum SyntaxError {
+    #[error("return outside function")]
+    ReturnOutsideFunction,
     #[error("extraneous input: {token:?}")]
     ExtraToken { token: String },
     #[error("invalid input")]

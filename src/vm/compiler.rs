@@ -1,7 +1,6 @@
 use std::{fmt::Display, mem, ops::Range};
 
 use arrayvec::ArrayVec;
-use hashbrown::HashMap;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
@@ -34,8 +33,6 @@ use super::{
     op,
     value::Value,
 };
-
-use rustc_hash::FxHasher;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum FunctionType {
@@ -321,7 +318,7 @@ impl Compiler {
                         }),
                     );
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
-                    self.emit_constant(name, &range);
+                    self.emit_constant(name, &range)?;
                 } else {
                     self.declare_local(
                         &func.name,
@@ -331,11 +328,12 @@ impl Compiler {
                         &range,
                     )?
                 }
-                return Ok(func_type);
+                Ok(func_type)
             }
             Statement::Return(return_) => {
                 self.compile_statement_return((return_, range), allocator)
             }
+
             Statement::Struct(struct_) => self.compile_struct_stmt((struct_, range), allocator),
             Statement::Impl(impl_) => self.compile_impl_stmt((impl_, range), allocator),
             Statement::Error => todo!(),
@@ -351,19 +349,19 @@ impl Compiler {
         let fields = struct_.fields.clone();
 
         self.emit_u8(op::STRUCT, &range);
-        self.emit_constant(name.into(), &range);
+        self.emit_constant(name.into(), &range)?;
 
         for field in &fields {
             let name = allocator.alloc(&field.name).into();
             self.emit_u8(op::FIELD, &range);
-            self.emit_constant(name, &range);
+            self.emit_constant(name, &range)?;
         }
 
         if self.is_global() {
             self.globals
                 .insert(struct_.name.clone(), Type::Struct(struct_.name.clone()));
             self.emit_u8(op::DEFINE_GLOBAL, range);
-            self.emit_constant(name.into(), range);
+            self.emit_constant(name.into(), range)?;
         } else {
             self.declare_local(&struct_.name, &Type::Struct(struct_.name.clone()), &range)?;
         }
@@ -449,7 +447,7 @@ impl Compiler {
 
                 let name = allocator.alloc(&method.name).into();
                 self.emit_u8(op::METHOD, span);
-                self.emit_constant(name, span);
+                self.emit_constant(name, span)?;
 
                 let strct_method = StructMethod {
                     name: method.name.clone(),
@@ -481,7 +479,7 @@ impl Compiler {
         match self.current_compiler.type_ {
             FunctionType::Script => {
                 let result = Err((
-                    Error::SyntaxError(SyntaxError::ReturnInInitializer),
+                    Error::SyntaxError(SyntaxError::ReturnOutsideFunction),
                     range.clone(),
                 ));
                 return result;
@@ -496,7 +494,6 @@ impl Compiler {
                                 //if function that return function else check return type and
                                 //function's return type
                                 if return_stmt_type.is_both_fn(fn_return_type) {
-                                    println!("return_stmt_type: {:?}", return_stmt_type);
                                     self.emit_u8(op::RETURN, &range);
                                     return Ok(return_stmt_type);
                                 } else if &return_stmt_type != fn_return_type {
@@ -648,7 +645,11 @@ impl Compiler {
             self.compile_statement(&statement, allocator)?;
         }
 
-        if !self.is_have_return_current_compiler() {
+        if type_ == FunctionType::Initializer {
+            self.emit_u8(op::GET_LOCAL, &range);
+            self.emit_u8(0, &range);
+            self.emit_u8(op::RETURN, &range);
+        } else if !self.is_have_return_current_compiler() && type_ != FunctionType::Initializer {
             self.emit_u8(op::NIL, &range);
             self.emit_u8(op::RETURN, &range);
         }
@@ -657,7 +658,7 @@ impl Compiler {
         unsafe { (*function).chunk.debug((*name).value) };
         let function = function.into();
         self.emit_u8(op::CLOSURE, &range);
-        self.emit_constant(function, &range);
+        self.emit_constant(function, &range)?;
         for upvalue in &upvalues {
             self.emit_u8(upvalue.is_local.into(), &range);
             self.emit_u8(upvalue.index, &range);
@@ -970,7 +971,6 @@ impl Compiler {
             return result;
         }
         self.emit_u8(op::ARRAY_ACCESS, &range);
-        println!("ARR TYPE {:?}", array_type.get_array_type().unwrap());
         Ok(array_type.get_array_type().unwrap())
     }
 
@@ -1028,7 +1028,7 @@ impl Compiler {
         self.get_variable("super", range, allocator)?;
 
         self.emit_u8(op::GET_SUPER, &range);
-        self.emit_constant(name.into(), &range);
+        self.emit_constant(name.into(), &range)?;
         Ok(super_type)
     }
 
@@ -1068,7 +1068,7 @@ impl Compiler {
         }
         let name = allocator.alloc(&set.name);
         self.emit_u8(op::SET_FIELD, &range);
-        self.emit_constant(name.into(), &range);
+        self.emit_constant(name.into(), &range)?;
         Ok(field_type)
     }
 
@@ -1078,14 +1078,13 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let get_type = self.compile_expression(&get.object, allocator)?;
-        println!("GET TYPE {:?}", get_type);
         let field_type = match get_type {
             Type::Struct(name) => {
                 self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
             }
             Type::Array(type_) => {
                 if let Some(_) = builtin_array_methods_contains(&get.name) {
-                    let glob = self.globals.get(&get.name.clone());
+                    let _glob = self.globals.get(&get.name.clone());
                     let name = allocator.alloc(&get.name);
                     self.emit_u8(op::GET_ARRAY_METHOD, &range);
                     self.emit_constant(name.into(), &range)?;
@@ -1142,7 +1141,6 @@ impl Compiler {
             ))?;
         }
         let callee_type = self.compile_expression(&call.callee, allocator)?;
-        println!("CALLEE TYPE1 {:?}", callee_type);
         let callee_type = if callee_type.is_fn() {
             let mut callee_type = callee_type.as_fn().unwrap();
             let callee_type = callee_type.return_type.as_mut().clone();
@@ -1155,7 +1153,6 @@ impl Compiler {
             callee_type
         };
 
-        println!("CALLEE TYPE {:?}", callee_type);
         for arg in &call.args {
             self.compile_expression(&arg, allocator)?;
         }
@@ -1267,7 +1264,7 @@ impl Compiler {
                         let string = allocator.alloc(name);
                         self.globals.insert(name.clone(), type_.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
-                        self.emit_constant(string.into(), &range);
+                        self.emit_constant(string.into(), &range)?;
                         // return Ok(Type::String);
                     } else {
                         self.declare_local(name, &value_var_type, &range)?;
@@ -1281,7 +1278,7 @@ impl Compiler {
                         let string = allocator.alloc(name);
                         self.globals.insert(name.clone(), type_.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
-                        self.emit_constant(string.into(), &range);
+                        self.emit_constant(string.into(), &range)?;
                         // return Ok(Type::String);
                     } else {
                         self.declare_local(name, &value_var_type, &range)?;
@@ -1297,7 +1294,7 @@ impl Compiler {
                                 let string = allocator.alloc(name);
                                 self.globals.insert(name.clone(), type_.clone());
                                 self.emit_u8(op::DEFINE_GLOBAL, &range);
-                                self.emit_constant(string.into(), &range);
+                                self.emit_constant(string.into(), &range)?;
                                 // return Ok(Type::String);
                             } else {
                                 self.declare_local(name, &value_var_type, &range)?;
@@ -1311,7 +1308,7 @@ impl Compiler {
                                 let string = allocator.alloc(name);
                                 self.globals.insert(name.clone(), type_.clone());
                                 self.emit_u8(op::DEFINE_GLOBAL, &range);
-                                self.emit_constant(string.into(), &range);
+                                self.emit_constant(string.into(), &range)?;
                                 // return Ok(Type::String);
                             } else {
                                 self.declare_local(name, &value_var_type, &range)?;
@@ -1330,7 +1327,7 @@ impl Compiler {
                 if self.is_global() {
                     self.globals.insert(name.clone(), value_var_type.clone());
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
-                    self.emit_constant(string.into(), &range);
+                    self.emit_constant(string.into(), &range)?;
                 } else {
                     //If variable type is not declared, left hand side expression type will be variable type
                     self.declare_local(name, &value_var_type, &range)?;
@@ -1360,7 +1357,7 @@ impl Compiler {
         } else {
             let allocated_name = gc.alloc(name);
             self.emit_u8(op::GET_GLOBAL, span);
-            self.emit_constant(allocated_name.into(), span);
+            self.emit_constant(allocated_name.into(), span)?;
             let type_ = self.globals.get(&name.to_string());
 
             let expr_var_type = match type_ {
@@ -1430,19 +1427,6 @@ impl Compiler {
     ) -> Result<Type> {
         let (prefix, range) = prefix;
         let rt_type = self.compile_expression(&(prefix.rt), allocator)?;
-        match rt_type {
-            Type::Int | Type::Bool => {}
-            _ => {
-                let spanned_error = Err((
-                    Error::TypeError(TypeError::UnsupportedOperandPrefix {
-                        op: prefix.op.to_string(),
-                        rt_type: rt_type.to_string(),
-                    }),
-                    range.clone(),
-                ));
-                return spanned_error;
-            }
-        }
         match prefix.op {
             OpPrefix::Negate => self.emit_u8(op::NEG, &range),
             OpPrefix::Not => self.emit_u8(op::NOT, &range),
@@ -1620,7 +1604,12 @@ impl Compiler {
             is_initialized,
             is_captured: false,
         };
-        self.current_compiler.locals.push(local);
+        self.current_compiler.locals.try_push(local).map_err(|_| {
+            (
+                Error::OverflowError(OverflowError::TooManyLocals),
+                span.clone(),
+            )
+        })?;
         Ok(())
     }
 

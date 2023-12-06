@@ -1,10 +1,11 @@
 // Bound methods have identity equality.
-class Foo {
-  method() {}
+type Foo;
+impl Foo {
+  fn method() {}
 }
 
-var foo = Foo();
-var fooMethod = foo.method;
+let foo = Foo();
+let fooMethod = foo.method;
 
 // Same bound method.
 print fooMethod == fooMethod; // out: true
