@@ -5,18 +5,11 @@ categories = ["programming-language", "compiler", "vm", "interpreter", "language
 description = "Cecile Toy Programming Language that is designed to be simple, fast, compiler, interpreter, vm, language-server, playground"
 edition = "2021"
 keywords = [
-    "cli",
     "compiler",
     "interpreter",
     "language",
     "cecile",
-    "parser",
-    "parsing",
-    "script",
-    "scripting",
     "vm",
-    "wasm",
-    "webassembly",
 ]
 license = "MIT"
 repository = "https://github.com/Hollowloki/Cecile"
