@@ -1,26 +1,26 @@
 
 ---
 
-# Cecile Toy Programming Language
+# Cecile Программчлалын хэл
 
-## Introduction
+## Танилцуулга
 
 Welcome to Cecile, a modern programming language designed for simplicity and flexibility. Cecile combines ease of use with powerful functionality to make programming a breeze.
 
-### Syntax Examples
+### Syntax жишээнүүд
 
-#### Variable Declaration and Concatenation
+#### Хувьсагч зарлах болон string нийлүүлэх
 ```rust
-// Variable declaration
+// Хувьсагч зарлах
 let a = "a";
 let b = "b";
 
-// Concatenation
+// String-үүдийг нийлүүлэх
 let c = a + b;
 
-// Print
-println c; // Output: ab
-println ""; // Output:
+// Хэвлэх
+println c; // Гаралт: ab
+println ""; // Гаралт:
 ```
 
 #### Mathematical Operations and Functions
