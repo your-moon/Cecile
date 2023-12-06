@@ -184,61 +184,9 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn get_current_struct_mut(&mut self, range: &Range<usize>) -> Result<&mut StructCell> {
-        if self.current_struct.is_none() {
-            return Err((Error::NameError(NameError::StructNotInScope), range.clone()));
-        }
-        let current_struct = self.current_struct.as_ref().unwrap();
-        let result = self
-            .structs
-            .iter_mut()
-            .find(|s| unsafe { (*s.name).value } == current_struct);
-        if result.is_none() {
-            return Err((
-                Error::NameError(NameError::StructNameNotFound {
-                    name: current_struct.to_string(),
-                }),
-                range.clone(),
-            ));
-        }
-        Ok(result.unwrap())
-    }
-
-    pub fn find_struct(&self, name: &str, range: &Range<usize>) -> Result<&StructCell> {
-        let result = self
-            .structs
-            .iter()
-            .find(|s| unsafe { (*s.name).value } == name);
-        if result.is_none() {
-            return Err((
-                Error::NameError(NameError::StructNameNotFound {
-                    name: name.to_string(),
-                }),
-                range.clone(),
-            ));
-        }
-        Ok(result.unwrap())
-    }
-
-    pub fn find_struct_mut(&mut self, name: &str, range: &Range<usize>) -> Result<&mut StructCell> {
-        let result = self
-            .structs
-            .iter_mut()
-            .find(|s| unsafe { (*s.name).value } == name);
-        if result.is_none() {
-            return Err((
-                Error::NameError(NameError::StructNameNotFound {
-                    name: name.to_string(),
-                }),
-                range.clone(),
-            ));
-        }
-        Ok(result.unwrap())
-    }
-
     pub fn new(allocator: &mut CeAllocation) -> Self {
-        let name = allocator.alloc("");
         let mut globals = Globals::default();
+        let name = allocator.alloc("");
         let clock = String::from("clock");
         let clock_type = Type::Int;
         let random_number = String::from("random_number");
@@ -1678,5 +1626,57 @@ impl Compiler {
         };
         self.emit_u8(constant_idx, span);
         Ok(())
+    }
+
+    pub fn get_current_struct_mut(&mut self, range: &Range<usize>) -> Result<&mut StructCell> {
+        if self.current_struct.is_none() {
+            return Err((Error::NameError(NameError::StructNotInScope), range.clone()));
+        }
+        let current_struct = self.current_struct.as_ref().unwrap();
+        let result = self
+            .structs
+            .iter_mut()
+            .find(|s| unsafe { (*s.name).value } == current_struct);
+        if result.is_none() {
+            return Err((
+                Error::NameError(NameError::StructNameNotFound {
+                    name: current_struct.to_string(),
+                }),
+                range.clone(),
+            ));
+        }
+        Ok(result.unwrap())
+    }
+
+    pub fn find_struct(&self, name: &str, range: &Range<usize>) -> Result<&StructCell> {
+        let result = self
+            .structs
+            .iter()
+            .find(|s| unsafe { (*s.name).value } == name);
+        if result.is_none() {
+            return Err((
+                Error::NameError(NameError::StructNameNotFound {
+                    name: name.to_string(),
+                }),
+                range.clone(),
+            ));
+        }
+        Ok(result.unwrap())
+    }
+
+    pub fn find_struct_mut(&mut self, name: &str, range: &Range<usize>) -> Result<&mut StructCell> {
+        let result = self
+            .structs
+            .iter_mut()
+            .find(|s| unsafe { (*s.name).value } == name);
+        if result.is_none() {
+            return Err((
+                Error::NameError(NameError::StructNameNotFound {
+                    name: name.to_string(),
+                }),
+                range.clone(),
+            ));
+        }
+        Ok(result.unwrap())
     }
 }

@@ -1,7 +1,7 @@
 use std::hash::BuildHasherDefault;
 use std::mem;
 
-use crate::vm::object::{ArrayObject, Object, ObjectType, StringObject};
+use crate::vm::object::{Object, ObjectType, StringObject};
 use crate::vm::value::Value;
 
 use hashbrown::hash_map::RawEntryMut;

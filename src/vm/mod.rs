@@ -21,15 +21,17 @@ use self::error::{
     ArrayError, AttributeError, Error, ErrorS, IndexError, NameError, OverflowError, Result,
     TypeError,
 };
+use self::obj_array::{ArrayObject, BoundArrayMethodObject};
 use self::object::{
-    ArrayObject, BoundArrayMethodObject, BoundMethodObject, ClosureObject, InstanceObject, Native,
-    ObjectFunction, ObjectNative, ObjectType, StructObject, UpvalueObject,
+    BoundMethodObject, ClosureObject, InstanceObject, Native, ObjectFunction, ObjectNative,
+    ObjectType, StructObject, UpvalueObject,
 };
 pub mod built_in;
 pub mod chunk;
 pub mod compiler;
 pub mod compiler_globals;
 pub mod error;
+pub mod obj_array;
 pub mod object;
 pub mod op;
 pub mod value;
