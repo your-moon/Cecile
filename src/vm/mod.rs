@@ -54,10 +54,12 @@ pub struct VM<'a> {
     open_upvalues: Vec<*mut UpvalueObject>,
 
     struct_init_method: *mut StringObject,
+
+    trace: bool,
 }
 
 impl<'a> VM<'a> {
-    pub fn new(allocator: &'a mut CeAllocation) -> VM {
+    pub fn new(allocator: &'a mut CeAllocation, trace: bool) -> VM {
         let mut globals = HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
 
         let clock_string = allocator.alloc("clock");
@@ -84,6 +86,7 @@ impl<'a> VM<'a> {
             open_upvalues: Vec::new(),
             next_gc: 1024 * 1024,
             struct_init_method,
+            trace,
         }
     }
 
@@ -93,13 +96,13 @@ impl<'a> VM<'a> {
         stdout: &mut StandardStream,
         debug: bool,
     ) -> Result<(), Vec<ErrorS>> {
-        let mut compiler = Compiler::new(self.allocator);
-        let function = compiler.compile(source, self.allocator, stdout, debug)?;
-        self.run_function(function, debug).map_err(|e| vec![e])?;
+        let mut compiler = Compiler::new(self.allocator, debug);
+        let function = compiler.compile(source, self.allocator, stdout)?;
+        self.run_function(function).map_err(|e| vec![e])?;
         Ok(())
     }
 
-    pub fn run_function(&mut self, function: *mut ObjectFunction, debug: bool) -> Result<()> {
+    pub fn run_function(&mut self, function: *mut ObjectFunction) -> Result<()> {
         self.stack_top = self.stack.as_mut_ptr();
 
         self.frames.clear();
@@ -112,7 +115,7 @@ impl<'a> VM<'a> {
         };
 
         loop {
-            if debug {
+            if self.trace {
                 let function = unsafe { &mut *(*self.frame.closure).function };
                 let idx = unsafe { self.frame.ip.offset_from((*function).chunk.ops.as_ptr()) };
                 (*function).chunk.debug_op(idx as usize);
@@ -183,7 +186,7 @@ impl<'a> VM<'a> {
             }?;
 
             // print top of stack element
-            if debug {
+            if self.trace {
                 print!("    ");
                 let mut stack_ptr = self.frame.stack;
                 while stack_ptr < self.stack_top {
@@ -497,9 +500,6 @@ impl<'a> VM<'a> {
                 self.push(value);
             }
             None => {
-                for mthd in unsafe { (*(*instance).struct_).methods.keys() } {
-                    // println!("{}", unsafe { (*(*mthd)).value });
-                }
                 let method = unsafe { (*(*instance).struct_).methods.get(&name) };
                 match method {
                     Some(&method) => {
@@ -1131,18 +1131,19 @@ impl<'a> VM<'a> {
     }
 
     fn alloc<T>(&mut self, object: impl CeAlloc<T>) -> T {
-        // if GLOBAL.allocated_bytes() > self.next_gc {
-        self.gc();
-        // }
+        if GLOBAL.allocated_bytes() > self.next_gc {
+            self.gc();
+        }
         let allc = self.allocator.alloc(object);
         allc
     }
 
     fn gc(&mut self) {
-        // println!("--- gc start");
+        if self.trace {
+            println!("--- gc start");
+        }
         let mut stack_ptr = self.stack.as_ptr();
         while stack_ptr < self.stack_top {
-            // println!("marking stack: {:?}", unsafe { *stack_ptr });
             self.allocator.mark(unsafe { *stack_ptr });
             stack_ptr = unsafe { stack_ptr.add(1) };
         }
@@ -1167,7 +1168,9 @@ impl<'a> VM<'a> {
 
         self.next_gc = GLOBAL.allocated_bytes() * 2;
 
-        // println!("--- gc end");
+        if self.trace {
+            println!("--- gc end");
+        }
     }
 
     fn err(&self, err: impl Into<Error>) -> Result<()> {

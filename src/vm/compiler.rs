@@ -181,10 +181,11 @@ pub struct Compiler {
     pub current_struct: Option<String>,
     pub structs: Vec<StructCell>,
     pub is_inside_super: bool,
+    pub debug: bool,
 }
 
 impl Compiler {
-    pub fn new(allocator: &mut CeAllocation) -> Self {
+    pub fn new(allocator: &mut CeAllocation, debug: bool) -> Self {
         let mut globals = Globals::default();
         let name = allocator.alloc("");
         let clock = String::from("clock");
@@ -206,6 +207,7 @@ impl Compiler {
             structs: Vec::new(),
             current_struct: None,
             is_inside_super: false,
+            debug,
         }
     }
 
@@ -214,9 +216,8 @@ impl Compiler {
         source: &str,
         allocator: &mut CeAllocation,
         stdout: &mut StandardStream,
-        debug: bool,
     ) -> Result<*mut ObjectFunction, Vec<ErrorS>> {
-        let program = parse(source, debug, &mut self.globals)?;
+        let program = parse(source, self.debug, &mut self.globals)?;
 
         for statement in &program.statements {
             let type_ = self.compile_statement(statement, allocator);
@@ -227,10 +228,14 @@ impl Compiler {
 
         self.emit_u8(op::NIL, &(0..0));
         self.emit_u8(op::RETURN, &(0..0));
-        unsafe { (*self.current_compiler.function).chunk.debug("script") };
+        if self.debug {
+            unsafe { (*self.current_compiler.function).chunk.debug("script") };
+        }
         let _ = stdout.set_color(ColorSpec::new().set_fg(Some(Color::Cyan)));
 
-        println!("|--------------Virtual Machine--------------|");
+        if self.debug {
+            println!("|--------------Virtual Machine--------------|");
+        }
         //reset color
         let _ = stdout.reset();
         Ok(self.current_compiler.function)
@@ -564,27 +569,20 @@ impl Compiler {
                 self.declare_local("self", &Type::Struct(current_struct.to_string()), &range)?;
             }
         }
-        //TODO check param type
         for (param_string, param_type) in &func.params {
             match param_type {
-                Some(t) => match t {
-                    // TODO Add more type
-                    Type::String | Type::Int => self.declare_local(&param_string, &t, &range)?,
-                    Type::Struct(name) => {
-                        self.find_struct_mut(&name, &range)?;
-                        self.declare_local(&param_string, &t, &range)?;
-                    }
-                    Type::Array(arr) => match **arr {
-                        Type::Int => self.declare_local(&param_string, &t, &range)?,
-                        Type::String => self.declare_local(&param_string, &t, &range)?,
-                        _ => todo!("type not implemented"),
-                    },
-
-                    Type::Fn(_) => self.declare_local(&param_string, &t, &range)?,
-                    _ => todo!("type not implemented"),
-                },
-                //TODO identify param type
-                None => self.declare_local(&param_string, &Type::UnInitialized, &range)?,
+                Some(t) => {
+                    self.declare_local(param_string, t, &range)?;
+                }
+                None => {
+                    let spanned_error = Err((
+                        Error::SyntaxError(SyntaxError::ParamMustHaveType {
+                            name: param_string.to_string(),
+                        }),
+                        range.clone(),
+                    ));
+                    return spanned_error;
+                }
             }
             self.define_local();
         }
@@ -603,7 +601,9 @@ impl Compiler {
         }
 
         let (function, upvalues) = self.end_cell();
-        unsafe { (*function).chunk.debug((*name).value) };
+        if self.debug {
+            unsafe { (*function).chunk.debug((*name).value) };
+        }
         let function = function.into();
         self.emit_u8(op::CLOSURE, &range);
         self.emit_constant(function, &range)?;

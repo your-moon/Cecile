@@ -5,7 +5,7 @@ fn outer() -> fn {
     let c = 3;
     let d = 4;
     fn inner() {
-      print a + c + b + d;
+      println a + c + b + d;
     }
     return inner;
   }

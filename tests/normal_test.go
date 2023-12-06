@@ -3,10 +3,10 @@
 let a = "a";
 let b = "b";
 // Concatenation
-let c = a + b;
+let c = a + b; 
 // Print
-println c;
-println "";
+println c; // out: ab
+println ""; // out:
 
 // Variable declaration
 let a = 1;
@@ -16,8 +16,8 @@ let b = 2;
 let c = a + b;
 
 // Print
-println c;
-println "";
+println c; // out: 3
+println ""; // out:
 
 
 // Function declaration

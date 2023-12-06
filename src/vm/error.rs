@@ -154,6 +154,8 @@ impl AsDiagnostic for IoError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum SyntaxError {
+    #[error("param must have type: {name}")]
+    ParamMustHaveType { name: String },
     #[error("return outside function")]
     ReturnOutsideFunction,
     #[error("extraneous input: {token:?}")]

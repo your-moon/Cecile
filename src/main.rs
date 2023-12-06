@@ -15,6 +15,8 @@ use vm::error::{report_error, ErrorS};
 #[command(author, version, about, long_about = None)]
 struct Args {
     #[arg(short, long)]
+    trace: bool,
+    #[arg(short, long)]
     debug: bool,
     #[arg(short, long)]
     file_path: String,
@@ -24,6 +26,7 @@ fn main() -> std::io::Result<()> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
 
     let args = Args::parse();
+    let trace = args.trace;
     let debug = args.debug;
     let path = args.file_path;
 
@@ -31,7 +34,7 @@ fn main() -> std::io::Result<()> {
 
     let mut allocator = CeAllocation::new();
 
-    let mut vm = vm::VM::new(&mut allocator);
+    let mut vm = vm::VM::new(&mut allocator, trace);
 
     if let Err(e) = vm.run(source.as_str(), &mut stdout, debug) {
         report_err(&source, e);
