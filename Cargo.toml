@@ -2,7 +2,7 @@
 author = "E.Munkherdene"
 name = "Cecile"
 categories = ["programming-language", "compiler", "vm", "interpreter", "language-server", "playground"]
-description = "Cecile Programming Language that is designed to be simple, fast, compiler, interpreter, vm, language-server, playground"
+description = "Cecile Toy Programming Language that is designed to be simple, fast, compiler, interpreter, vm, language-server, playground"
 edition = "2021"
 keywords = [
     "cli",
