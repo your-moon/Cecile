@@ -1,6 +1,6 @@
 use crate::allocator::allocation::CeAllocation;
-use std::fs;
 use std::io::Write;
+use std::{fs, io};
 use termcolor::WriteColor;
 
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream};
@@ -10,6 +10,7 @@ mod cc_parser;
 mod vm;
 
 use clap::Parser;
+use vm::error::{report_error, ErrorS};
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -33,12 +34,19 @@ fn main() -> std::io::Result<()> {
     let mut vm = vm::VM::new(&mut allocator);
 
     if let Err(e) = vm.run(source.as_str(), &mut stdout, debug) {
-        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Yellow)))?;
-        writeln!(&mut stdout, "Error: {:?}", e).expect("Failed to write to stdout");
+        report_err(&source, e);
+    } else {
+        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
+        writeln!(&mut stdout, "Program exited successfully")?;
     }
-
-    // println!("Allocations: {:?}", allocator);
-    stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
-    writeln!(&mut stdout, "Program exited successfully")?;
-    return Ok(());
+    Ok(())
+}
+fn report_err(source: &str, errors: Vec<ErrorS>) {
+    let mut buffer = termcolor::Buffer::ansi();
+    for err in errors {
+        report_error(&mut buffer, source, &err);
+    }
+    io::stderr()
+        .write_all(buffer.as_slice())
+        .expect("failed to write to stderr");
 }
