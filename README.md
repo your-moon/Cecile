@@ -1,16 +1,16 @@
 
 ---
 
-# Cecile
+# Cecile Toy Programming Language
 
 ## Introduction
 
-Welcome to Cecile, a modern programming language designed for simplicity and flexibility. NewLang combines ease of use with powerful functionality to make programming a breeze.
+Welcome to Cecile, a modern programming language designed for simplicity and flexibility. Cecile combines ease of use with powerful functionality to make programming a breeze.
 
 ### Syntax Examples
 
 #### Variable Declaration and Concatenation
-```newlang
+```rust
 // Variable declaration
 let a = "a";
 let b = "b";
@@ -24,7 +24,7 @@ println ""; // Output:
 ```
 
 #### Mathematical Operations and Functions
-```newlang
+```rust
 // Variable declaration
 let a = 1;
 let b = 2;
@@ -49,7 +49,7 @@ println add_two_number(5, 15);
 ```
 
 #### Control Flow and Loops
-```newlang
+```rust
 // For loop
 for (let i = 0; i < 20; i = i + 1) {
     // Loop body
@@ -66,7 +66,7 @@ if (condition) {
 ```
 
 #### Data Structures and Objects
-```newlang
+```rust
 // Array declaration
 let n = [];
 n.extend([2]);
@@ -94,7 +94,7 @@ println distance(a, b);
 ```
 
 #### Type Annotations and Redefinition
-```newlang
+```rust
 let dogs: String = "dog";
 let dogs: int = 1;
 let dogs: Vec<int> = [];
