@@ -2,11 +2,11 @@ Certainly! Here's an example README.md file introducing the syntax and features 
 
 ---
 
-# NewLang
+# Cecile
 
 ## Introduction
 
-Welcome to NewLang, a modern programming language designed for simplicity and flexibility. NewLang combines ease of use with powerful functionality to make programming a breeze.
+Welcome to Cecile, a modern programming language designed for simplicity and flexibility. NewLang combines ease of use with powerful functionality to make programming a breeze.
 
 ### Syntax Examples
 
@@ -112,4 +112,4 @@ let dogs: Vec<int> = [];
 
 ---
 
-Feel free to explore NewLang and its features further! For installation instructions and detailed documentation, refer to the official documentation at [NewLang Documentation](https://your-newlang-docs.com).
+Feel free to explore Cecile and its features further! For installation instructions and detailed documentation, refer to the official documentation at [NewLang Documentation](https://your-newlang-docs.com).
