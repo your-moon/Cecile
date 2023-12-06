@@ -1,4 +1,3 @@
-Certainly! Here's an example README.md file introducing the syntax and features of your new programming language:
 
 ---
 
