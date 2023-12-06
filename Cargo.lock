@@ -3,6 +3,26 @@
 version = 3
 
 [[package]]
+name = "Cecile"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "arrayvec",
+ "clap",
+ "codespan-reporting",
+ "hashbrown 0.13.2",
+ "iota",
+ "lalrpop",
+ "lalrpop-util",
+ "logos",
+ "mimalloc",
+ "rand",
+ "rustc-hash",
+ "termcolor",
+ "thiserror",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -126,26 +146,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1174fb0b6ec23863f8b971027804a42614e347eafb0a95bf0b12cdae21fc4d0"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "cecile"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arrayvec",
- "clap",
- "codespan-reporting",
- "hashbrown 0.13.2",
- "iota",
- "lalrpop",
- "lalrpop-util",
- "logos",
- "mimalloc",
- "rand",
- "rustc-hash",
- "termcolor",
- "thiserror",
 ]
 
 [[package]]

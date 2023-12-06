@@ -4,7 +4,7 @@ lalrpop_mod!(pub grammar, "/src/cc_parser/grammar.rs");
 
 // write test
 use crate::{
-    cc_lexer::{self as lexer, Lexer},
+    cc_lexer::{Lexer},
     cc_parser::ast::{Fn, Type},
     vm::{
         compiler_globals::Globals,
