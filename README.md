@@ -62,7 +62,7 @@ Now to use Cecile language, in your terminal, run:
 cecile
 ```
 
-## Syntax examples
+## 🔥 Syntax examples
 
 #### Variable Declaration
 ```rust
