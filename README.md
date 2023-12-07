@@ -19,9 +19,15 @@ Welcome to Cecile, a modern programming language designed for simplicity and fle
 
 Welcome to the Cecile Toy programming language.
 
-The syntax of Cecile is influenced by traditional programming languages like JavaScript, Go, and Rust, with a strong emphasis on readability and ease-of-use.
-Leo offers developers with tools to sanity check circuits including unit tests, integration tests, and console functions.
+The syntax of Cecile is influenced by traditional programming languages like JavaScript, Go, and Rust, with a strong emphasis on developer experience, readability and ease-of-use.
 
+Cecile is written in Rust. Some of performance matter part is written in Unsafe Rust that makes fast enough to compete with traditional interpreted languages like Javascript, Python.
+
+## 📕 Features
+
+- [x] Bytecode compiler + 
+- [x] Garbage collected in runtime
+- [x] Type Supported
 
 ## Syntax examples
 
