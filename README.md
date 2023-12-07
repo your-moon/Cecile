@@ -1,23 +1,19 @@
 
-# Cecile Программчлалын хэл
+<h1 align="center">The Cecile Programming Language</h1>
 
-## Танилцуулга
+<p align="center">
+</p>
 
-Welcome to Cecile, a modern programming language designed for simplicity and flexibility. Cecile combines ease of use with powerful functionality to make programming a breeze.
 
-### Syntax жишээнүүд
+## Introduction
 
-#### Хувьсагч зарлах болон string нийлүүлэх
+Welcome to Cecile, a modern programming language designed for simplicity and flexibility. Cecile is inspired by the syntax features and type systems of languages like Rust, Go, and TypeScript
+
+### Syntax examples
+
+#### Variable Declaration
 ```rust
-// Хувьсагч зарлах
-let a = "a";
-let b = "b";
-
-// String-үүдийг нийлүүлэх
-let c = a + b;
-
-// Хэвлэх
-println c; // Гаралт: ab
-println ""; // Гаралт:
+// Variable Declaration
+let a: int = 1;
+let b: String = "hello";
 ```
-
