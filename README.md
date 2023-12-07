@@ -2,7 +2,12 @@
 <h1 align="center">The Cecile Programming Language</h1>
 
 <p align="center">
+  <img src="https://img.shields.io/crates/d/Cecile?style=for-the-badge" />
+  <img src="https://img.shields.io/crates/l/Cecile?style=for-the-badge" />
+  <img src="https://img.shields.io/github/stars/Hollowloki/Cecile?style=for-the-badge&logo=trustpilot" />
   
+
+
 </p>
 
 
@@ -27,4 +32,4 @@ let a: int = 1;
 let b: String = "hello";
 ```
 
-
+[crates.io-download]: https://img.shields.io/crates/d/Cecile
