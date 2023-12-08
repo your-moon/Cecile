@@ -29,39 +29,6 @@ Cecile is written in Rust. Some of performance matter part is written in Unsafe 
 - [x] Garbage collected in runtime
 - [x] Type Supported
 
-## ⚙️️ Build Guide 
-
-### 🦀 Install Rust
-
-We recommend installing Rust using [rustup](https://www.rustup.rs/). You can install `rustup` as follows:
-
-- macOS or Linux:
-  ```bash
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-  ```
-
-- Windows (64-bit):  
-  
-  Download the [Windows 64-bit executable](https://win.rustup.rs/x86_64) and follow the on-screen instructions.
-
-### 🐙 Build from Source Code
-
-We recommend installing Cecile by building from the source code as follows:
-
-```bash
-# Download the source code
-git clone https://github.com/Hollowloki/Cecile
-cd Cecile
-
-# Install 'Cecile'
-$ cargo install --path .
-```
-
-Now to use Cecile language, in your terminal, run:
-```bash
-cecile
-```
-
 ## 🔥 Syntax examples
 
 #### Variable Declaration
@@ -97,6 +64,39 @@ impl Point {
     self.y = y;
   }
 }
+
+## ⚙️️ Build Guide 
+
+### 🦀 Install Rust
+
+We recommend installing Rust using [rustup](https://www.rustup.rs/). You can install `rustup` as follows:
+
+- macOS or Linux:
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  ```
+
+- Windows (64-bit):  
+  
+  Download the [Windows 64-bit executable](https://win.rustup.rs/x86_64) and follow the on-screen instructions.
+
+### 🐙 Build from Source Code
+
+We recommend installing Cecile by building from the source code as follows:
+
+```bash
+# Download the source code
+git clone https://github.com/Hollowloki/Cecile
+cd Cecile
+
+# Install 'Cecile'
+$ cargo install --path .
+```
+
+Now to use Cecile language, in your terminal, run:
+```bash
+cecile
+```
 
 let point: Point = Point();
 ```
