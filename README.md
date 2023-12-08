@@ -65,6 +65,9 @@ impl Point {
   }
 }
 
+let point: Point = Point();
+```
+
 ## ⚙️️ Build Guide 
 
 ### 🦀 Install Rust
@@ -96,7 +99,4 @@ $ cargo install --path .
 Now to use Cecile language, in your terminal, run:
 ```bash
 cecile
-```
-
-let point: Point = Point();
 ```
