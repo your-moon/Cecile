@@ -1404,7 +1404,9 @@ impl Compiler {
         let rhs_type = self.compile_expression(&(infix.rhs), allocator)?;
 
         match (&lhs_type, &rhs_type) {
-            (Type::Int, Type::Int) => return self.emit_binary_operand(&infix.op, &range, lhs_type),
+            (Type::Int, Type::Int) | (Type::Bool, Type::Bool) => {
+                return self.emit_binary_operand(&infix.op, &range, lhs_type)
+            }
             (Type::String, Type::String) => {
                 return self.emit_concat_operand(&infix.op, &range);
             }

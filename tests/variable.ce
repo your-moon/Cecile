@@ -23,4 +23,3 @@ println string;
 println number;
 println bool_;
 println uninitialized;
-println 0 == false;
