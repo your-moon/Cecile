@@ -23,11 +23,21 @@ The syntax of Cecile is influenced by traditional programming languages like Jav
 
 Cecile is written in Rust. Some of performance matter part is written in Unsafe Rust that makes fast enough to compete with traditional interpreted languages like Javascript, Python.
 
+
+##
+Important note: **This project is built for learning purposes**. The code quality of this project is definitely not production ready.
+
 ## 📕 Features
 
-- [x] Bytecode compiler
-- [x] Garbage collected in runtime
-- [x] Type Supported
+#### Language features:
+
+- [x]  Bytecode compiler
+- [x]  Garbage collected in runtime
+- [x]  Type Supported
+- [x]  Basic types, Array
+- [x]  Control flow statements
+- [x]  Object Oriented Programming
+- [x]  Stack tracing
 
 ## 🔥 Syntax examples
 
@@ -66,6 +76,15 @@ impl Point {
 }
 
 let point: Point = Point();
+```
+
+#### Array & Builtin function
+
+```rust 
+let arr = [1, 2, 3, 4];
+arr.push(5);
+
+println arr; // Out: [1, 2, 3, 4, 5]
 ```
 
 ## ⚙️️ Build Guide 
