@@ -80,9 +80,6 @@ pub enum OverflowError {
     #[error("cannot use more than 256 arguments in a function")]
     TooManyArguments,
 
-    #[error("loop body is too large")]
-    LoopTooLarge,
-
     #[error("jump body is too large")]
     JumpTooLarge,
 }
@@ -111,9 +108,6 @@ pub enum NameError {
 
     #[error("struct {name} is not defined")]
     StructNameNotFound { name: String },
-
-    #[error("struct {struct_name} has no method {name}")]
-    StructMethodNotFound { name: String, struct_name: String },
 
     #[error("struct {struct_name} has no method or field {name}")]
     StructMethodOrFieldNotFound { name: String, struct_name: String },
@@ -162,9 +156,7 @@ pub enum SyntaxError {
     ExtraToken { token: String },
     #[error("invalid input")]
     InvalidToken,
-    #[error(r#"init() should not return a value"#)]
-    ReturnInInitializer,
-    #[error(r#""this" used outside class"#)]
+    #[error(r#""self" used outside class"#)]
     SelfOutsideClass,
     #[error("unexpected input")]
     UnexpectedInput { token: String },
@@ -218,6 +210,16 @@ pub enum TypeError {
     #[error("array type must be {expected:?}, got {actual:?}")]
     ArrayTypeMismatch { expected: String, actual: String },
 
+    #[error("unsupported operand for string: {op} ")]
+    UnSupportedOperandforString { op: String },
+
+    #[error("binary op sides must be same: {lhs} {op} {rhs}")]
+    BinaryOpSidesMustBeSame {
+        lhs: String,
+        rhs: String,
+        op: String,
+    },
+
     #[error("cannot set expected type {expected:?}, got {actual:?}")]
     SetTypeMisMatch { expected: String, actual: String },
 
@@ -230,9 +232,6 @@ pub enum TypeError {
 
     #[error("condition must be boolean")]
     CondMustbeBoolean,
-
-    #[error("unsupported operand type for {op}: {rt_type:?}")]
-    UnsupportedOperandPrefix { op: String, rt_type: String },
 
     #[error("unsupported operand type for {op}: {lt_type:?} and {rt_type:?}")]
     UnsupportedOperandInfix {

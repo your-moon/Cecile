@@ -36,7 +36,7 @@ pub mod object;
 pub mod op;
 pub mod value;
 
-const FRAMES_MAX: usize = 256;
+const FRAMES_MAX: usize = 64;
 const STACK_MAX_PER_FRAME: usize = u8::MAX as usize + 1;
 const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
 
@@ -62,14 +62,18 @@ impl<'a> VM<'a> {
     pub fn new(allocator: &'a mut CeAllocation, trace: bool) -> VM {
         let mut globals = HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
 
+        let input = allocator.alloc("input");
+
         let clock_string = allocator.alloc("clock");
         let random_number = allocator.alloc("random_number");
 
+        let input_native = allocator.alloc(ObjectNative::new(Native::Input));
         let clock_native = allocator.alloc(ObjectNative::new(Native::Clock));
         let random_number_native = allocator.alloc(ObjectNative::new(Native::RandomNumber));
 
         let struct_init_method = allocator.alloc("new");
 
+        globals.insert(input, input_native.into());
         globals.insert(clock_string, clock_native.into());
         globals.insert(random_number, random_number_native.into());
         VM {
@@ -305,7 +309,6 @@ impl<'a> VM<'a> {
         for i in 0..arg_count {
             array.push(unsafe { *self.peek(i) });
         }
-        // When type is compile time known
 
         let val = match array.get(0) {
             Some(val) => val,
@@ -662,6 +665,11 @@ impl<'a> VM<'a> {
                     unsafe { (*array).value_type = value.type_() };
                     unsafe { (*array).main.type_ = ObjectType::Array(value.type_()) };
                 } else if unsafe { (*array).value_type.clone() } != value.type_() {
+                    println!(
+                        "{:?} {:?}",
+                        unsafe { (*array).value_type.clone() },
+                        value.type_()
+                    );
                     return self.err(TypeError::ArrayValueTypeMismatch {
                         expected: unsafe { (*array).value_type.to_string() },
                         actual: value.type_().to_string(),
@@ -784,7 +792,11 @@ impl<'a> VM<'a> {
                     });
                 }
             }
-            _ => todo!(),
+            _ => {
+                return self.err(TypeError::NotCallable {
+                    type_: "array".to_string(),
+                })
+            }
         }
         Ok(())
     }
@@ -818,6 +830,22 @@ impl<'a> VM<'a> {
 
                 let number = rand::thread_rng().gen_range(1..=100) as f64;
                 Value::from(number)
+            }
+            Native::Input => {
+                if arg_count != 0 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "input".to_string(),
+                        expected: 0,
+                        actual: arg_count,
+                    });
+                }
+
+                let mut input = String::new();
+                std::io::stdin()
+                    .read_line(&mut input)
+                    .expect("Failed to read line");
+                let value = self.alloc(input.trim().to_string()).into();
+                value
             }
         };
         self.push(value);
@@ -1027,15 +1055,8 @@ impl<'a> VM<'a> {
         let b = self.pop();
         let a = self.pop();
 
-        if a.is_number() && b.is_number() {
-            self.push((a.as_number() % b.as_number()).into());
-            return Ok(());
-        }
-        self.err(TypeError::UnsupportedOperandInfix {
-            op: "%".to_string(),
-            lt_type: a.type_().to_string(),
-            rt_type: b.type_().to_string(),
-        })
+        self.push((a.as_number() % b.as_number()).into());
+        Ok(())
     }
 
     fn op_concat(&mut self) -> Result<()> {
@@ -1045,34 +1066,18 @@ impl<'a> VM<'a> {
         let a = a.as_object();
         let b = b.as_object();
 
-        if a.type_() == ObjectType::String && b.type_() == ObjectType::String {
-            let result = unsafe { [(*a.string).value, (*b.string).value] }.concat();
-            let result = Value::from(self.alloc(result));
-            self.push(result);
-            return Ok(());
-        }
-
-        self.err(TypeError::UnsupportedOperandInfix {
-            op: "+".to_string(),
-            lt_type: a.type_().to_string(),
-            rt_type: b.type_().to_string(),
-        })
+        let result = unsafe { [(*a.string).value, (*b.string).value] }.concat();
+        let result = Value::from(self.alloc(result));
+        self.push(result);
+        Ok(())
     }
 
     fn op_binary_add(&mut self) -> Result<()> {
         let b = self.pop();
         let a = self.pop();
 
-        if a.is_number() && b.is_number() {
-            self.push((a.as_number() + b.as_number()).into());
-            return Ok(());
-        }
-
-        self.err(TypeError::UnsupportedOperandInfix {
-            op: "+".to_string(),
-            lt_type: a.type_().to_string(),
-            rt_type: b.type_().to_string(),
-        })
+        self.push((a.as_number() + b.as_number()).into());
+        Ok(())
     }
 
     fn sub(&mut self) -> Result<()> {

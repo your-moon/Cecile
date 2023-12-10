@@ -7,6 +7,8 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream};
 mod allocator;
 mod cc_lexer;
 mod cc_parser;
+mod cli;
+mod repl;
 mod vm;
 
 use clap::Parser;

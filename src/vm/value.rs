@@ -3,6 +3,7 @@ use std::ops::Not;
 
 use crate::cc_parser::ast::Type;
 
+use super::error::Result;
 use super::object::Object;
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
@@ -44,6 +45,8 @@ impl Value {
             Type::Bool
         } else if self.is_number() {
             Type::Int
+        } else if self.is_string() {
+            Type::String
         } else if self.is_object() {
             Type::Object(Box::new(self.as_object().type_()))
         } else {
@@ -65,6 +68,10 @@ impl Value {
 
     pub const fn is_object(self) -> bool {
         self.0 & (Self::QUIET_NAN | Self::SIGN_BIT) == (Self::QUIET_NAN | Self::SIGN_BIT)
+    }
+
+    pub fn is_string(self) -> bool {
+        self.is_object() && self.as_object().is_string()
     }
 
     pub fn _is_iterable(self) -> bool {

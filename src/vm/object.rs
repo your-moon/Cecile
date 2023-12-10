@@ -41,6 +41,10 @@ impl Object {
         matches!(self.type_(), ObjectType::Array(_))
     }
 
+    pub fn is_string(&self) -> bool {
+        matches!(self.type_(), ObjectType::String)
+    }
+
     pub fn free(self) {
         match self.type_() {
             ObjectType::Function => {
@@ -208,6 +212,7 @@ impl ObjectNative {
 pub enum Native {
     Clock,
     RandomNumber,
+    Input,
 }
 
 impl Display for Native {
@@ -215,6 +220,7 @@ impl Display for Native {
         match self {
             Native::Clock => write!(f, "{}", "clock"),
             Native::RandomNumber => write!(f, "{}", "random_number"),
+            Native::Input => write!(f, "{}", "input"),
         }
     }
 }

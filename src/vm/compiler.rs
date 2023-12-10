@@ -192,6 +192,12 @@ impl Compiler {
         let clock_type = Type::Int;
         let random_number = String::from("random_number");
         let random_type = Type::Int;
+
+        let input = String::from("input");
+        let input_type = Type::String;
+
+        globals.insert(input, input_type);
+
         globals.insert(clock, clock_type);
         globals.insert(random_number, random_type);
         Self {
@@ -1394,35 +1400,67 @@ impl Compiler {
         let lhs_type = self.compile_expression(&(infix.lhs), allocator)?;
         let rhs_type = self.compile_expression(&(infix.rhs), allocator)?;
 
-        // if lhs_type != rhs_type {
-        //     todo!("type mismatch");
-        // }
+        match (&lhs_type, &rhs_type) {
+            (Type::Int, Type::Int) => return self.emit_binary_operand(&infix.op, &range, lhs_type),
+            (Type::String, Type::String) => {
+                return self.emit_concat_operand(&infix.op, &range);
+            }
+            _ => {
+                let result = Err((
+                    Error::TypeError(TypeError::BinaryOpSidesMustBeSame {
+                        lhs: lhs_type.to_string(),
+                        rhs: rhs_type.to_string(),
+                        op: infix.op.to_string(),
+                    }),
+                    range.clone(),
+                ));
+                return result;
+            }
+        }
+    }
 
-        match infix.op {
+    fn emit_concat_operand(&mut self, op: &OpInfix, range: &Range<usize>) -> Result<Type> {
+        match op {
+            OpInfix::Add => {
+                self.emit_u8(op::CONCAT, &range);
+                return Ok(Type::String);
+            }
+            _ => {
+                let result = Err((
+                    Error::TypeError(TypeError::UnSupportedOperandforString { op: op.to_string() }),
+                    range.clone(),
+                ));
+                return result;
+            }
+        }
+    }
+
+    fn emit_binary_operand(
+        &mut self,
+        op: &OpInfix,
+        range: &Range<usize>,
+        return_type: Type,
+    ) -> Result<Type> {
+        match op {
             OpInfix::Modulo => {
                 self.emit_u8(op::MODULO, &range);
-                return Ok(lhs_type);
+                return Ok(return_type);
             }
             OpInfix::Add => {
-                if lhs_type == Type::String && rhs_type == Type::String {
-                    self.emit_u8(op::CONCAT, &range);
-                    return Ok(Type::String);
-                } else {
-                    self.emit_u8(op::ADD, &range);
-                }
-                return Ok(lhs_type);
+                self.emit_u8(op::ADD, &range);
+                return Ok(return_type);
             }
             OpInfix::Sub => {
                 self.emit_u8(op::SUB, &range);
-                return Ok(lhs_type);
+                return Ok(return_type);
             }
             OpInfix::Mul => {
                 self.emit_u8(op::MUL, &range);
-                return Ok(lhs_type);
+                return Ok(return_type);
             }
             OpInfix::Div => {
                 self.emit_u8(op::DIV, &range);
-                return Ok(lhs_type);
+                return Ok(return_type);
             }
             OpInfix::Equal => {
                 self.emit_u8(op::EQUAL, &range);
