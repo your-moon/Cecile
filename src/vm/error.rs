@@ -198,6 +198,9 @@ impl AsDiagnostic for ArrayError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum TypeError {
+    #[error("cannot cast into int from {type_}")]
+    NotNumber { type_: String },
+
     #[error("array type must be {expected:?}, got {actual:?}")]
     ArrayValueTypeMismatch { expected: String, actual: String },
 

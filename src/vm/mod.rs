@@ -67,12 +67,15 @@ impl<'a> VM<'a> {
         let clock_string = allocator.alloc("clock");
         let random_number = allocator.alloc("random_number");
 
+        let to_int = allocator.alloc("to_int");
+        let to_int_native = allocator.alloc(ObjectNative::new(Native::ToInt));
         let input_native = allocator.alloc(ObjectNative::new(Native::Input));
         let clock_native = allocator.alloc(ObjectNative::new(Native::Clock));
         let random_number_native = allocator.alloc(ObjectNative::new(Native::RandomNumber));
 
         let struct_init_method = allocator.alloc("new");
 
+        globals.insert(to_int, to_int_native.into());
         globals.insert(input, input_native.into());
         globals.insert(clock_string, clock_native.into());
         globals.insert(random_number, random_number_native.into());
@@ -340,6 +343,7 @@ impl<'a> VM<'a> {
         } else {
             array_type = Some(Type::UnInitialized)
         }
+
         array.reverse();
         let array = self.alloc(ArrayObject::new(array, array_type.unwrap()));
         for _ in 0..arg_count {
@@ -802,8 +806,7 @@ impl<'a> VM<'a> {
     }
 
     fn call_native(&mut self, native: *mut ObjectNative, arg_count: usize) -> Result<()> {
-        self.pop();
-        let value = match { unsafe { (*native).native } } {
+        match { unsafe { (*native).native } } {
             Native::Clock => {
                 if arg_count != 0 {
                     return self.err(TypeError::ArityMisMatch {
@@ -812,12 +815,14 @@ impl<'a> VM<'a> {
                         actual: arg_count,
                     });
                 }
+                self.pop();
 
                 let time = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
                     .as_secs_f64();
-                Value::from(time)
+                let value = Value::from(time);
+                self.push(value);
             }
             Native::RandomNumber => {
                 if arg_count != 0 {
@@ -827,9 +832,11 @@ impl<'a> VM<'a> {
                         actual: arg_count,
                     });
                 }
+                self.pop();
 
                 let number = rand::thread_rng().gen_range(1..=100) as f64;
-                Value::from(number)
+                let value = Value::from(number);
+                self.push(value);
             }
             Native::Input => {
                 if arg_count != 0 {
@@ -839,16 +846,31 @@ impl<'a> VM<'a> {
                         actual: arg_count,
                     });
                 }
+                self.pop();
 
                 let mut input = String::new();
                 std::io::stdin()
                     .read_line(&mut input)
                     .expect("Failed to read line");
-                let value = self.alloc(input.trim().to_string()).into();
-                value
+                let value = self.alloc(input.trim().to_string());
+                self.push(value.into());
+            }
+            Native::ToInt => {
+                if arg_count != 1 {
+                    return self.err(TypeError::ArityMisMatch {
+                        name: "to_int".to_string(),
+                        expected: 1,
+                        actual: arg_count,
+                    });
+                }
+                let value = unsafe { *self.peek(0) };
+
+                let value = Value::from(value.string_to_number());
+                self.pop();
+                self.pop();
+                self.push(value);
             }
         };
-        self.push(value);
         Ok(())
     }
 

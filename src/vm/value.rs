@@ -4,7 +4,7 @@ use std::ops::Not;
 use crate::cc_parser::ast::Type;
 
 use super::error::Result;
-use super::object::Object;
+use super::object::{Object, StringObject};
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
 #[repr(C)]
@@ -109,6 +109,16 @@ impl Value {
     pub const fn to_bool(self) -> bool {
         !matches!(self, Self::FALSE | Self::NIL)
     }
+
+    pub fn string_to_number(self) -> f64 {
+        if self.is_string() {
+            let string = unsafe { (*self.as_object().string).value };
+            if let Ok(number) = string.parse::<f64>() {
+                return number;
+            }
+        }
+        f64::NAN
+    }
 }
 
 impl Debug for Value {
@@ -127,6 +137,8 @@ impl Display for Value {
             write!(f, "false")
         } else if self.is_number() {
             write!(f, "{}", self.as_number())
+        } else if self.is_string() {
+            write!(f, "'{}'", self.as_object())
         } else if self.is_object() {
             write!(f, "{}", self.as_object())
         } else {

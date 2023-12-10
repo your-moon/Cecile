@@ -188,6 +188,8 @@ impl Compiler {
     pub fn new(allocator: &mut CeAllocation, debug: bool) -> Self {
         let mut globals = Globals::default();
         let name = allocator.alloc("");
+        let to_int = String::from("to_int");
+        let to_int_type = Type::Int;
         let clock = String::from("clock");
         let clock_type = Type::Int;
         let random_number = String::from("random_number");
@@ -196,10 +198,12 @@ impl Compiler {
         let input = String::from("input");
         let input_type = Type::String;
 
+        globals.insert(to_int, to_int_type);
         globals.insert(input, input_type);
 
         globals.insert(clock, clock_type);
         globals.insert(random_number, random_type);
+
         Self {
             current_compiler: CompilerCell {
                 function: allocator.alloc(ObjectFunction::new(name, 0, None)),
@@ -1200,7 +1204,7 @@ impl Compiler {
     ) -> Result<Type> {
         // Variable declaration left hand side expression, if it's not have expression variable
         // type is UnInitialized
-        let value_var_type = var
+        let mut value_type = var
             .value
             .as_ref()
             .map_or(Ok(Type::UnInitialized), |value| {
@@ -1208,7 +1212,7 @@ impl Compiler {
                 Ok(val_type)
             })?;
 
-        if value_var_type == Type::UnInitialized {
+        if value_type == Type::UnInitialized {
             self.emit_u8(op::NIL, &range);
         }
 
@@ -1222,9 +1226,8 @@ impl Compiler {
                         self.globals.insert(name.clone(), type_.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
                         self.emit_constant(string.into(), &range)?;
-                        // return Ok(Type::String);
                     } else {
-                        self.declare_local(name, &value_var_type, &range)?;
+                        self.declare_local(name, &value_type, &range)?;
                         self.define_local();
                     }
                 }
@@ -1236,14 +1239,16 @@ impl Compiler {
                         self.globals.insert(name.clone(), type_.clone());
                         self.emit_u8(op::DEFINE_GLOBAL, &range);
                         self.emit_constant(string.into(), &range)?;
-                        // return Ok(Type::String);
                     } else {
-                        self.declare_local(name, &value_var_type, &range)?;
+                        self.declare_local(name, &value_type, &range)?;
                         self.define_local();
                     }
                 }
                 Type::Array(arr) => {
                     let arr_type = arr.as_ref();
+                    if value_type == Type::Array(Box::new(Type::UnInitialized)) {
+                        value_type = Type::Array(Box::new(arr_type.clone()));
+                    }
                     match arr_type {
                         Type::String | Type::Int | Type::Nil | Type::Bool => {
                             let name = &var.var.name;
@@ -1252,9 +1257,8 @@ impl Compiler {
                                 self.globals.insert(name.clone(), type_.clone());
                                 self.emit_u8(op::DEFINE_GLOBAL, &range);
                                 self.emit_constant(string.into(), &range)?;
-                                // return Ok(Type::String);
                             } else {
-                                self.declare_local(name, &value_var_type, &range)?;
+                                self.declare_local(name, &value_type, &range)?;
                                 self.define_local();
                             }
                         }
@@ -1266,9 +1270,8 @@ impl Compiler {
                                 self.globals.insert(name.clone(), type_.clone());
                                 self.emit_u8(op::DEFINE_GLOBAL, &range);
                                 self.emit_constant(string.into(), &range)?;
-                                // return Ok(Type::String);
                             } else {
-                                self.declare_local(name, &value_var_type, &range)?;
+                                self.declare_local(name, &value_type, &range)?;
                                 self.define_local();
                             }
                         }
@@ -1282,17 +1285,17 @@ impl Compiler {
                 let string = allocator.alloc(name);
                 //If variable type is not declared, left hand side expression type will be variable type
                 if self.is_global() {
-                    self.globals.insert(name.clone(), value_var_type.clone());
+                    self.globals.insert(name.clone(), value_type.clone());
                     self.emit_u8(op::DEFINE_GLOBAL, &range);
                     self.emit_constant(string.into(), &range)?;
                 } else {
                     //If variable type is not declared, left hand side expression type will be variable type
-                    self.declare_local(name, &value_var_type, &range)?;
+                    self.declare_local(name, &value_type, &range)?;
                     self.define_local();
                 }
             }
         }
-        Ok(value_var_type)
+        Ok(value_type)
     }
 
     fn get_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<Type> {

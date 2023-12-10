@@ -213,6 +213,7 @@ pub enum Native {
     Clock,
     RandomNumber,
     Input,
+    ToInt,
 }
 
 impl Display for Native {
@@ -221,6 +222,7 @@ impl Display for Native {
             Native::Clock => write!(f, "{}", "clock"),
             Native::RandomNumber => write!(f, "{}", "random_number"),
             Native::Input => write!(f, "{}", "input"),
+            Native::ToInt => write!(f, "{}", "to_int"),
         }
     }
 }

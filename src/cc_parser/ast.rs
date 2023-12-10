@@ -2,6 +2,7 @@ use std::fmt::{self, Display, Formatter};
 use std::ops::Range;
 
 use crate::vm::object::ObjectType;
+use crate::vm::value::Value;
 pub type Spanned<T> = (T, Span);
 pub type Span = Range<usize>;
 

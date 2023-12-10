@@ -1,0 +1,26 @@
+fn guess_number() {
+    println "Welcome to the Number Guessing Game!";
+    println "I'm thinking of a number between 1 and 100.";
+    let secret_number = random_number();
+    let attempts = 0;
+
+    while (true) {
+        println "Take a guess: ";
+        let inp = input();
+        let guess = to_int(inp);
+        attempts = attempts + 1;
+
+        if (guess < secret_number) {
+            println "Too low! Try again.";
+        } else if (guess > secret_number) {
+            println "Too high! Try again.";
+        } else {
+            print"Congratulations! You've guessed the number in ";
+            print attempts;
+            print " attempts!";
+            return;
+        }
+
+    }
+}
+
