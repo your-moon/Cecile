@@ -1,6 +1,5 @@
-![Group 1](https://github.com/Hollowloki/Cecile/assets/104183502/43c4a51a-fb30-4cea-9017-70f240eac192)
-<h1 align="center">The Cecile Toy Prog
-ramming Language</h1>
+![Group 1 (2)](https://github.com/Hollowloki/Cecile/assets/104183502/ebdd205b-d226-4597-a033-39c6bd4fd8a9)
+<h1 align="center">The Cecile Programming Language</h1>
 
 <p align="center">
   <img src="https://img.shields.io/crates/d/Cecile?style=for-the-badge" />
@@ -18,7 +17,7 @@ The Cecile, a modern programming language designed for simplicity and flexibilit
 
 ## 🍎 Overview
 
-Welcome to the Cecile Toy programming language.
+Welcome to the Cecile programming language.
 
 The syntax of Cecile is influenced by traditional programming languages like JavaScript, Go, and Rust, with a strong emphasis on developer experience, readability and ease-of-use.
 
