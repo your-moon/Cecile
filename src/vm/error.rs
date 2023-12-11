@@ -95,8 +95,8 @@ impl AsDiagnostic for OverflowError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum NameError {
-    #[error("array has no field {name}")]
-    ArrayHasNoField { name: String },
+    #[error("unsupported array method: {name}")]
+    UnsupportedArrayMethod { name: String },
 
     #[error("struct is not in scope")]
     StructNotInScope,

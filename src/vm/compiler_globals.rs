@@ -6,11 +6,11 @@ use rustc_hash::FxHasher;
 use crate::cc_parser::ast::Type;
 
 #[derive(Debug, Clone)]
-pub struct Globals {
+pub struct CompilerGlobals {
     pub globals: HashMap<String, Type, BuildHasherDefault<FxHasher>>,
 }
 
-impl Globals {
+impl CompilerGlobals {
     pub fn insert(&mut self, name: String, type_: Type) {
         self.globals.insert(name, type_);
     }
@@ -20,7 +20,7 @@ impl Globals {
     }
 }
 
-impl Default for Globals {
+impl Default for CompilerGlobals {
     fn default() -> Self {
         Self {
             globals: HashMap::default(),

@@ -8,6 +8,7 @@ use crate::cc_parser::ast::{
     ExprArray, ExprArrayAccess, ExprArrayAccessAssign, ExprGet, ExprSet, ExprSuper, Field,
     StatementImpl, StatementStruct,
 };
+use crate::vm::built_in::builtin_array_methods_return_type;
 use crate::vm::error::{AttributeError, NameError};
 use crate::{
     allocator::allocation::CeAllocation,
@@ -24,7 +25,7 @@ use crate::{
 };
 
 use super::built_in::builtin_array_methods_contains;
-use super::compiler_globals::Globals;
+use super::compiler_globals::CompilerGlobals;
 use super::error::OverflowError;
 use super::object::StringObject;
 use super::{
@@ -176,7 +177,7 @@ pub struct StructMethod {
 }
 
 pub struct Compiler {
-    pub globals: Globals,
+    pub globals: CompilerGlobals,
     pub current_compiler: CompilerCell,
     pub current_struct: Option<String>,
     pub structs: Vec<StructCell>,
@@ -186,7 +187,7 @@ pub struct Compiler {
 
 impl Compiler {
     pub fn new(allocator: &mut CeAllocation, debug: bool) -> Self {
-        let mut globals = Globals::default();
+        let mut globals = CompilerGlobals::default();
         let name = allocator.alloc("");
         let to_int = String::from("to_int");
         let to_int_type = Type::Int;
@@ -226,8 +227,9 @@ impl Compiler {
         source: &str,
         allocator: &mut CeAllocation,
         stdout: &mut StandardStream,
+        ast_debug: bool,
     ) -> Result<*mut ObjectFunction, Vec<ErrorS>> {
-        let program = parse(source, self.debug, &mut self.globals)?;
+        let program = parse(source, ast_debug, &mut self.globals)?;
 
         for statement in &program.statements {
             let type_ = self.compile_statement(statement, allocator);
@@ -1045,17 +1047,26 @@ impl Compiler {
             }
             Type::Array(type_) => {
                 if let Some(_) = builtin_array_methods_contains(&get.name) {
-                    let _glob = self.globals.get(&get.name.clone());
+                    let method_type = builtin_array_methods_return_type(&get.name, *type_.clone());
+                    if method_type.is_none() {
+                        let result = Err((
+                            Error::NameError(NameError::UnsupportedArrayMethod {
+                                name: get.name.clone(),
+                            }),
+                            range.clone(),
+                        ));
+                        return result;
+                    }
                     let name = allocator.alloc(&get.name);
                     self.emit_u8(op::GET_ARRAY_METHOD, &range);
                     self.emit_constant(name.into(), &range)?;
 
                     return Ok(Type::Fn(Fn {
-                        return_type: Box::new(Some(*type_)),
+                        return_type: Box::new(Some(method_type.unwrap())),
                     }));
                 }
                 let result = Err((
-                    Error::NameError(NameError::ArrayHasNoField {
+                    Error::NameError(NameError::UnsupportedArrayMethod {
                         name: get.name.clone(),
                     }),
                     range.clone(),

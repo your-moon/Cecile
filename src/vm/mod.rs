@@ -40,14 +40,14 @@ const FRAMES_MAX: usize = 64;
 const STACK_MAX_PER_FRAME: usize = u8::MAX as usize + 1;
 const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
 
-pub struct VM<'a> {
+pub struct VM {
     stack_top: *mut Value,
     stack: Box<[Value; STACK_MAX]>,
 
     frames: ArrayVec<CallFrame, FRAMES_MAX>,
     frame: CallFrame,
 
-    allocator: &'a mut CeAllocation,
+    allocator: CeAllocation,
     next_gc: usize,
 
     globals: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
@@ -58,27 +58,18 @@ pub struct VM<'a> {
     trace: bool,
 }
 
-impl<'a> VM<'a> {
-    pub fn new(allocator: &'a mut CeAllocation, trace: bool) -> VM {
+impl VM {
+    pub fn new(trace: bool) -> VM {
+        let mut allocator = CeAllocation::new();
+
+        let natives = allocator.alloc_natives();
+
         let mut globals = HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
-
-        let input = allocator.alloc("input");
-
-        let clock_string = allocator.alloc("clock");
-        let random_number = allocator.alloc("random_number");
-
-        let to_int = allocator.alloc("to_int");
-        let to_int_native = allocator.alloc(ObjectNative::new(Native::ToInt));
-        let input_native = allocator.alloc(ObjectNative::new(Native::Input));
-        let clock_native = allocator.alloc(ObjectNative::new(Native::Clock));
-        let random_number_native = allocator.alloc(ObjectNative::new(Native::RandomNumber));
 
         let struct_init_method = allocator.alloc("new");
 
-        globals.insert(to_int, to_int_native.into());
-        globals.insert(input, input_native.into());
-        globals.insert(clock_string, clock_native.into());
-        globals.insert(random_number, random_number_native.into());
+        globals.extend(natives);
+
         VM {
             stack: Box::new([Value::default(); STACK_MAX]),
             stack_top: ptr::null_mut(),
@@ -102,9 +93,10 @@ impl<'a> VM<'a> {
         source: &str,
         stdout: &mut StandardStream,
         debug: bool,
+        ast_debug: bool,
     ) -> Result<(), Vec<ErrorS>> {
-        let mut compiler = Compiler::new(self.allocator, debug);
-        let function = compiler.compile(source, self.allocator, stdout)?;
+        let mut compiler = Compiler::new(&mut self.allocator, debug);
+        let function = compiler.compile(source, &mut self.allocator, stdout, ast_debug)?;
         self.run_function(function).map_err(|e| vec![e])?;
         Ok(())
     }
@@ -669,11 +661,6 @@ impl<'a> VM<'a> {
                     unsafe { (*array).value_type = value.type_() };
                     unsafe { (*array).main.type_ = ObjectType::Array(value.type_()) };
                 } else if unsafe { (*array).value_type.clone() } != value.type_() {
-                    println!(
-                        "{:?} {:?}",
-                        unsafe { (*array).value_type.clone() },
-                        value.type_()
-                    );
                     return self.err(TypeError::ArrayValueTypeMismatch {
                         expected: unsafe { (*array).value_type.to_string() },
                         actual: value.type_().to_string(),

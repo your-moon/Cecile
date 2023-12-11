@@ -1,7 +1,7 @@
 use std::hash::BuildHasherDefault;
 use std::mem;
 
-use crate::vm::object::{Object, ObjectType, StringObject};
+use crate::vm::object::{Native, Object, ObjectNative, ObjectType, StringObject};
 use crate::vm::value::Value;
 
 use hashbrown::hash_map::RawEntryMut;
@@ -111,6 +111,30 @@ impl CeAllocation {
                 true
             }
         });
+    }
+
+    pub fn alloc_natives(
+        &mut self,
+    ) -> HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>> {
+        let mut hash_map = HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default());
+
+        let input = self.alloc("input");
+        let input_native = self.alloc(ObjectNative::new(Native::Input));
+
+        let clock_string = self.alloc("clock");
+        let clock_native = self.alloc(ObjectNative::new(Native::Clock));
+
+        let random_number = self.alloc("random_number");
+        let random_number_native = self.alloc(ObjectNative::new(Native::RandomNumber));
+
+        let to_int = self.alloc("to_int");
+        let to_int_native = self.alloc(ObjectNative::new(Native::ToInt));
+
+        hash_map.insert(input, input_native.into());
+        hash_map.insert(clock_string, clock_native.into());
+        hash_map.insert(random_number, random_number_native.into());
+        hash_map.insert(to_int, to_int_native.into());
+        return hash_map;
     }
 }
 

@@ -1,3 +1,5 @@
+use crate::cc_parser::ast::Type;
+
 #[derive(Debug, Clone, Copy)]
 pub enum ArrayMethod {
     Extend,
@@ -56,5 +58,65 @@ pub fn builtin_array_methods_contains(name: &str) -> Option<String> {
         Some(name.to_string())
     } else {
         None
+    }
+}
+
+pub fn builtin_array_methods_return_type(name: &str, elem_type: Type) -> Option<Type> {
+    match name {
+        "len" => Some(Type::Int),
+        "push" => Some(Type::Nil),
+        "pop" => {
+            if elem_type == Type::Int {
+                Some(Type::Int)
+            } else if elem_type == Type::String {
+                Some(Type::String)
+            } else if elem_type == Type::Bool {
+                Some(Type::Bool)
+            } else {
+                None
+            }
+        }
+        "peek" => {
+            if elem_type == Type::Int {
+                Some(Type::Int)
+            } else if elem_type == Type::String {
+                Some(Type::String)
+            } else if elem_type == Type::Bool {
+                Some(Type::Bool)
+            } else {
+                None
+            }
+        }
+        "insert" => Some(Type::Nil),
+        "remove" => {
+            if elem_type == Type::Int {
+                Some(Type::Int)
+            } else if elem_type == Type::String {
+                Some(Type::String)
+            } else if elem_type == Type::Bool {
+                Some(Type::Bool)
+            } else {
+                None
+            }
+        }
+        "clear" => Some(Type::Nil),
+        "reverse" => Some(Type::Nil),
+        "sort" => Some(Type::Nil),
+        "get" => {
+            if elem_type == Type::Int {
+                Some(Type::Int)
+            } else if elem_type == Type::String {
+                Some(Type::String)
+            } else if elem_type == Type::Bool {
+                Some(Type::Bool)
+            } else {
+                None
+            }
+        }
+        "get_type" => Some(Type::String),
+        "copy" => Some(Type::Array(Box::new(elem_type))),
+        "extend" => Some(Type::Nil),
+
+        _ => None,
     }
 }

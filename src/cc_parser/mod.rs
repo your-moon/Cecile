@@ -4,20 +4,23 @@ lalrpop_mod!(pub grammar, "/src/cc_parser/grammar.rs");
 
 // write test
 use crate::{
-    cc_lexer::{Lexer},
+    cc_lexer::Lexer,
     cc_parser::ast::{Fn, Type},
     vm::{
-        compiler_globals::Globals,
+        compiler_globals::CompilerGlobals,
         error::{Error, ErrorS, SyntaxError},
     },
 };
 
 use self::ast::Program;
 
-pub fn parse(source: &str, debug: bool, globals: &mut Globals) -> Result<Program, Vec<ErrorS>> {
+pub fn parse(
+    source: &str,
+    ast_debug: bool,
+    globals: &mut CompilerGlobals,
+) -> Result<Program, Vec<ErrorS>> {
     let lexer = Lexer::new(source).map(|token| match token {
         Ok((l, token, r)) => {
-            // println!("{:?}", token);
             return Ok((l, token, r));
         }
         Err((err, span)) => {
@@ -45,7 +48,7 @@ pub fn parse(source: &str, debug: bool, globals: &mut Globals) -> Result<Program
                 }),
             );
         }
-        if debug {
+        if ast_debug {
             println!("");
             println!("{:?}", statement);
         }
@@ -90,6 +93,9 @@ pub fn parse(source: &str, debug: bool, globals: &mut Globals) -> Result<Program
 #[cfg(test)]
 
 mod tests {
+
+    use crate::cc_lexer::Lexer;
+
     use crate::cc_parser::ast::{ExprInfix, ExprLiteral, Expression};
 
     use super::*;
@@ -97,7 +103,7 @@ mod tests {
     #[test]
     fn if_statement_declaration_2() {
         let input = r#"if(true) { print 1; }"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => (l, token, r),
             Err(_) => todo!("Error handling"),
         });
@@ -132,7 +138,7 @@ mod tests {
     #[test]
     fn if_statement_declaration() {
         let input = r#"if(true) {}"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 println!("{:?}", token);
                 return (l, token, r);
@@ -160,7 +166,7 @@ mod tests {
     #[test]
     fn while_statement_declaration() {
         let input = r#"while(true) {}"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 println!("{:?}", token);
                 return (l, token, r);
@@ -190,7 +196,7 @@ mod tests {
     #[test]
     fn for_statement_declaration() {
         let input = r#"for(let i = 0; i<10; i=i+1) {}"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 println!("{:?}", token);
                 return (l, token, r);
@@ -276,7 +282,7 @@ mod tests {
     #[test]
     fn variable_declaration() {
         let input = r#"let variable_1: String = "Hello";"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 println!("{:?}", token);
                 return (l, token, r);
@@ -306,7 +312,7 @@ mod tests {
     #[test]
     fn variable_declaration_int() {
         let input = r#"let variable_2: int = 123;"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 return (l, token, r);
             }
@@ -335,7 +341,7 @@ mod tests {
     #[test]
     fn block_statement() {
         let input = r#"{}"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 return (l, token, r);
             }
@@ -355,7 +361,7 @@ mod tests {
     #[test]
     fn return_statement() {
         let input = r#"return something;"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 return (l, token, r);
             }
@@ -385,7 +391,7 @@ mod tests {
     #[test]
     fn print_statement() {
         let input = r#"print 1;"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 return (l, token, r);
             }
@@ -410,7 +416,7 @@ mod tests {
     #[test]
     fn div_expression() {
         let input = r#"1 / 2;"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 return (l, token, r);
             }
@@ -445,7 +451,7 @@ mod tests {
     #[test]
     fn mul_expression() {
         let input = r#"1 * 2;"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 return (l, token, r);
             }
@@ -480,7 +486,7 @@ mod tests {
     #[test]
     fn negate_expression() {
         let input = r#"-1;"#;
-        let lexer = lexer::Lexer::new(input).map(|token| match token {
+        let lexer = Lexer::new(input).map(|token| match token {
             Ok((l, token, r)) => {
                 return (l, token, r);
             }

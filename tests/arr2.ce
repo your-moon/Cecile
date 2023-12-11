@@ -1,17 +1,22 @@
-type Stack {
-    items: Vec<int>
+// type Stack {
+//     items: Vec<int>
+// }
+//
+// impl Stack {
+//     fn new() {
+//         self.items = [];
+//     }
+//     fn push(item: int) {
+//         self.items.push(item);
+//     }
+//
+// }
+//
+// let stack = Stack();
+// stack.push(1);
+// println stack.items[0];
+//
+let arr = ["a", "b", "c"];
+for (let i = 0; i < arr.len(); i = i + 1) {
+    println arr[i];
 }
-
-impl Stack {
-    fn new() {
-        self.items = [];
-    }
-    fn push(item: int) {
-        self.items.push(item);
-    }
-
-}
-
-let stack = Stack();
-stack.push(1);
-println stack.items;
