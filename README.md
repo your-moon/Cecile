@@ -13,7 +13,7 @@
 
 ## ⭐ Introduction
 
-The Cecile, a modern programming language designed for simplicity and flexibility.
+The Cecile, a little programming language designed for simplicity and flexibility.
 
 ## 🍎 Overview
 
