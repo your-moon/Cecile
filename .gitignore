@@ -1,6 +1,5 @@
 /target
 Cargo.lock
-./.idea/
+./.idea
 ./.vscode
-./.gitignore
 ./.DS_Store
