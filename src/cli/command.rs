@@ -9,12 +9,16 @@ use std::io::{self, Write};
 #[derive(Parser)]
 pub enum Commands {
     Run {
+        /// The file path
         #[arg(value_hint = clap::ValueHint::FilePath, value_name = "INPUT FILE PATH")]
         file: String,
+        /// Runtime stack trace
         #[arg(short, long)]
         trace: bool,
+        /// Opcodes debug
         #[arg(short, long)]
         debug: bool,
+        /// AST debug
         #[arg(short, long)]
         ast_debug: bool,
     },

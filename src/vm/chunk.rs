@@ -1,6 +1,5 @@
-use std::ops::Index;
-
 use arrayvec::ArrayVec;
+use std::ops::Index;
 
 use crate::cc_parser::ast::Span;
 use crate::vm::op;
@@ -10,14 +9,14 @@ use super::error::{OverflowError, Result};
 
 #[derive(Debug, Default)]
 pub struct Chunk {
-    pub ops: Vec<u8>,
+    pub op_codes: Vec<u8>,
     pub constants: ArrayVec<Value, 256>,
     pub spans: VecRun<Span>,
 }
 
 impl Chunk {
     pub fn write_u8(&mut self, byte: u8, span: &Span) {
-        self.ops.push(byte);
+        self.op_codes.push(byte);
         self.spans.push(span.clone());
     }
 
@@ -43,14 +42,14 @@ impl Chunk {
     pub fn debug(&self, name: &str) {
         eprintln!("== {name} ==");
         let mut idx = 0;
-        while idx < self.ops.len() {
+        while idx < self.op_codes.len() {
             idx = self.debug_op(idx);
         }
     }
 
     pub fn debug_op(&self, idx: usize) -> usize {
         eprint!("{idx:04} ");
-        match self.ops[idx] {
+        match self.op_codes[idx] {
             op::ARRAY => self.debug_op_byte("ARRAY", idx),
             op::ARRAY_ACCESS => self.debug_op_simple("ARRAY_ACCESS", idx),
             op::ARRAY_ACCESS_ASSIGN => self.debug_op_simple("ARRAY_ACCESS_ASSIGN", idx),
@@ -95,7 +94,7 @@ impl Chunk {
             op::SUPER_INVOKE => self.debug_op_invoke("OP_SUPER_INVOKE", idx),
             op::CLOSURE => {
                 let mut idx = idx + 1;
-                let constant_idx = self.ops[idx];
+                let constant_idx = self.op_codes[idx];
                 let constant = &self.constants[constant_idx as usize];
                 eprintln!(
                     "{name:16} {constant_idx:>4} '{constant}'",
@@ -107,11 +106,11 @@ impl Chunk {
                     let offset = idx;
 
                     idx += 1;
-                    let is_local = self.ops[idx];
+                    let is_local = self.op_codes[idx];
                     let label = if is_local == 0 { "upvalue" } else { "local" };
 
                     idx += 1;
-                    let upvalue_idx = self.ops[idx];
+                    let upvalue_idx = self.op_codes[idx];
 
                     eprintln!("{offset:04} |                     {label} {upvalue_idx}");
                 }
@@ -134,28 +133,28 @@ impl Chunk {
     }
 
     fn debug_op_byte(&self, name: &str, idx: usize) -> usize {
-        let byte = self.ops[idx + 1];
+        let byte = self.op_codes[idx + 1];
         eprintln!("{name:16} {byte:>4}");
         idx + 2
     }
 
     fn debug_op_constant(&self, name: &str, idx: usize) -> usize {
-        let constant_idx = self.ops[idx + 1];
+        let constant_idx = self.op_codes[idx + 1];
         let constant = &self.constants[constant_idx as usize];
         eprintln!("{name:16} {constant_idx:>4} '{constant}'");
         idx + 2
     }
 
     fn debug_op_invoke(&self, name: &str, idx: usize) -> usize {
-        let constant_idx = self.ops[idx + 1];
+        let constant_idx = self.op_codes[idx + 1];
         let constant = &self.constants[constant_idx as usize];
-        let arg_count = self.ops[idx + 2];
+        let arg_count = self.op_codes[idx + 2];
         eprintln!("{name:16} ({arg_count} args) {constant_idx:>4} '{constant}'");
         idx + 3
     }
 
     fn debug_op_jump(&self, name: &str, idx: usize, is_forward: bool) -> usize {
-        let to_offset = u16::from_le_bytes([self.ops[idx + 1], self.ops[idx + 2]]);
+        let to_offset = u16::from_le_bytes([self.op_codes[idx + 1], self.op_codes[idx + 2]]);
         let offset_sign = if is_forward { 1 } else { -1 };
         // The +3 is to account for the 3 byte jump instruction.
         let to_idx = (idx as isize) + (to_offset as isize) * offset_sign + 3;
@@ -164,7 +163,7 @@ impl Chunk {
     }
 
     pub fn clear(&mut self) {
-        self.ops.clear();
+        self.op_codes.clear();
         self.constants.clear();
         self.spans.clear();
     }

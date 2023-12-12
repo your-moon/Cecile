@@ -633,7 +633,7 @@ impl Compiler {
     }
 
     fn is_have_return_current_compiler(&self) -> bool {
-        for statement in &unsafe { &*self.current_compiler.function }.chunk.ops {
+        for statement in &unsafe { &*self.current_compiler.function }.chunk.op_codes {
             if statement == &op::RETURN {
                 return true;
             }
@@ -703,7 +703,7 @@ impl Compiler {
     }
 
     fn start_loop(&self) -> usize {
-        unsafe { (*self.current_compiler.function).chunk.ops.len() }
+        unsafe { (*self.current_compiler.function).chunk.op_codes.len() }
     }
 
     fn compile_while_stmt(
@@ -711,7 +711,7 @@ impl Compiler {
         (while_, range): (&StatementWhile, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let loop_start = unsafe { (*self.current_compiler.function).chunk.ops.len() };
+        let loop_start = unsafe { (*self.current_compiler.function).chunk.op_codes.len() };
         let cond_type = self.compile_expression(&while_.cond, allocator)?;
         if cond_type != Type::Bool {
             let result = Err((
@@ -732,7 +732,8 @@ impl Compiler {
     fn emit_loop(&mut self, start_idx: usize, span: &Span) -> Result<()> {
         // The extra +3 is to account for the space taken by the instruction and
         // the offset.
-        let offset = unsafe { (*self.current_compiler.function).chunk.ops.len() } + 3 - start_idx;
+        let offset =
+            unsafe { (*self.current_compiler.function).chunk.op_codes.len() } + 3 - start_idx;
         let offset = offset
             .try_into()
             .map_err(|_| (OverflowError::JumpTooLarge.into(), span.clone()))?;
@@ -1130,7 +1131,7 @@ impl Compiler {
             self.compile_expression(&arg, allocator)?;
         }
 
-        let ops = unsafe { &mut (*self.current_compiler.function).chunk.ops };
+        let ops = unsafe { &mut (*self.current_compiler.function).chunk.op_codes };
 
         match ops.len().checked_sub(2) {
             Some(idx) if ops[idx] == op::GET_FIELD => ops[idx] = op::INVOKE,
@@ -1642,22 +1643,23 @@ impl Compiler {
         self.emit_u8(instruction, span);
         self.emit_u8(0xff, span);
         self.emit_u8(0xff, span);
-        unsafe { (*self.current_compiler.function).chunk.ops.len() - 2 }
+        unsafe { (*self.current_compiler.function).chunk.op_codes.len() - 2 }
     }
 
     /// Takes the index of the jump offset to be patched as input, and patches
     /// it to point to the current instruction.
     fn patch_jump(&mut self, offset_idx: usize, span: &Span) -> Result<()> {
         // The extra -2 is to account for the space taken by the offset.
-        let offset = unsafe { (*self.current_compiler.function).chunk.ops.len() - 2 - offset_idx };
+        let offset =
+            unsafe { (*self.current_compiler.function).chunk.op_codes.len() - 2 - offset_idx };
         let offset = offset
             .try_into()
             .map_err(|_| (OverflowError::JumpTooLarge.into(), span.clone()))?;
         let offset = u16::to_le_bytes(offset);
         unsafe {
             [
-                (*self.current_compiler.function).chunk.ops[offset_idx],
-                (*self.current_compiler.function).chunk.ops[offset_idx + 1],
+                (*self.current_compiler.function).chunk.op_codes[offset_idx],
+                (*self.current_compiler.function).chunk.op_codes[offset_idx + 1],
             ] = offset
         };
         Ok(())

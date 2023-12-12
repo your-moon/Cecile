@@ -41,7 +41,7 @@ pub fn parse(
     let mut errors = Vec::new();
     let mut parse_errors = Vec::new();
     let program = match parser.parse(&mut parse_errors, lexer) {
-        Ok(program) => program,
+        Ok(mut program) => program.sort_structs(),
         Err(err) => {
             parse_errors.push(err);
             Program::default()

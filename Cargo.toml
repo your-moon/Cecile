@@ -45,3 +45,5 @@ dirs = { version = "5.0.0" }
 tree-sitter = { version = "0.20.4" }
 tree-sitter-highlight = { version = "0.20.1" }
 nu-ansi-term = { version = "0.47.0"}
+
+ 

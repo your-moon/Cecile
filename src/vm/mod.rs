@@ -122,14 +122,18 @@ impl<'a> VM<'a> {
             closure: self
                 .allocator
                 .alloc(ClosureObject::new(function, Vec::new())),
-            ip: unsafe { (*function).chunk.ops.as_ptr() },
+            ip: unsafe { (*function).chunk.op_codes.as_ptr() },
             stack: self.stack_top,
         };
 
         loop {
             if self.trace {
                 let function = unsafe { &mut *(*self.frame.closure).function };
-                let idx = unsafe { self.frame.ip.offset_from((*function).chunk.ops.as_ptr()) };
+                let idx = unsafe {
+                    self.frame
+                        .ip
+                        .offset_from((*function).chunk.op_codes.as_ptr())
+                };
                 (*function).chunk.debug_op(idx as usize);
             }
 
@@ -918,7 +922,7 @@ impl<'a> VM<'a> {
         }
         let frame = CallFrame {
             closure,
-            ip: (*function).chunk.ops.as_ptr(),
+            ip: (*function).chunk.op_codes.as_ptr(),
             stack: self.peek(arg_count),
         };
         unsafe {
@@ -1208,7 +1212,11 @@ impl<'a> VM<'a> {
 
     fn err(&self, err: impl Into<Error>) -> Result<()> {
         let function = unsafe { (*self.frame.closure).function };
-        let idx = unsafe { self.frame.ip.offset_from((*function).chunk.ops.as_ptr()) } as usize;
+        let idx = unsafe {
+            self.frame
+                .ip
+                .offset_from((*function).chunk.op_codes.as_ptr())
+        } as usize;
         let span = unsafe { (*function).chunk.spans[idx - 1].clone() };
         Err((err.into(), span))
     }

@@ -3,4 +3,19 @@ type Point {
     y: int
 }
 
-let point = Point { x: 1, y: 2 };
+let point = Point();
+point.hi();
+
+impl Point {
+    fn do() {
+        println "do";
+    }
+}
+
+
+impl Point {
+    fn hi() {
+        println "hi";
+    }
+}
+

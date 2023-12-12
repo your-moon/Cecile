@@ -8,9 +8,28 @@ pub type Span = Range<usize>;
 pub type ExprS = Spanned<Expression>;
 pub type StatementS = Spanned<Statement>;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Program {
     pub statements: Vec<StatementS>,
+}
+
+impl Program {
+    pub fn sort_structs(&mut self) -> Self {
+        let mut first_order = vec![];
+        let mut rest = vec![];
+
+        for statement in self.statements.iter() {
+            match statement {
+                (Statement::Struct(_), _) => first_order.push(statement.clone()),
+                (Statement::Impl(_), _) => first_order.push(statement.clone()),
+                _ => rest.push(statement.clone()),
+            }
+        }
+
+        self.statements = first_order;
+        self.statements.append(&mut rest);
+        self.clone()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
