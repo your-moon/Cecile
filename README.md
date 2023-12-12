@@ -38,6 +38,7 @@ Important note: **This project is built for learning purposes**. The code qualit
 - [x]  Control flow statements
 - [x]  Object Oriented Programming
 - [x]  Stack tracing
+- [x]  Repl
 
 ## 🔥 Syntax examples
 
