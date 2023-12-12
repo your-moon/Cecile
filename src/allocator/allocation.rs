@@ -107,7 +107,7 @@ impl CeAllocation {
             if mem::take(unsafe { &mut (*string).main.is_marked }) {
                 false
             } else {
-                unsafe { Box::from_raw(string) };
+                let _ = unsafe { Box::from_raw(string) };
                 true
             }
         });
@@ -145,7 +145,7 @@ impl Drop for CeAllocation {
             object.free();
         }
         for &string in self.strings.values() {
-            unsafe { Box::from_raw(string) };
+            let _ = unsafe { Box::from_raw(string) };
         }
     }
 }

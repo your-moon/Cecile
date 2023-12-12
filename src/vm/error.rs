@@ -308,7 +308,7 @@ trait AsDiagnostic {
     fn as_diagnostic(&self, span: &Span) -> Diagnostic<()>;
 }
 
-fn one_of(tokens: &[String]) -> String {
+fn _one_of(tokens: &[String]) -> String {
     let (token_last, tokens) = match tokens.split_last() {
         Some((token_last, &[])) => return token_last.to_string(),
         Some((token_last, tokens)) => (token_last, tokens),

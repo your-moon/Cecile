@@ -1,6 +1,6 @@
 [package]
 author = "E.Munkherdene"
-name = "cecile"
+name = "Cecile"
 categories = ["programming-language", "compiler", "vm", "interpreter", "language-server"]
 description = "Cecile Programming Language that is designed to be simple, fast"
 edition = "2021"

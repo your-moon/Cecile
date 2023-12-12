@@ -1,5 +1,5 @@
-use cecile::cli::Cli;
+use Cecile::cli::Cli;
 
 fn main() {
-    Cli::run();
+    let _ = Cli::run();
 }

@@ -3,8 +3,7 @@ use std::ops::Not;
 
 use crate::cc_parser::ast::Type;
 
-use super::error::Result;
-use super::object::{Object, StringObject};
+use super::object::Object;
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
 #[repr(C)]

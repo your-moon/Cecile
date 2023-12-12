@@ -1,10 +1,7 @@
 use crate::cc_lexer;
 use crate::vm::error::ErrorS;
 use crate::cc_lexer::Token;
-use crate::cc_parser::ast::Expression;
 use crate::cc_parser::ast;
-use hashbrown::HashMap;
-use crate::cc_parser::ast::Fn;
 use lalrpop_util::ParseError;
 
 grammar<'err>(
