@@ -1,8 +1,12 @@
-use crate::vm::error::report_errors;
-use clap::Subcommand;
+use crate::allocator::allocation::CeAllocation;
+use crate::repl;
+use crate::vm::compiler::Compiler;
+use crate::vm::error::{report_error, ErrorS};
+use anyhow::Result;
+use clap::Parser;
 use std::io::{self, Write};
 
-#[derive(Subcommand)]
+#[derive(Parser)]
 pub enum Commands {
     Run {
         #[arg(value_hint = clap::ValueHint::FilePath, value_name = "INPUT FILE PATH")]
@@ -23,7 +27,7 @@ pub enum Commands {
 }
 
 impl Commands {
-    pub fn run(&self) -> std::io::Result<()> {
+    pub fn run(&self) -> Result<()> {
         match self {
             Commands::Run {
                 file,
@@ -36,21 +40,25 @@ impl Commands {
                 let mut color = termcolor::StandardStream::stderr(termcolor::ColorChoice::Always);
 
                 let stdout = &mut io::stdout().lock();
-                let stderr = &mut io::stderr().lock();
 
-                let mut vm = crate::vm::VM::new(*trace);
-                if let Err(e) = vm.run(source.as_str(), &mut color, *debug, *ast_debug) {
-                    report_errors(stderr, &source, &e);
+                let mut allocation = CeAllocation::new();
+                let mut compiler = Compiler::new(&mut allocation, *debug);
+                let mut vm = crate::vm::VM::new(&mut allocation, *trace);
+                if let Err(e) = vm.run(&source, &mut color, *ast_debug, stdout, &mut compiler) {
+                    report_err(&source, e);
                 }
                 Ok(())
             }
-            Commands::Repl { trace, debug } => {
-                // let mut stdout = termcolor::StandardStream::stdout(termcolor::ColorChoice::Always);
-                // let mut allocator = crate::allocator::allocation::CeAllocation::new();
-                // let mut vm = crate::vm::VM::new(&mut allocator, *trace);
-                // crate::repl::repl(&mut vm, &mut stdout, *debug);
-                Ok(())
-            }
+            Commands::Repl { trace, debug } => repl::run(*trace, *debug),
         }
     }
+}
+fn report_err(source: &str, errors: Vec<ErrorS>) {
+    let mut buffer = termcolor::Buffer::ansi();
+    for err in errors {
+        report_error(&mut buffer, source, &err);
+    }
+    io::stderr()
+        .write_all(buffer.as_slice())
+        .expect("failed to write to stderr");
 }

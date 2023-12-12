@@ -162,6 +162,12 @@ impl Chunk {
         eprintln!("{name:16} {idx:>4} -> {to_idx}");
         idx + 3
     }
+
+    pub fn clear(&mut self) {
+        self.ops.clear();
+        self.constants.clear();
+        self.spans.clear();
+    }
 }
 
 /// Run-length encoded [`Vec`]. Useful for storing data with a lot of contiguous
@@ -179,6 +185,10 @@ impl<T: Eq> VecRun<T> {
             }
             _ => self.values.push(Run { value, count: 1 }),
         };
+    }
+
+    pub fn clear(&mut self) {
+        self.values.clear();
     }
 }
 

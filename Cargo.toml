@@ -40,3 +40,8 @@ anyhow = "1.0.75"
 thiserror = "1.0.49"
 rand = "0.8.5"
 codespan-reporting = "0.11.1"
+reedline = { version = "0.26.0" }
+dirs = { version = "5.0.0" }
+tree-sitter = { version = "0.20.4" }
+tree-sitter-highlight = { version = "0.20.1" }
+nu-ansi-term = { version = "0.47.0"}

@@ -13,13 +13,14 @@ use crate::{
 };
 use rustc_hash::FxHasher;
 use std::hash::BuildHasherDefault;
+use std::io::Write;
 use std::{mem, ptr};
 
 use self::built_in::ArrayMethod;
 use self::compiler::Compiler;
 use self::error::{
-    ArrayError, AttributeError, Error, ErrorS, IndexError, NameError, OverflowError, Result,
-    TypeError,
+    ArrayError, AttributeError, Error, ErrorS, IndexError, IoError, NameError, OverflowError,
+    Result, TypeError,
 };
 use self::obj_array::{ArrayObject, BoundArrayMethodObject};
 use self::object::{
@@ -40,14 +41,14 @@ const FRAMES_MAX: usize = 64;
 const STACK_MAX_PER_FRAME: usize = u8::MAX as usize + 1;
 const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
 
-pub struct VM {
+pub struct VM<'a> {
     stack_top: *mut Value,
     stack: Box<[Value; STACK_MAX]>,
 
     frames: ArrayVec<CallFrame, FRAMES_MAX>,
     frame: CallFrame,
 
-    allocator: CeAllocation,
+    allocator: &'a mut CeAllocation,
     next_gc: usize,
 
     globals: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
@@ -56,12 +57,12 @@ pub struct VM {
     struct_init_method: *mut StringObject,
 
     trace: bool,
+
+    pub source: String,
 }
 
-impl VM {
-    pub fn new(trace: bool) -> VM {
-        let mut allocator = CeAllocation::new();
-
+impl<'a> VM<'a> {
+    pub fn new(allocator: &mut CeAllocation, trace: bool) -> VM {
         let natives = allocator.alloc_natives();
 
         let mut globals = HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
@@ -85,23 +86,35 @@ impl VM {
             next_gc: 1024 * 1024,
             struct_init_method,
             trace,
+            source: String::new(),
         }
     }
 
     pub fn run(
         &mut self,
         source: &str,
-        stdout: &mut StandardStream,
-        debug: bool,
+        color: &mut StandardStream,
         ast_debug: bool,
+        stdout: &mut impl Write,
+        compiler: &mut Compiler,
     ) -> Result<(), Vec<ErrorS>> {
-        let mut compiler = Compiler::new(&mut self.allocator, debug);
-        let function = compiler.compile(source, &mut self.allocator, stdout, ast_debug)?;
-        self.run_function(function).map_err(|e| vec![e])?;
+        let offset = self.source.len();
+
+        self.source.reserve(source.len() + 1);
+        self.source.push_str(source);
+        self.source.push('\n');
+
+        let function =
+            compiler.compile_script(source, offset, &mut self.allocator, color, ast_debug)?;
+        self.run_function(function, stdout).map_err(|e| vec![e])?;
         Ok(())
     }
 
-    pub fn run_function(&mut self, function: *mut ObjectFunction) -> Result<()> {
+    pub fn run_function(
+        &mut self,
+        function: *mut ObjectFunction,
+        stdout: &mut impl Write,
+    ) -> Result<()> {
         self.stack_top = self.stack.as_mut_ptr();
 
         self.frames.clear();
@@ -147,8 +160,8 @@ impl VM {
                 op::MODULO => self.modulo(),
                 op::GREATER_THAN => self.greater(),
                 op::GREATER_THAN_EQUAL => self.greater_equal(),
-                op::PRINT => self.op_print(),
-                op::PRINT_LN => self.op_print_ln(),
+                op::PRINT => self.op_print(stdout),
+                op::PRINT_LN => self.op_print_ln(stdout),
                 op::CALL => self.op_call(),
                 op::CLOSURE => self.closure(),
                 op::LOOP => self.loop_(),
@@ -540,16 +553,22 @@ impl VM {
         Ok(())
     }
 
-    fn op_print(&mut self) -> Result<()> {
-        let value: value::Value = self.pop();
-        print!("{}", value);
-        Ok(())
+    fn op_print(&mut self, stdout: &mut impl Write) -> Result<()> {
+        let value = self.pop();
+        write!(stdout, "{value}").or_else(|_| {
+            self.err(IoError::WriteError {
+                file: "stdout".to_string(),
+            })
+        })
     }
 
-    fn op_print_ln(&mut self) -> Result<()> {
-        let value: value::Value = self.pop();
-        println!("{}", value);
-        Ok(())
+    fn op_print_ln(&mut self, stdout: &mut impl Write) -> Result<()> {
+        let value = self.pop();
+        writeln!(stdout, "{value}").or_else(|_| {
+            self.err(IoError::WriteError {
+                file: "stdout".to_string(),
+            })
+        })
     }
 
     fn op_pop(&mut self) -> Result<()> {

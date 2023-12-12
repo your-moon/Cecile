@@ -14,18 +14,27 @@ use crate::{
 
 use self::ast::Program;
 
+pub fn is_complete(source: &str) -> bool {
+    let lexer = Lexer::new(source);
+    let parser = grammar::ProgramParser::new();
+    let mut errors = Vec::new();
+    if let Err(e) = parser.parse(&mut errors, lexer) {
+        errors.push(e);
+    };
+    !errors
+        .iter()
+        .any(|e| matches!(e, ParseError::UnrecognizedEof { .. }))
+}
+
 pub fn parse(
     source: &str,
+    offset: usize,
     ast_debug: bool,
     globals: &mut CompilerGlobals,
 ) -> Result<Program, Vec<ErrorS>> {
     let lexer = Lexer::new(source).map(|token| match token {
-        Ok((l, token, r)) => {
-            return Ok((l, token, r));
-        }
-        Err((err, span)) => {
-            return Err((err, span));
-        }
+        Ok((l, token, r)) => Ok((l + offset, token, r + offset)),
+        Err((e, span)) => Err((e, span.start + offset..span.end + offset)),
     });
     let parser = grammar::ProgramParser::new();
 

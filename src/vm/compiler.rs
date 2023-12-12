@@ -222,20 +222,21 @@ impl Compiler {
         }
     }
 
-    pub fn compile(
+    pub fn compile_script(
         &mut self,
         source: &str,
+        offset: usize,
         allocator: &mut CeAllocation,
         stdout: &mut StandardStream,
         ast_debug: bool,
     ) -> Result<*mut ObjectFunction, Vec<ErrorS>> {
-        let program = parse(source, ast_debug, &mut self.globals)?;
+        unsafe { (*self.current_compiler.function).chunk.clear() }
+
+        let program = parse(source, offset, ast_debug, &mut self.globals)?;
 
         for statement in &program.statements {
-            let type_ = self.compile_statement(statement, allocator);
-            if let Err(e) = type_ {
-                return Err(vec![e]);
-            }
+            self.compile_statement(statement, allocator)
+                .map_err(|e| vec![e])?;
         }
 
         self.emit_u8(op::NIL, &(0..0));

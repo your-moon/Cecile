@@ -135,7 +135,10 @@ impl AsDiagnostic for NameError {
 }
 
 #[derive(Debug, Error, Eq, PartialEq)]
-pub enum IoError {}
+pub enum IoError {
+    #[error("unable to write to file: {file:?}")]
+    WriteError { file: String },
+}
 
 impl AsDiagnostic for IoError {
     fn as_diagnostic(&self, span: &Span) -> Diagnostic<()> {
