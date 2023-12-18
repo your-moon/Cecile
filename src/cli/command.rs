@@ -7,6 +7,12 @@ use clap::Parser;
 use std::io::{self, Write};
 
 #[derive(Parser)]
+#[command(
+    name = "cecile",
+    version = env!("CARGO_PKG_VERSION"),
+    author = env!("CARGO_PKG_AUTHORS"),
+    about = "A Cecile programming language"
+)]
 pub enum Commands {
     Run {
         /// The file path

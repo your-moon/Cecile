@@ -1,20 +1,20 @@
 [package]
 author = "E.Munkherdene"
 name = "Cecile"
-categories = ["programming-language", "compiler", "vm", "interpreter", "language-server"]
+categories = ["programming-language", "compilers", "vm", "interpreter", "language-server"]
 description = "Cecile Programming Language that is designed to be simple, fast"
 edition = "2021"
 keywords = [
     "compiler",
     "interpreter",
-    "language",
+    "programming-language",
     "cecile",
     "vm",
 ]
 license = "MIT"
 repository = "https://github.com/Hollowloki/Cecile"
 rust-version = "1.74"
-version = "0.1.1"
+version = "0.1.2"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
