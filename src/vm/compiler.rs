@@ -1137,7 +1137,7 @@ impl Compiler {
     /// [Stable]
     /// [Not Tested]
     /// # Examples
-    /// ```
+    /// ```no_run
     /// let value: String = "string";
     /// value = "change";
     ///

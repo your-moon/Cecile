@@ -237,10 +237,7 @@ mod tests {
                         ast::Expression::Infix(Box::new(ast::ExprInfix {
                             lhs: (
                                 ast::Expression::Var(ast::ExprVar {
-                                    var: ast::Var {
-                                        name: "i".to_string(),
-                                        type_: None
-                                    }
+                                    name: "i".to_string(),
                                 }),
                                 15..16
                             ),
@@ -263,10 +260,7 @@ mod tests {
                                 Expression::Infix(Box::new(ExprInfix {
                                     lhs: (
                                         Expression::Var(ast::ExprVar {
-                                            var: ast::Var {
-                                                name: "i".to_string(),
-                                                type_: None
-                                            }
+                                            name: "i".to_string(),
                                         }),
                                         23..24
                                     ),
@@ -385,10 +379,7 @@ mod tests {
                 &ast::Statement::Return(ast::StatementReturn {
                     value: Some((
                         ast::Expression::Var(ast::ExprVar {
-                            var: ast::Var {
-                                name: "something".to_string(),
-                                type_: None
-                            }
+                            name: "something".to_string(),
                         }),
                         7..16
                     ))
