@@ -20,6 +20,7 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+pprof = ["dep:pprof"]
 
 [build-dependencies] # <-- We added this and everything after!
 lalrpop = "0.20.0"
@@ -47,3 +48,9 @@ tree-sitter-highlight = { version = "0.20.1" }
 nu-ansi-term = { version = "0.47.0"}
 
  
+pprof = { version = "0.13.0", features = [
+    "cpp",
+    "flamegraph",
+    "prost-codec",
+], optional = true }
+

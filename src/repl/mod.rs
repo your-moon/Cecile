@@ -9,7 +9,7 @@ use std::borrow::Cow;
 
 use crate::{
     allocator::allocation::CeAllocation,
-    vm::{compiler::Compiler, error::report_errors},
+    vm::{compiler::Compiler, error::report_errors, VM},
 };
 
 pub fn run(trace: bool, debug: bool) -> Result<()> {
@@ -18,7 +18,7 @@ pub fn run(trace: bool, debug: bool) -> Result<()> {
 
     let mut allocator = CeAllocation::new();
     let mut compiler = Compiler::new(&mut allocator, debug);
-    let mut vm = crate::vm::VM::new(&mut allocator, trace);
+    let mut vm = VM::new(&mut allocator, trace);
 
     let stdout = &mut io::stdout().lock();
     let stderr = &mut io::stderr().lock();

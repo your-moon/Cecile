@@ -104,9 +104,35 @@ impl<'a> VM<'a> {
         self.source.push_str(source);
         self.source.push('\n');
 
+        #[cfg(feature = "pprof")]
+        let guard = pprof::ProfilerGuardBuilder::default()
+            .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+            .build()
+            .expect("could not start pprof");
+
         let function =
             compiler.compile_script(source, offset, &mut self.allocator, color, ast_debug)?;
+
         self.run_function(function, stdout).map_err(|e| vec![e])?;
+
+        #[cfg(feature = "pprof")]
+        {
+            let report = guard
+                .report()
+                .build()
+                .expect("error generating profiler report");
+            let file =
+                std::fs::File::create("flamegraph.svg").expect("could not create flamegraph file");
+            report
+                .flamegraph(file)
+                .expect("error writing to flamegraph file");
+
+            let profile = report.pprof().expect("error generating pprof report");
+            let mut content = Vec::new();
+            pprof::protos::Message::encode(&profile, &mut content)
+                .expect("error encoding pprof report");
+            std::fs::write("profile.pb", content).expect("error writing pprof report to file");
+        }
         Ok(())
     }
 
@@ -138,9 +164,9 @@ impl<'a> VM<'a> {
             }
 
             match self.read_u8() {
-                op::ARRAY_ACCESS => self.op_array_access(),
-                op::ARRAY_ACCESS_ASSIGN => self.op_array_access_assign(),
-                op::ARRAY => self.op_array(),
+                op::BINARY_GETELEM => self.op_binary_getelem(),
+                op::ARRAY_ELEM_ASSIGN => self.op_array_elem_assign(),
+                op::BUILD_ARRAY => self.op_build_array(),
                 op::GET_ARRAY_METHOD => self.op_get_array_method(),
                 op::GET_SUPER => self.op_get_super(),
                 op::INHERIT => self.op_inherit(),
@@ -225,7 +251,7 @@ impl<'a> VM<'a> {
         }
     }
 
-    fn op_array_access_assign(&mut self) -> Result<()> {
+    fn op_array_elem_assign(&mut self) -> Result<()> {
         let value = self.pop();
         let index = self.pop();
         let array = self.pop();
@@ -270,7 +296,7 @@ impl<'a> VM<'a> {
         self.push(value);
         Ok(())
     }
-    fn op_array_access(&mut self) -> Result<()> {
+    fn op_binary_getelem(&mut self) -> Result<()> {
         let index = self.pop();
         let array = self.pop();
         let len = match array.as_object().type_() {
@@ -315,7 +341,7 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn op_array(&mut self) -> Result<()> {
+    fn op_build_array(&mut self) -> Result<()> {
         let arg_count = self.read_u8() as usize;
         let mut array = Vec::with_capacity(arg_count);
         for i in 0..arg_count {

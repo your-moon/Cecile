@@ -23,9 +23,9 @@ Decl = {
 }
 
 DeclImpl: ast::Statement = {
-   "impl" <name:identifier> <super_:("<" <Spanned<ExprVar>>)?> "{" <methods:Spanned<DeclFun>*> "}" => 
+   "impl" <name:identifier> <super_:("<" <identifier>)?> "{" <methods:Spanned<DeclFun>*> "}" => 
         ast::Statement::Impl(ast::StatementImpl { <> }),
-   "impl" <name:identifier> <super_:("<" <Spanned<ExprVar>>)?> ";" => 
+   "impl" <name:identifier> <super_:("<" <identifier>)?> ";" => 
         ast::Statement::Impl(ast::StatementImpl { name, super_, methods: Vec::new() }),
 }
 
@@ -125,7 +125,10 @@ Params: Vec<(String, Option<ast::Type>)> = {
 
 Param: (String, Option<ast::Type>) = {
   <string_:identifier> <type_:(":" <Types>)?> =>
-    (string_,type_)
+    (string_,type_),
+    <self_:"self"> <type_:(":" <Types>)?> =>
+    ("self".to_string(), None)
+
 }
 
 
@@ -322,7 +325,7 @@ Types: ast::Type = {
   "nil" => ast::Type::Nil,
   "fn" <return_type:("->" <Types>)?> => ast::Type::Fn(ast::Fn { return_type: Box::new(return_type) }),
   <name:identifier> => ast::Type::Struct(name),
-  ArrayType
+  ArrayType,
 }
 
 ArrayType: ast::Type = {
@@ -332,12 +335,11 @@ ArrayType: ast::Type = {
 
 
 ExprVar: ast::Expression = <name:identifier> =>
-  ast::Expression::Var(ast::ExprVar { var: ast::Var {name, type_: None} });
+  ast::Expression::Var(ast::ExprVar { name: name });
 
-ExprSelf: ast::Expression = "self" => ast::Expression::Var(ast::ExprVar { var: ast::Var {
-    name: "self".to_string(),
-    type_: None,
-}});
+ExprSelf: ast::Expression = "self" => ast::Expression::Var(ast::ExprVar {
+    name: "self".to_string()
+});
 
 
 

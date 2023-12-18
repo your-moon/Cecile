@@ -1,0 +1,25 @@
+type Point;
+type Shape;
+
+impl Point {
+    fn do() {
+        self.to();
+    }
+
+    fn to() {
+
+    }
+}
+
+impl Shape < Point {
+    fn shape() {
+
+    } 
+
+    fn width() {
+
+    }
+}
+
+let shape = Shape();
+shape.do();

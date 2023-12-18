@@ -64,7 +64,7 @@ impl Statement {
 #[derive(Clone, Debug, PartialEq)]
 pub struct StatementImpl {
     pub name: String,
-    pub super_: Option<ExprS>,
+    pub super_: Option<String>,
     pub methods: Vec<Spanned<Statement>>,
 }
 
@@ -310,7 +310,7 @@ impl Display for OpPrefix {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExprVar {
-    pub var: Var,
+    pub name: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]

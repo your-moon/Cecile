@@ -352,56 +352,54 @@ impl Compiler {
 
         let mut super_methods = Vec::new();
         if has_super {
-            let super_name = impl_
-                .super_
-                .as_ref()
-                .unwrap()
-                .0
-                .as_var()
-                .unwrap()
-                .var
-                .name
-                .clone();
+            let super_name = impl_.super_.clone().unwrap();
             let super_struct = self.find_struct_mut(&super_name, &range)?;
             super_methods = super_struct.methods.clone();
         }
 
         let current_struct = self.get_current_struct_mut(&range)?;
+        current_struct.has_super = has_super;
+        // add super methods to current struct
         current_struct.methods = super_methods;
 
-        let methods = impl_.methods.clone();
-
-        let current_struct = self.get_current_struct_mut(&range)?;
-        current_struct.has_super = has_super;
-
         if let Some(super_) = &impl_.super_ {
-            match &super_.0 {
-                Expression::Var(var) => {
-                    if var.var.name == impl_.name {
-                        return Err((
-                            NameError::StructInheritFromItSelf {
-                                name: impl_.name.to_string(),
-                            }
-                            .into(),
-                            range.clone(),
-                        ));
+            if super_ == &impl_.name {
+                return Err((
+                    NameError::StructInheritFromItSelf {
+                        name: impl_.name.to_string(),
                     }
-                }
-                _ => unreachable!(),
-            };
-            let super_name = super_.0.as_var().unwrap().var.name.clone();
+                    .into(),
+                    range.clone(),
+                ));
+            }
 
             self.begin_scope();
-            self.declare_local("super", &Type::Struct(super_name), &(0..0))?;
+            self.declare_local("super", &Type::Struct(super_.clone()), &(0..0))?;
             self.define_local();
 
-            self.compile_expression(super_, allocator)?;
+            self.get_variable(&super_, range, allocator)?;
             self.get_variable(&impl_.name, range, allocator)?;
             self.emit_u8(op::INHERIT, range);
         }
 
+        let methods = impl_.methods.clone();
+
         if !impl_.methods.is_empty() {
             self.get_variable(&impl_.name, &range, allocator)?;
+            // for CompileTime info
+            for (method, _) in &methods {
+                let method = method.as_fun().unwrap();
+                let strct_method = StructMethod {
+                    name: method.name.clone(),
+                    return_type: Type::Fn(Fn {
+                        return_type: Box::new(method.return_type.clone()),
+                    }),
+                };
+                let current_struct = self.get_current_struct_mut(&range)?;
+                current_struct.methods.push(strct_method);
+            }
+
+            // For Runtime Emit
             for (method, span) in &methods {
                 let method = method.as_fun().unwrap();
                 let type_ = if method.name == "new" {
@@ -409,21 +407,11 @@ impl Compiler {
                 } else {
                     FunctionType::Method
                 };
-                self.compile_statement_fun((&method, span), type_, allocator)?;
+                self.compile_statement_fun((&method, &range), type_, allocator)?;
 
                 let name = allocator.alloc(&method.name).into();
                 self.emit_u8(op::METHOD, span);
                 self.emit_constant(name, span)?;
-
-                let strct_method = StructMethod {
-                    name: method.name.clone(),
-                    return_type: Type::Fn(Fn {
-                        return_type: Box::new(method.return_type.clone()),
-                    }),
-                };
-
-                let current_struct = self.get_current_struct_mut(&range)?;
-                current_struct.methods.push(strct_method);
             }
             self.emit_u8(op::POP, &range);
         }
@@ -588,13 +576,17 @@ impl Compiler {
                     self.declare_local(param_string, t, &range)?;
                 }
                 None => {
-                    let spanned_error = Err((
-                        Error::SyntaxError(SyntaxError::ParamMustHaveType {
-                            name: param_string.to_string(),
-                        }),
-                        range.clone(),
-                    ));
-                    return spanned_error;
+                    println!("param_string: {}", param_string);
+                    if param_string == "self" {
+                    } else {
+                        let spanned_error = Err((
+                            Error::SyntaxError(SyntaxError::ParamMustHaveType {
+                                name: param_string.to_string(),
+                            }),
+                            range.clone(),
+                        ));
+                        return spanned_error;
+                    }
                 }
             }
             self.define_local();
@@ -914,7 +906,7 @@ impl Compiler {
         let array_type = self.compile_expression(&arr_access_assign.array, allocator)?;
         self.compile_expression(&arr_access_assign.index, allocator)?;
         self.compile_expression(&arr_access_assign.value, allocator)?;
-        self.emit_u8(op::ARRAY_ACCESS_ASSIGN, &range);
+        self.emit_u8(op::ARRAY_ELEM_ASSIGN, &range);
         Ok(array_type)
     }
 
@@ -932,7 +924,7 @@ impl Compiler {
             ));
             return result;
         }
-        self.emit_u8(op::ARRAY_ACCESS, &range);
+        self.emit_u8(op::BINARY_GETELEM, &range);
         Ok(array_type.get_array_type().unwrap())
     }
 
@@ -957,7 +949,7 @@ impl Compiler {
                 return result;
             }
         }
-        self.emit_u8(op::ARRAY, &range);
+        self.emit_u8(op::BUILD_ARRAY, &range);
         self.emit_u8(arr.elements.len() as u8, &range);
         return Ok(array_type);
     }
@@ -1181,7 +1173,7 @@ impl Compiler {
 
         match lhs {
             Some(lhs_type) => {
-                // This means lhs can uninitialized
+                // This means lhs can be uninitialized
                 if lhs_type != rhs_type
                     && !lhs_type.is_array()
                     && !(lhs_type == Type::UnInitialized)
@@ -1379,7 +1371,7 @@ impl Compiler {
         (prefix, range): (&ExprVar, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let name = &prefix.var.name;
+        let name = &prefix.name;
         self.get_variable(name, &range, allocator)
     }
 

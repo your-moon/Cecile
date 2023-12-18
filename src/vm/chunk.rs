@@ -50,9 +50,9 @@ impl Chunk {
     pub fn debug_op(&self, idx: usize) -> usize {
         eprint!("{idx:04} ");
         match self.op_codes[idx] {
-            op::ARRAY => self.debug_op_byte("ARRAY", idx),
-            op::ARRAY_ACCESS => self.debug_op_simple("ARRAY_ACCESS", idx),
-            op::ARRAY_ACCESS_ASSIGN => self.debug_op_simple("ARRAY_ACCESS_ASSIGN", idx),
+            op::BUILD_ARRAY => self.debug_op_byte("BUILD_ARRAY", idx),
+            op::BINARY_GETELEM => self.debug_op_simple("BINARY_GETELEM", idx),
+            op::ARRAY_ELEM_ASSIGN => self.debug_op_simple("ARRAY_ELEM_ASSIGN", idx),
             op::GET_ARRAY_METHOD => self.debug_op_byte("GET_ARRAY_METHOD", idx),
             op::GET_COPY_ARRAY => self.debug_op_simple("GET_COPY_ARRAY", idx),
             op::CECILE_CONSTANT => self.debug_op_constant("OP_CONSTANT", idx),

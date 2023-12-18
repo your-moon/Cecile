@@ -2,9 +2,9 @@ use iota::iota;
 iota! {
     pub const
     CECILE_CONSTANT: u8 = iota;,
-    ARRAY,
-    ARRAY_ACCESS,
-    ARRAY_ACCESS_ASSIGN,
+    BUILD_ARRAY,
+    BINARY_GETELEM,
+    ARRAY_ELEM_ASSIGN,
     GET_ARRAY_METHOD,
     GET_COPY_ARRAY,
     ADD,
