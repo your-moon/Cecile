@@ -113,6 +113,12 @@ impl<'a> VM<'a> {
         let function =
             compiler.compile_script(source, offset, &mut self.allocator, color, ast_debug)?;
 
+        for function in &compiler.functions {
+            let function = unsafe { &mut (**function) };
+            let function_name = unsafe { (*function.name).value };
+            function.chunk.debug(&function_name);
+        }
+
         self.run_function(function, stdout).map_err(|e| vec![e])?;
 
         #[cfg(feature = "pprof")]

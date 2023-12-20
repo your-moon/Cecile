@@ -1,58 +1,56 @@
 use iota::iota;
 iota! {
     pub const
-    CECILE_CONSTANT: u8 = iota;,
-    BUILD_ARRAY,
-    BINARY_GETELEM,
-    ARRAY_ELEM_ASSIGN,
-    GET_ARRAY_METHOD,
+    CECILE_CONSTANT: u8 = iota;, // 2 byte [CECILE_CONSTANT, CONSTANT_IDX]
+    BUILD_ARRAY, // 2 byte [BUILD_ARRAY, ARRAY_SIZE]
+    BINARY_GETELEM, // 1 byte [BINARY_GETELEM]
+    ARRAY_ELEM_ASSIGN, // 1 byte [ARRAY_ELEM_ASSIGN]
+    GET_ARRAY_METHOD, // 2 byte  [GET_ARRAY_METHOD, METHOD_IDX-IN_CONSTANT]
     GET_COPY_ARRAY,
-    ADD,
-    MODULO,
-    POP,
-    PRINT,
-    PRINT_LN,
-    SUB,
-    MUL,
-    DIV,
-    EQUAL,
-    NOT_EQUAL,
-    LESS_THAN,
-    LESS_THAN_EQUAL,
-    GREATER_THAN,
-    GREATER_THAN_EQUAL,
-    AND,
-    OR,
-    NOT,
-    NEG,
-    TRUE,
-    FALSE,
-    NIL,
-    RETURN,
-    DEFINE_GLOBAL,
-    GET_GLOBAL,
-    SET_GLOBAL,
-    GET_LOCAL,
-    SET_LOCAL,
-    JUMP_IF_FALSE,
-    JUMP,
-    LOOP,
-    CALL,
-    CLOSURE,
-    GET_UPVALUE,
-    SET_UPVALUE,
-    CONCAT,
-    CLOSE_UPVALUE,
-    METHOD,
-    STRUCT,
-    FIELD,
-    GET_FIELD,
-    SET_FIELD,
-    INVOKE,
-    SUPER_INVOKE,
-    INHERIT,
-    GET_SUPER
-
-
+    ADD, // 1 byte [ADD]
+    MODULO, // 1 byte [MODULO]
+    POP, // 1 byte [POP]
+    PRINT, // 1 byte [PRINT]
+    PRINT_LN, // 1 byte [PRINT_LN]
+    SUB, // 1 byte [SUB]
+    MUL, // 1 byte [MUL]
+    DIV, // 1 byte [DIV]
+    EQUAL, // 1 byte [EQUAL]
+    NOT_EQUAL, // 1 byte [NOT_EQUAL]
+    LESS_THAN, // 1 byte [LESS_THAN]
+    LESS_THAN_EQUAL, // 1 byte [LESS_THAN_EQUAL]
+    GREATER_THAN, // 1 byte [GREATER_THAN]
+    GREATER_THAN_EQUAL, // 1 byte [GREATER_THAN_EQUAL]
+    AND, // 1 byte [AND]
+    OR, // 1 byte [OR]
+    NOT, // 1 byte [NOT]
+    NEG, // 1 byte [NEG]
+    TRUE, // 1 byte [TRUE]
+    FALSE, // 1 byte [FALSE]
+    NIL, // 1 byte [NIL]
+    RETURN, // 1 byte [RETURN]
+    DEFINE_GLOBAL, // 2 byte [DEFINE_GLOBAL, GLOBAL_IDX]
+    GET_GLOBAL, // 2 byte [GET_GLOBAL, GLOBAL_IDX]
+    SET_GLOBAL, // 2 byte [SET_GLOBAL, GLOBAL_IDX]
+    GET_LOCAL, // 1 byte [GET_LOCAL, LOCAL_IDX]
+    SET_LOCAL, // 1 byte [SET_LOCAL, LOCAL_IDX]
+    JUMP_IF_FALSE, // 2 byte [JUMP_IF_FALSE, JUMP_IDX]
+    JUMP, // 2 byte [JUMP, JUMP_IDX]
+    LOOP, // 2 byte [LOOP, JUMP_IDX]
+    CALL, // 2 byte [CALL, NUM_ARGS]
+    CLOSURE, // dynamic byte [CLOSURE, FUNCTION_IDX, ISLOCAL_1, UPVALUE_IDX_1, ISLOCAL_2, UPVALUE_IDX_2, ...]
+    GET_UPVALUE, // 2 byte [GET_UPVALUE, UPVALUE_IDX]
+    SET_UPVALUE, // 2 byte [SET_UPVALUE, UPVALUE_IDX]
+    CONCAT, // 1 byte [CONCAT]
+    CLOSE_UPVALUE, // 1 byte [CLOSE_UPVALUE]
+    METHOD, // 2 byte [METHOD, METHOD_IDX]
+    STRUCT, // 2 byte [STRUCT, STRUCT_IDX]
+    FIELD, // 2 byte [FIELD, FIELD_IDX]
+    GET_FIELD, // 2 byte [GET_FIELD, FIELD_IDX]
+    SET_FIELD, // 2 byte [SET_FIELD, FIELD_IDX]
+    INVOKE, // 2 byte [INVOKE, ARG_COUNT]
+    SUPER_INVOKE, // 2 byte [SUPER_INVOKE, ARG_COUNT]
+    INHERIT, // 1 byte [INHERIT]
+    GET_SUPER // 2 byte [GET_SUPER, METHOD_IDX]
 
 }
