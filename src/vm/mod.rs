@@ -6,6 +6,7 @@ use termcolor::StandardStream;
 
 use crate::allocator::GLOBAL;
 use crate::cc_parser::ast::Type;
+use crate::vm::optimizer::Optimizer;
 use crate::vm::value::Value;
 use crate::{
     allocator::allocation::{CeAlloc, CeAllocation},
@@ -35,6 +36,7 @@ pub mod error;
 pub mod obj_array;
 pub mod object;
 pub mod op;
+pub mod optimizer;
 pub mod value;
 
 const FRAMES_MAX: usize = 64;
@@ -116,7 +118,30 @@ impl<'a> VM<'a> {
         for function in &compiler.functions {
             let function = unsafe { &mut (**function) };
             let function_name = unsafe { (*function.name).value };
-            function.chunk.debug(&function_name);
+            let mut optim = Optimizer::new(function.chunk.clone());
+            optim.iterate_opcodes();
+            // let mut i = 0;
+            // for codes in &optim.counted_chunk.op_codes {
+            //     println!("{i}: {:?}", codes);
+            //     i += 1;
+            // }
+            // println!("---------------------------------------");
+            optim.counted_chunk.constant_propagation();
+            optim.counted_chunk.constant_folding();
+            let optimized_opcodes = optim.counted_chunk.build_opcode_u8();
+            // let mut i = 0;
+            // for codes in &optim.counted_chunk.op_codes {
+            //     println!("{i}: {:?}", codes);
+            //     i += 1;
+            // }
+            // println!("constants: {:?}", optim.counted_chunk.constants);
+
+            if ast_debug {
+                function.chunk.op_codes = optimized_opcodes;
+                function.chunk.constants = optim.counted_chunk.constants;
+                function.chunk.spans = optim.counted_chunk.spans;
+                function.chunk.debug(&function_name);
+            }
         }
 
         self.run_function(function, stdout).map_err(|e| vec![e])?;

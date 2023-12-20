@@ -62,11 +62,21 @@ impl Display for Local {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Upvalue {
     type_: Type,
     index: u8,
     is_local: bool,
+}
+
+impl Upvalue {
+    pub fn new(type_: Type, index: u8, is_local: bool) -> Self {
+        Self {
+            type_,
+            index,
+            is_local,
+        }
+    }
 }
 
 pub struct CompilerCell {

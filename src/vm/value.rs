@@ -137,7 +137,7 @@ impl Display for Value {
         } else if self.is_number() {
             write!(f, "{}", self.as_number())
         } else if self.is_string() {
-            write!(f, "'{}'", self.as_object())
+            write!(f, "\"{}\"", self.as_object())
         } else if self.is_object() {
             write!(f, "{}", self.as_object())
         } else {

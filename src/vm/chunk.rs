@@ -1,147 +1,21 @@
 use arrayvec::ArrayVec;
 use std::{collections::HashMap, ops::Index};
 
-use crate::cc_parser::ast::Span;
+use super::compiler::Upvalue;
+use super::error::{OverflowError, Result};
+use super::object::ObjectFunction;
+use crate::cc_parser::ast::{Span, Type};
 use crate::vm::op;
 use crate::vm::value::Value;
 
-use super::error::{OverflowError, Result};
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct ChunkCtx<'a> {
-    pub op_code: &'a u8,
-    pub value: Option<&'a Value>,
-    pub next: usize,
-    pub prev: usize,
-}
-
-impl<'a> ChunkCtx<'a> {
-    pub fn new(op_code: &'a u8, value: Option<&'a Value>) -> Self {
-        Self {
-            op_code,
-            value,
-            next: 0,
-            prev: 0,
-        }
-    }
-}
-
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Chunk {
     pub op_codes: Vec<u8>,
     pub constants: ArrayVec<Value, 256>,
     pub spans: VecRun<Span>,
-    pos: usize,
-    jump: Vec<u8>,
 }
 
 impl Chunk {
-    pub fn is_end(&self) -> bool {
-        self.pos >= self.op_codes.len() - 1
-    }
-    pub fn current(&self) -> Option<ChunkCtx> {
-        if self.pos > self.op_codes.len() - 1 {
-            return None;
-        }
-        match self.op_codes[self.pos] {
-            op::CECILE_CONSTANT => {
-                let constant_idx = &self.op_codes[self.pos + 1];
-                let constant = &self.constants[*constant_idx as usize];
-                let current_op_code = &self.op_codes[self.pos];
-                Some(ChunkCtx::new(current_op_code, Some(constant)))
-            }
-            op::ADD => {
-                let current_op_code = &self.op_codes[self.pos];
-                Some(ChunkCtx::new(current_op_code, None))
-            }
-            op::RETURN => {
-                let current_op_code = &self.op_codes[self.pos];
-                Some(ChunkCtx::new(current_op_code, None))
-            }
-            op::POP => {
-                let current_op_code = &self.op_codes[self.pos];
-                Some(ChunkCtx::new(current_op_code, None))
-            }
-            op::NIL => {
-                let current_op_code = &self.op_codes[self.pos];
-                Some(ChunkCtx::new(current_op_code, None))
-            }
-            op::PRINT => {
-                let current_op_code = &self.op_codes[self.pos];
-                Some(ChunkCtx::new(current_op_code, None))
-            }
-            op::PRINT_LN => {
-                let current_op_code = &self.op_codes[self.pos];
-                Some(ChunkCtx::new(current_op_code, None))
-            }
-            op::SUB => {
-                let current_op_code = &self.op_codes[self.pos];
-                Some(ChunkCtx::new(current_op_code, None))
-            }
-            _ => None,
-        }
-    }
-    pub fn next(&mut self) -> Option<()> {
-        if self.is_end() {
-            return None;
-        }
-
-        match self.op_codes.get(self.pos) {
-            Some(&op::CECILE_CONSTANT) => {
-                self.pos += 2;
-                self.jump.push(2);
-                Some(())
-            }
-            Some(&op::ADD) => {
-                self.pos += 1;
-                self.jump.push(1);
-                Some(())
-            }
-            Some(&op::RETURN) => {
-                self.pos += 1;
-                self.jump.push(1);
-                Some(())
-            }
-            Some(&op::POP) => {
-                self.pos += 1;
-                self.jump.push(1);
-                Some(())
-            }
-            Some(&op::NIL) => {
-                self.pos += 1;
-                self.jump.push(1);
-                Some(())
-            }
-            Some(&op::PRINT) => {
-                self.pos += 1;
-                self.jump.push(1);
-                Some(())
-            }
-            Some(&op::PRINT_LN) => {
-                self.pos += 1;
-                self.jump.push(1);
-                Some(())
-            }
-            Some(&op::SUB) => {
-                self.pos += 1;
-                self.jump.push(1);
-                Some(())
-            }
-            Some(_) => None,
-            None => None,
-        }
-    }
-
-    pub fn prev(&mut self) -> Option<()> {
-        let jump = self.jump.pop();
-        match jump {
-            Some(jump) => {
-                self.pos -= jump as usize;
-                Some(())
-            }
-            None => None,
-        }
-    }
     pub fn write_u8(&mut self, byte: u8, span: &Span) {
         self.op_codes.push(byte);
         self.spans.push(span.clone());
@@ -165,133 +39,7 @@ impl Chunk {
         };
         Ok(idx.try_into().expect("constant index overflow"))
     }
-    //
-    // pub fn constant_folding(&mut self) {
-    //     let mut idx = 0;
-    //     while idx < self.op_codes.len() {
-    //         idx = self.constant_folding_op(idx);
-    //     }
-    // }
-    //
-    // pub fn constant_folding_op(&mut self, idx: usize) -> usize {
-    //     match self.op_code_names[idx] {
-    //         op::ADD | op::SUB | op::MUL | op::DIV => {
-    //             let left = if self.op_code_names[idx - 2] == op::CECILE_CONSTANT {
-    //                 println!("op: {:?}", self.op_codes[idx]);
-    //                 println!("left: {:?}", self.op_codes[idx - 4]);
-    //                 let constant_idx = self.op_codes[idx - 3] as usize;
-    //                 self.constants[constant_idx]
-    //             } else {
-    //                 return idx + 1;
-    //             };
-    //
-    //             let right = if self.op_code_names[idx - 1] == op::CECILE_CONSTANT {
-    //                 self.constants[self.op_codes[idx - 1] as usize]
-    //             } else {
-    //                 return idx + 1;
-    //             };
-    //
-    //             let result = match self.op_codes[idx] {
-    //                 op::ADD => left.as_number() + right.as_number(),
-    //                 op::SUB => left.as_number() - right.as_number(),
-    //                 op::MUL => left.as_number() * right.as_number(),
-    //                 op::DIV => left.as_number() / right.as_number(),
-    //                 _ => unreachable!(),
-    //             };
-    //             let result = result.into();
-    //             let constant_idx = self
-    //                 .constants
-    //                 .iter()
-    //                 .position(|&constant| constant == result)
-    //                 .unwrap_or_else(|| {
-    //                     if self.constants.len() < self.constants.capacity() {
-    //                         self.constants.push(result);
-    //                         self.constants.len() - 1
-    //                     } else {
-    //                         panic!("too many constants")
-    //                     }
-    //                 });
-    //
-    //             // Replace the operation with a CONSTANT operation
-    //             self.op_codes[idx - 4] = op::CECILE_CONSTANT;
-    //             self.op_codes[idx - 3] = constant_idx as u8;
-    //             // Remove the second CONSTANT operation and the original operation
-    //             self.op_codes.drain(idx - 2..=idx);
-    //
-    //             idx - 2
-    //         }
-    //         // op::BUILD_ARRAY
-    //         // | op::GET_ARRAY_METHOD
-    //         // | op::CECILE_CONSTANT
-    //         // | op::GET_LOCAL
-    //         // | op::SET_LOCAL
-    //         // | op::SET_GLOBAL
-    //         // | op::GET_UPVALUE
-    //         // | op::SET_UPVALUE
-    //         // | op::GET_FIELD
-    //         // | op::SET_FIELD
-    //         // | op::GET_SUPER
-    //         // | op::CALL
-    //         // | op::STRUCT
-    //         // | op::FIELD
-    //         // | op::METHOD => idx + 2,
-    //         // op::INVOKE | op::SUPER_INVOKE => idx + 3,
-    //         // op::JUMP | op::JUMP_IF_FALSE | op::LOOP => idx + 3,
-    //         _ => idx + 1,
-    //     }
-    // }
-    //
-    // pub fn constant_propagation(&mut self) {
-    //     let mut constants = HashMap::new();
-    //     let mut idx = 0;
-    //     while idx < self.op_codes.len() {
-    //         match self.op_codes[idx] {
-    //             op::DEFINE_GLOBAL => {
-    //                 if self.op_codes[idx - 2] == op::CECILE_CONSTANT {
-    //                     let constant_idx = self.op_codes[idx - 1] as usize;
-    //
-    //                     let code = self.op_codes[idx + 1];
-    //                     let constant = self.constants[code as usize];
-    //                     let global_name = unsafe { (*constant.as_object().string).value };
-    //                     constants.insert(global_name.to_string(), constant_idx);
-    //                     idx += 2;
-    //                 } else {
-    //                     idx += 3;
-    //                 }
-    //             }
-    //             op::GET_GLOBAL => {
-    //                 let code = self.op_codes[idx + 1] as usize;
-    //                 let constant = self.constants[code];
-    //                 let global_name = unsafe { (*constant.as_object().string).value };
-    //                 if let Some(constant_idx) = constants.get(&global_name.to_string()) {
-    //                     // Replace the GET_GLOBAL operation with a CONSTANT operation
-    //                     self.op_codes[idx] = op::CECILE_CONSTANT;
-    //                     self.op_codes[idx + 1] = *constant_idx as u8;
-    //                 }
-    //                 idx += 2;
-    //             }
-    //             op::BUILD_ARRAY
-    //             | op::GET_ARRAY_METHOD
-    //             | op::CECILE_CONSTANT
-    //             | op::GET_LOCAL
-    //             | op::SET_LOCAL
-    //             | op::SET_GLOBAL
-    //             | op::GET_UPVALUE
-    //             | op::SET_UPVALUE
-    //             | op::GET_FIELD
-    //             | op::SET_FIELD
-    //             | op::GET_SUPER
-    //             | op::CALL
-    //             | op::STRUCT
-    //             | op::FIELD
-    //             | op::METHOD => idx += 2,
-    //             op::INVOKE | op::SUPER_INVOKE => idx += 3,
-    //             op::JUMP | op::JUMP_IF_FALSE | op::LOOP => idx += 3,
-    //             _ => idx += 1,
-    //         }
-    //     }
-    // }
-    //
+
     pub fn debug(&self, name: &str) {
         eprintln!("== {name} ==");
         let mut idx = 0;
@@ -307,7 +55,6 @@ impl Chunk {
             op::BINARY_GETELEM => self.debug_op_simple("BINARY_GETELEM", idx),
             op::ARRAY_ELEM_ASSIGN => self.debug_op_simple("ARRAY_ELEM_ASSIGN", idx),
             op::GET_ARRAY_METHOD => self.debug_op_byte("GET_ARRAY_METHOD", idx),
-            op::GET_COPY_ARRAY => self.debug_op_simple("GET_COPY_ARRAY", idx),
             op::CECILE_CONSTANT => self.debug_op_constant("OP_CONSTANT", idx),
             op::NIL => self.debug_op_simple("OP_NIL", idx),
             op::TRUE => self.debug_op_simple("OP_TRUE", idx),
@@ -424,7 +171,7 @@ impl Chunk {
 
 /// Run-length encoded [`Vec`]. Useful for storing data with a lot of contiguous
 /// runs of the same value.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct VecRun<T> {
     values: Vec<Run<T>>,
 }
@@ -437,6 +184,10 @@ impl<T: Eq> VecRun<T> {
             }
             _ => self.values.push(Run { value, count: 1 }),
         };
+    }
+
+    pub fn drain(&mut self, range: std::ops::RangeInclusive<usize>) -> std::vec::Drain<Run<T>> {
+        self.values.drain(range)
     }
 
     pub fn clear(&mut self) {
@@ -459,117 +210,8 @@ impl<T> Index<usize> for VecRun<T> {
     }
 }
 
-#[derive(Debug)]
-struct Run<T> {
+#[derive(Debug, Clone)]
+pub struct Run<T> {
     value: T,
     count: u8,
-}
-
-#[cfg(test)]
-
-mod tests {
-    #[test]
-    fn test_opcode_iterator() {
-        use super::*;
-        let mut op_codes = vec![
-            op::CECILE_CONSTANT,
-            0,
-            op::CECILE_CONSTANT,
-            1,
-            op::ADD,
-            op::RETURN,
-        ];
-        let mut constants = ArrayVec::new();
-        constants.push(1.0.into());
-        constants.push(2.0.into());
-        let mut iterator = Chunk {
-            op_codes,
-            constants,
-            ..Default::default()
-        };
-
-        // let current = iterator.current();
-        // assert_eq!(
-        //     Some(ChunkCtx::new(&op::CECILE_CONSTANT, Some(&1.0.into()))),
-        //     current
-        // );
-        // assert_eq!(0, iterator.pos);
-        //
-        // let is_iter = iterator.next();
-        // assert_eq!(Some(()), is_iter);
-        // assert_eq!(2, iterator.pos);
-        // assert_eq!(Some(2), iterator.jump.last().copied());
-        //
-        // let current = iterator.current();
-        // assert_eq!(
-        //     Some(ChunkCtx::new(&op::CECILE_CONSTANT, Some(&2.0.into()))),
-        //     current
-        // );
-        //
-        // let is_iter = iterator.next();
-        // assert_eq!(Some(()), is_iter);
-        // assert_eq!(4, iterator.pos);
-        // assert_eq!(Some(2), iterator.jump.last().copied());
-        //
-        // let current = iterator.current();
-        // assert_eq!(Some(ChunkCtx::new(&op::ADD, None)), current);
-        //
-        // let prev = iterator.peek_prev(2);
-        // assert_eq!(
-        //     Some(ChunkCtx::new(&op::CECILE_CONSTANT, Some(&2.0.into()))),
-        //     prev
-        // );
-        //
-        // let is_iter = iterator.next();
-        // assert_eq!(Some(()), is_iter);
-        // assert_eq!(5, iterator.pos);
-        // assert_eq!(Some(1), iterator.jump.last().copied());
-        //
-        // let current = iterator.current();
-        // assert_eq!(Some((&op::RETURN, None)), current);
-        //
-        // let is_end = iterator.is_end();
-        // assert_eq!(true, is_end);
-        // // // it should not go next pos because it is the end of the op_codes
-        // let is_iter = iterator.next();
-        // assert_eq!(None, is_iter);
-        // assert_eq!(5, iterator.pos);
-        // assert_eq!(Some(1), iterator.jump.last().copied());
-        //
-        // let current = iterator.current();
-        // assert_eq!(Some((&op::RETURN, None)), current);
-        //
-        // assert_eq!(true, iterator.is_end());
-        //
-        // assert_eq!(5, iterator.pos);
-        // assert_eq!(Some(1), iterator.jump.last().copied());
-        // let is_iter = iterator.prev();
-        //
-        // assert_eq!(Some(()), is_iter);
-        //
-        // let current = iterator.current();
-        // assert_eq!(Some((&op::ADD, None)), current);
-        //
-        // assert_eq!(4, iterator.pos);
-        // assert_eq!(Some(2), iterator.jump.last().copied());
-        // let is_iter = iterator.prev();
-        //
-        // assert_eq!(Some(()), is_iter);
-        // assert_eq!(2, iterator.pos);
-        // assert_eq!(Some(2), iterator.jump.last().copied());
-        //
-        // let current = iterator.current();
-        // assert_eq!(Some((&op::CECILE_CONSTANT, Some(&2.0.into()))), current);
-        //
-        // assert_eq!(2, iterator.pos);
-        // assert_eq!(Some(2), iterator.jump.last().copied());
-        // let is_iter = iterator.prev();
-        //
-        // assert_eq!(Some(()), is_iter);
-        // assert_eq!(0, iterator.pos);
-        // assert_eq!(None, iterator.jump.last());
-        //
-        // let current = iterator.current();
-        // assert_eq!(Some((&op::CECILE_CONSTANT, Some(&1.0.into()))), current);
-    }
 }
