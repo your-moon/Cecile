@@ -34,7 +34,7 @@ impl Closure {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Opcode {
     Constant(u8),
     Closure(Closure),
@@ -171,6 +171,45 @@ impl CountedChunk {
 
     pub fn constant_propagation_op(&mut self, idx: usize) -> usize {
         match self.op_codes[idx] {
+            Opcode::Add => {
+                let left = self.op_codes[idx - 2].clone();
+                let right = self.op_codes[idx - 1].clone();
+
+                match (left, right) {
+                    (Opcode::GetGlobal { index }, Opcode::Constant(right))
+                    | (Opcode::Constant(right), Opcode::GetGlobal { index }) => {
+                        let right_constant = self.constants[right as usize];
+                        let global_value = self.constants[index as usize];
+                        let global_name = unsafe { (*global_value.as_object().string).value };
+                        if let Some(constant_idx) =
+                            self.prop_constants.get(&global_name.to_string())
+                        {
+                            let constant = self.constants[*constant_idx as usize];
+                            let result = constant.as_number() + right_constant.as_number();
+                            let result = result.into();
+                            let const_idx = self
+                                .constants
+                                .iter()
+                                .position(|c| *c == result)
+                                .unwrap_or_else(|| {
+                                    if self.constants.len() < self.constants.capacity() {
+                                        self.constants.push(result);
+                                        self.constants.len() - 1
+                                    } else {
+                                        panic!("too many constants")
+                                    }
+                                });
+                            let opcode = Opcode::Constant(const_idx as u8);
+                            self.op_codes[idx - 2] = opcode;
+                            self.op_codes.drain(idx - 1..=idx);
+                            self.spans.drain(idx - 1..=idx);
+                            return idx - 2;
+                        }
+                        return idx + 1;
+                    }
+                    _ => return idx + 1,
+                };
+            }
             Opcode::DefineGlobal { index } => {
                 if let Opcode::Constant(constant_idx) = &self.op_codes[idx - 1] {
                     let constant = self.constants[index as usize];
@@ -181,24 +220,18 @@ impl CountedChunk {
                 }
                 idx + 1
             }
-            Opcode::GetGlobal { index } => {
-                let constant = self.constants[index as usize];
-                let global_name = unsafe { (*constant.as_object().string).value };
-                if let Some(constant_idx) = self.prop_constants.get(&global_name.to_string()) {
-                    // Replace the GET_GLOBAL operation with a CONSTANT operation
-                    let opcode = Opcode::Constant(*constant_idx);
-                    self.op_codes[idx] = opcode;
-
-                    return idx + 1;
-                }
-                idx + 1
-            }
             Opcode::SetGlobal { index } => {
-                let constant = self.constants[index as usize];
-                let global_name = unsafe { (*constant.as_object().string).value };
-                self.prop_constants.insert(global_name.to_string(), index);
-                idx + 1
+                if let Opcode::Constant(constant_idx) = &self.op_codes[idx - 1] {
+                    let constant = self.constants[index as usize];
+                    let global_name = unsafe { (*constant.as_object().string).value };
+                    self.prop_constants
+                        .insert(global_name.to_string(), *constant_idx);
+                    idx + 1
+                } else {
+                    idx + 1
+                }
             }
+            //
             _ => idx + 1,
         }
     }

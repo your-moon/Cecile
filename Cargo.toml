@@ -21,8 +21,9 @@ version = "0.1.3"
 
 [features]
 pprof = ["dep:pprof"]
+optimize = []
 
-[build-dependencies] # <-- We added this and everything after!
+[build-dependencies] 
 lalrpop = "0.20.0"
 
 [dependencies]

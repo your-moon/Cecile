@@ -7,7 +7,7 @@ use Cecile::allocator::allocation::CeAllocation;
 use Cecile::vm::compiler::Compiler;
 use Cecile::vm::VM;
 
-#[test_resources("res/examples/assignment/*.ce")]
+#[test_resources("res/examples/runnable/**/*.ce")]
 fn lox(path: &str) {
     // Miri is too slow to run these tests.
     const MIRI_SKIP_PATHS: &[&str] = &[
@@ -32,7 +32,7 @@ fn lox(path: &str) {
     let mut allocation = CeAllocation::new();
     let mut compiler = Compiler::new(&mut allocation, false);
     let mut got_output = Vec::new();
-    let mut vm = Cecile::vm::VM::new(&mut allocation, false);
+    let mut vm = Cecile::vm::VM::new(&mut allocation, false, false);
     if let Err(e) = vm.run(&source, &mut color, false, &mut got_output, &mut compiler) {
         let (e, _) = e.first().expect("received empty error");
         writeln!(&mut got_output, "{e}").expect("could not write to output");

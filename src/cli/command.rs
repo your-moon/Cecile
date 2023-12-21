@@ -27,12 +27,17 @@ pub enum Commands {
         /// AST debug
         #[arg(short, long)]
         ast_debug: bool,
+        /// Optimized mode
+        #[arg(short, long)]
+        optimized: bool,
     },
     Repl {
         #[arg(short, long)]
         trace: bool,
         #[arg(short, long)]
         debug: bool,
+        #[arg(short, long)]
+        optimized: bool,
     },
 }
 
@@ -44,6 +49,7 @@ impl Commands {
                 trace,
                 debug,
                 ast_debug,
+                optimized,
             } => {
                 let source = std::fs::read_to_string(file)?;
 
@@ -53,13 +59,17 @@ impl Commands {
 
                 let mut allocation = CeAllocation::new();
                 let mut compiler = Compiler::new(&mut allocation, *debug);
-                let mut vm = crate::vm::VM::new(&mut allocation, *trace);
+                let mut vm = crate::vm::VM::new(&mut allocation, *trace, *optimized);
                 if let Err(e) = vm.run(&source, &mut color, *ast_debug, stdout, &mut compiler) {
                     report_err(&source, e);
                 }
                 Ok(())
             }
-            Commands::Repl { trace, debug } => repl::run(*trace, *debug),
+            Commands::Repl {
+                trace,
+                debug,
+                optimized,
+            } => repl::run(*trace, *debug, *optimized),
         }
     }
 }

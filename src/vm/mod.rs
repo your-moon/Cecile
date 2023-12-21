@@ -59,12 +59,13 @@ pub struct VM<'a> {
     struct_init_method: *mut StringObject,
 
     trace: bool,
+    optimized_debug: bool,
 
     pub source: String,
 }
 
 impl<'a> VM<'a> {
-    pub fn new(allocator: &mut CeAllocation, trace: bool) -> VM {
+    pub fn new(allocator: &mut CeAllocation, trace: bool, optimized_debug: bool) -> VM {
         let natives = allocator.alloc_natives();
 
         let mut globals = HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
@@ -88,6 +89,7 @@ impl<'a> VM<'a> {
             next_gc: 1024 * 1024,
             struct_init_method,
             trace,
+            optimized_debug,
             source: String::new(),
         }
     }
@@ -119,27 +121,19 @@ impl<'a> VM<'a> {
             let function = unsafe { &mut (**function) };
             let function_name = unsafe { (*function.name).value };
             let mut optim = Optimizer::new(function.chunk.clone());
-            optim.iterate_opcodes();
-            // let mut i = 0;
-            // for codes in &optim.counted_chunk.op_codes {
-            //     println!("{i}: {:?}", codes);
-            //     i += 1;
-            // }
-            // println!("---------------------------------------");
-            optim.counted_chunk.constant_propagation();
-            optim.counted_chunk.constant_folding();
-            let optimized_opcodes = optim.counted_chunk.build_opcode_u8();
-            // let mut i = 0;
-            // for codes in &optim.counted_chunk.op_codes {
-            //     println!("{i}: {:?}", codes);
-            //     i += 1;
-            // }
-            // println!("constants: {:?}", optim.counted_chunk.constants);
 
-            if ast_debug {
+            #[cfg(feature = "optimize")]
+            {
+                optim.iterate_opcodes();
+                optim.counted_chunk.constant_propagation();
+                optim.counted_chunk.constant_folding();
+                let optimized_opcodes = optim.counted_chunk.build_opcode_u8();
+
                 function.chunk.op_codes = optimized_opcodes;
                 function.chunk.constants = optim.counted_chunk.constants;
                 function.chunk.spans = optim.counted_chunk.spans;
+            }
+            if self.optimized_debug {
                 function.chunk.debug(&function_name);
             }
         }
