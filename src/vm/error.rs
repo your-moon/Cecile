@@ -13,21 +13,21 @@ pub type ErrorS = Spanned<Error>;
 
 #[derive(Debug, PartialEq, Error)]
 pub enum Error {
-    #[error("invalid input")]
+    #[error("SyntaxError: {0}")]
     SyntaxError(SyntaxError),
     #[error("TypeError: {0}")]
     TypeError(TypeError),
     #[error("IoError: {0}")]
     IoError(IoError),
-    #[error("NameError {0}")]
+    #[error("NameError: {0}")]
     NameError(NameError),
-    #[error("OverflowError {0}")]
+    #[error("OverflowError: {0}")]
     OverflowError(OverflowError),
-    #[error("AttributeError {0}")]
+    #[error("AttributeError: {0}")]
     AttributeError(AttributeError),
-    #[error("IndexError {0}")]
+    #[error("IndexError: {0}")]
     IndexError(IndexError),
-    #[error("ArrayError {0}")]
+    #[error("ArrayError: {0}")]
     ArrayError(ArrayError),
 }
 
@@ -118,10 +118,10 @@ pub enum NameError {
     #[error("struct cannot inherit from itself")]
     StructInheritFromItSelf { name: String },
 
-    #[error("struct {name} has no super class")]
+    #[error("struct {name:?} has no super class")]
     StructHasNoSuper { name: String },
 
-    #[error("variable {name} is not defined")]
+    #[error("variable {name:?} is not defined")]
     VariableNameNotFound { name: String },
 }
 

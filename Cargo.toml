@@ -14,15 +14,16 @@ keywords = [
 license = "MIT"
 repository = "https://github.com/Hollowloki/Cecile"
 rust-version = "1.74"
-version = "0.1.2"
+version = "0.1.4"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 pprof = ["dep:pprof"]
+optimize = []
 
-[build-dependencies] # <-- We added this and everything after!
+[build-dependencies] 
 lalrpop = "0.20.0"
 
 [dependencies]
@@ -54,5 +55,7 @@ pprof = { version = "0.13.0", features = [
     "prost-codec",
 ], optional = true }
 
+test-generator = "0.3.1"
+pretty_assertions = "1.4.0"
 [lib]
 doctest = false

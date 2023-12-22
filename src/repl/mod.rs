@@ -12,13 +12,13 @@ use crate::{
     vm::{compiler::Compiler, error::report_errors, VM},
 };
 
-pub fn run(trace: bool, debug: bool) -> Result<()> {
+pub fn run(trace: bool, debug: bool, optimized: bool) -> Result<()> {
     let mut color = termcolor::StandardStream::stderr(termcolor::ColorChoice::Always);
     let mut editor = editor().context("could not start REPL")?;
 
     let mut allocator = CeAllocation::new();
     let mut compiler = Compiler::new(&mut allocator, debug);
-    let mut vm = VM::new(&mut allocator, trace);
+    let mut vm = VM::new(&mut allocator, trace, optimized);
 
     let stdout = &mut io::stdout().lock();
     let stderr = &mut io::stderr().lock();

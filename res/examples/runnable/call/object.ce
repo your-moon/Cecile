@@ -1,0 +1,5 @@
+type Foo;
+
+let foo = Foo();
+foo(); // out: TypeError: cannot call Instance
+

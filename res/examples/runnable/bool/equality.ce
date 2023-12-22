@@ -1,0 +1,9 @@
+println true == true;    // out: true
+println true == false;   // out: false
+println false == true;   // out: false
+println false == false;  // out: true
+
+println true != true;    // out: false
+println true != false;   // out: true
+println false != true;   // out: true
+println false != false;  // out: false

@@ -1,0 +1,3 @@
+// out: TypeError: cannot call String
+"str"();
+

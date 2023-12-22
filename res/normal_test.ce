@@ -8,5 +8,4 @@ impl Foo {
 }
 
 let foo1 = Foo("init");
-println arr.get_type();
 

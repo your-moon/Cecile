@@ -62,11 +62,21 @@ impl Display for Local {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Upvalue {
     type_: Type,
     index: u8,
     is_local: bool,
+}
+
+impl Upvalue {
+    pub fn new(type_: Type, index: u8, is_local: bool) -> Self {
+        Self {
+            type_,
+            index,
+            is_local,
+        }
+    }
 }
 
 pub struct CompilerCell {
@@ -181,6 +191,7 @@ pub struct Compiler {
     pub current_compiler: CompilerCell,
     pub current_struct: Option<String>,
     pub structs: Vec<StructCell>,
+    pub functions: Vec<*mut ObjectFunction>,
     pub is_inside_super: bool,
     pub debug: bool,
 }
@@ -216,6 +227,7 @@ impl Compiler {
             },
             globals,
             structs: Vec::new(),
+            functions: Vec::new(),
             current_struct: None,
             is_inside_super: false,
             debug,
@@ -241,6 +253,9 @@ impl Compiler {
 
         self.emit_u8(op::NIL, &(0..0));
         self.emit_u8(op::RETURN, &(0..0));
+
+        self.functions.push(self.current_compiler.function);
+
         if self.debug {
             unsafe { (*self.current_compiler.function).chunk.debug("script") };
         }
@@ -606,6 +621,7 @@ impl Compiler {
         }
 
         let (function, upvalues) = self.end_cell();
+        self.functions.push(function);
         if self.debug {
             unsafe { (*function).chunk.debug((*name).value) };
         }

@@ -1,13 +1,14 @@
 use arrayvec::ArrayVec;
-use std::ops::Index;
+use std::{collections::HashMap, ops::Index};
 
-use crate::cc_parser::ast::Span;
+use super::compiler::Upvalue;
+use super::error::{OverflowError, Result};
+use super::object::ObjectFunction;
+use crate::cc_parser::ast::{Span, Type};
 use crate::vm::op;
 use crate::vm::value::Value;
 
-use super::error::{OverflowError, Result};
-
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Chunk {
     pub op_codes: Vec<u8>,
     pub constants: ArrayVec<Value, 256>,
@@ -54,7 +55,6 @@ impl Chunk {
             op::BINARY_GETELEM => self.debug_op_simple("BINARY_GETELEM", idx),
             op::ARRAY_ELEM_ASSIGN => self.debug_op_simple("ARRAY_ELEM_ASSIGN", idx),
             op::GET_ARRAY_METHOD => self.debug_op_byte("GET_ARRAY_METHOD", idx),
-            op::GET_COPY_ARRAY => self.debug_op_simple("GET_COPY_ARRAY", idx),
             op::CECILE_CONSTANT => self.debug_op_constant("OP_CONSTANT", idx),
             op::NIL => self.debug_op_simple("OP_NIL", idx),
             op::TRUE => self.debug_op_simple("OP_TRUE", idx),
@@ -127,15 +127,15 @@ impl Chunk {
         }
     }
 
+    fn debug_op_byte(&self, name: &str, idx: usize) -> usize {
+        let byte = self.op_codes[idx + 1];
+        eprintln!("{name:16} {byte:>4}",);
+        idx + 2
+    }
+
     fn debug_op_simple(&self, name: &str, idx: usize) -> usize {
         eprintln!("{name}");
         idx + 1
-    }
-
-    fn debug_op_byte(&self, name: &str, idx: usize) -> usize {
-        let byte = self.op_codes[idx + 1];
-        eprintln!("{name:16} {byte:>4}");
-        idx + 2
     }
 
     fn debug_op_constant(&self, name: &str, idx: usize) -> usize {
@@ -171,7 +171,7 @@ impl Chunk {
 
 /// Run-length encoded [`Vec`]. Useful for storing data with a lot of contiguous
 /// runs of the same value.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct VecRun<T> {
     values: Vec<Run<T>>,
 }
@@ -184,6 +184,10 @@ impl<T: Eq> VecRun<T> {
             }
             _ => self.values.push(Run { value, count: 1 }),
         };
+    }
+
+    pub fn drain(&mut self, range: std::ops::RangeInclusive<usize>) -> std::vec::Drain<Run<T>> {
+        self.values.drain(range)
     }
 
     pub fn clear(&mut self) {
@@ -206,8 +210,8 @@ impl<T> Index<usize> for VecRun<T> {
     }
 }
 
-#[derive(Debug)]
-struct Run<T> {
+#[derive(Debug, Clone)]
+pub struct Run<T> {
     value: T,
     count: u8,
 }
