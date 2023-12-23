@@ -120,10 +120,10 @@ impl<'a> VM<'a> {
         for function in &compiler.functions {
             let function = unsafe { &mut (**function) };
             let function_name = unsafe { (*function.name).value };
-            let mut optim = Optimizer::new(function.chunk.clone());
 
             #[cfg(feature = "optimize")]
             {
+                let mut optim = Optimizer::new(function.chunk.clone());
                 optim.iterate_opcodes();
                 optim.counted_chunk.constant_propagation();
                 optim.counted_chunk.constant_folding();

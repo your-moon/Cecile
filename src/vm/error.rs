@@ -95,24 +95,24 @@ impl AsDiagnostic for OverflowError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum NameError {
-    #[error("unsupported array method: {name}")]
+    #[error("unsupported array method: {name:?}")]
     UnsupportedArrayMethod { name: String },
 
     #[error("struct is not in scope")]
     StructNotInScope,
-    #[error("can't access local variable {name} in its own initializer")]
+    #[error("can't access local variable {name:?} in its own initializer")]
     AccessInsideInitializer { name: String },
 
-    #[error("struct {name} has no field {name}")]
+    #[error("struct {name:?} has no field {name:?}")]
     StructFieldNotFound { name: String, struct_name: String },
 
-    #[error("struct {name} is not defined")]
+    #[error("struct {name:?} is not defined")]
     StructNameNotFound { name: String },
 
-    #[error("struct {struct_name} has no method or field {name}")]
+    #[error("struct {struct_name:?} has no method or field {name:?}")]
     StructMethodOrFieldNotFound { name: String, struct_name: String },
 
-    #[error("identifier {name} is not defined")]
+    #[error("identifier {name:?} is not defined")]
     IdentifierNotDefined { name: String },
 
     #[error("struct cannot inherit from itself")]
@@ -151,9 +151,9 @@ impl AsDiagnostic for IoError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum SyntaxError {
-    #[error("param must have type: {name}")]
+    #[error("param must have type: {name:?}")]
     ParamMustHaveType { name: String },
-    #[error("return outside function")]
+    #[error(r#""return" used outside function"#)]
     ReturnOutsideFunction,
     #[error("extraneous input: {token:?}")]
     ExtraToken { token: String },
@@ -171,7 +171,7 @@ pub enum SyntaxError {
         expected: Vec<String>,
     },
 
-    #[error("already declared in this scope: {name}")]
+    #[error("already declared in this scope: {name:?}")]
     AlreadyDeclared { name: String },
 }
 

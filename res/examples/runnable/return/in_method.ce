@@ -6,4 +6,4 @@ impl Foo {
   }
 }
 
-print Foo().method(); // out: ok
+println Foo().method(); // out: ok
