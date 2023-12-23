@@ -895,7 +895,7 @@ impl<'a> VM<'a> {
                 }
                 self.pop();
 
-                let number = rand::thread_rng().gen_range(1..=100) as f64;
+                let number = rand::thread_rng().gen_range(1, 100) as f64;
                 let value = Value::from(number);
                 self.push(value);
             }

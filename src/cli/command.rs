@@ -1,7 +1,7 @@
 use crate::allocator::allocation::CeAllocation;
-use crate::repl;
 use crate::vm::compiler::Compiler;
 use crate::vm::error::{report_error, ErrorS};
+use anyhow::bail;
 use anyhow::Result;
 use clap::Parser;
 use std::io::{self, Write};
@@ -65,11 +65,18 @@ impl Commands {
                 }
                 Ok(())
             }
+            #[cfg(feature = "repl")]
             Commands::Repl {
                 trace,
                 debug,
                 optimized,
             } => repl::run(*trace, *debug, *optimized),
+            #[cfg(not(feature = "repl"))]
+            Commands::Repl {
+                trace,
+                debug,
+                optimized,
+            } => bail!("cecile was not compiled with the repl feature"),
         }
     }
 }

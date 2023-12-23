@@ -1,3 +1,5 @@
+#![cfg(feature = "repl")]
+
 use std::io::{self};
 
 use anyhow::{Context, Result};
