@@ -70,7 +70,7 @@ impl Commands {
                 trace,
                 debug,
                 optimized,
-            } => repl::run(*trace, *debug, *optimized),
+            } => crate::repl::run(*trace, *debug, *optimized),
             #[cfg(not(feature = "repl"))]
             Commands::Repl {
                 trace,
