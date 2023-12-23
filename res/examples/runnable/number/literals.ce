@@ -1,0 +1,7 @@
+println 123;     // out: 123
+println 987654;  // out: 987654
+println 0;       // out: 0
+println -0;      // out: -0
+
+println 123.456; // out: 123.456
+println -0.001;  // out: -0.001

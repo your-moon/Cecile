@@ -1,4 +1,4 @@
-use std::{fmt};
+use std::fmt;
 
 use crate::vm::error::{Error, ErrorS, SyntaxError};
 use logos::{Logos, SpannedIter};

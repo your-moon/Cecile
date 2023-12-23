@@ -17,4 +17,4 @@ impl Shape {
 let shape = Shape();
 
 
-println shape.width;
+println shape.width; // out: 10

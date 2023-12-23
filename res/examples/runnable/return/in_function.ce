@@ -3,4 +3,4 @@ fn f() -> String {
   print "bad";
 }
 
-print f(); // out: ok
+println f(); // out: ok
