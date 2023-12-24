@@ -1065,6 +1065,7 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    // PERF: Optimize later
     fn get_global(&mut self) -> Result<()> {
         let name = unsafe { self.read_value().as_object().string };
         match self.globals.get(&name) {
