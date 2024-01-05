@@ -127,6 +127,7 @@ impl<'a> VM<'a> {
                 optim.iterate_opcodes();
                 optim.counted_chunk.constant_propagation();
                 optim.counted_chunk.constant_folding();
+                // This will build u8 opcodes
                 let optimized_opcodes = optim.counted_chunk.build_opcode_u8();
 
                 function.chunk.op_codes = optimized_opcodes;

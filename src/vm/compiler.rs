@@ -585,6 +585,7 @@ impl Compiler {
                 self.declare_local("self", &Type::Struct(current_struct.to_string()), &range)?;
             }
         }
+
         for (param_string, param_type) in &func.params {
             match param_type {
                 Some(t) => {
