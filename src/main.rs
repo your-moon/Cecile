@@ -1,5 +1,5 @@
 use Cecile::cli::Cli;
 
-fn main() {
-    let _ = Cli::run();
+fn main() -> anyhow::Result<()> {
+    Cli::run()
 }
