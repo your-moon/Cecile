@@ -1,6 +1,11 @@
+use std::hash::BuildHasherDefault;
 use std::{fmt::Display, mem, ops::Range};
 
 use arrayvec::ArrayVec;
+use hashbrown::HashMap;
+
+use hashbrown::hash_map::DefaultHashBuilder;
+use rustc_hash::FxHasher;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
 
@@ -176,7 +181,7 @@ impl CompilerCell {
 pub struct StructCell {
     name: *mut StringObject,
     fields: Vec<Field>,
-    methods: Vec<StructMethod>,
+    methods: HashMap<String, StructMethod, BuildHasherDefault<FxHasher>>,
     has_super: bool,
 }
 
@@ -190,7 +195,7 @@ pub struct Compiler {
     pub globals: CompilerGlobals,
     pub current_compiler: CompilerCell,
     pub current_struct: Option<String>,
-    pub structs: Vec<StructCell>,
+    pub structs: HashMap<String, StructCell, BuildHasherDefault<FxHasher>>,
     pub functions: Vec<*mut ObjectFunction>,
     pub is_inside_super: bool,
     pub debug: bool,
@@ -226,7 +231,7 @@ impl Compiler {
                 upvalues: ArrayVec::new(),
             },
             globals,
-            structs: Vec::new(),
+            structs: HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default()),
             functions: Vec::new(),
             current_struct: None,
             is_inside_super: false,
@@ -326,6 +331,15 @@ impl Compiler {
         (struct_, range): (&StatementStruct, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
+        if self.structs.contains_key(&struct_.name) {
+            let result = Err((
+                Error::NameError(NameError::StructAlreadyDeclared {
+                    name: struct_.name.to_string(),
+                }),
+                range.clone(),
+            ));
+            return result;
+        }
         let name = allocator.alloc(&struct_.name);
         let fields = struct_.fields.clone();
 
@@ -346,12 +360,15 @@ impl Compiler {
         } else {
             self.declare_local(&struct_.name, &Type::Struct(struct_.name.clone()), &range)?;
         }
-        self.structs.push(StructCell {
-            name,
-            fields,
-            methods: Vec::new(),
-            has_super: false,
-        });
+        self.structs.insert(
+            struct_.name.clone(),
+            StructCell {
+                name,
+                fields,
+                methods: HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default()),
+                has_super: false,
+            },
+        );
 
         Ok(Type::Struct(struct_.name.clone()))
     }
@@ -365,17 +382,19 @@ impl Compiler {
 
         let has_super = impl_.super_.is_some();
 
-        let mut super_methods = Vec::new();
+        let mut super_methods =
+            HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
         if has_super {
             let super_name = impl_.super_.clone().unwrap();
             let super_struct = self.find_struct_mut(&super_name, &range)?;
             super_methods = super_struct.methods.clone();
+            let current_struct = self.get_current_struct_mut(&range)?;
+            current_struct.methods = super_methods;
+            // add super methods to current struct
+            current_struct.has_super = has_super;
+
         }
 
-        let current_struct = self.get_current_struct_mut(&range)?;
-        current_struct.has_super = has_super;
-        // add super methods to current struct
-        current_struct.methods = super_methods;
 
         if let Some(super_) = &impl_.super_ {
             if super_ == &impl_.name {
@@ -411,8 +430,12 @@ impl Compiler {
                     }),
                 };
                 let current_struct = self.get_current_struct_mut(&range)?;
-                current_struct.methods.push(strct_method);
+                current_struct
+                    .methods
+                    .insert(method.name.clone(), strct_method);
             }
+
+            let current_struct = self.get_current_struct_mut(&range)?;
 
             // For Runtime Emit
             for (method, span) in &methods {
@@ -581,8 +604,9 @@ impl Compiler {
                 &range,
             )?,
             FunctionType::Initializer | FunctionType::Method => {
-                let current_struct = unsafe { (*self.get_current_struct_mut(&range)?.name).value };
-                self.declare_local("self", &Type::Struct(current_struct.to_string()), &range)?;
+                let current_struct = self.get_current_struct_mut(&range)?;
+                let current_struct_name = unsafe { (*current_struct.name).value.to_string() };
+                self.declare_local("self", &Type::Struct(current_struct_name), &range)?;
             }
         }
 
@@ -592,7 +616,6 @@ impl Compiler {
                     self.declare_local(param_string, t, &range)?;
                 }
                 None => {
-                    println!("param_string: {}", param_string);
                     if param_string == "self" {
                     } else {
                         let spanned_error = Err((
@@ -856,7 +879,7 @@ impl Compiler {
         method_name: String,
         range: &Span,
     ) -> Result<Type> {
-        let method = struct_.methods.iter().find(|m| m.name == method_name);
+        let method = struct_.methods.get(&method_name);
         let method_type = match method {
             Some(method) => method.return_type.clone(),
             None => {
@@ -1701,27 +1724,25 @@ impl Compiler {
         if self.current_struct.is_none() {
             return Err((Error::NameError(NameError::StructNotInScope), range.clone()));
         }
-        let current_struct = self.current_struct.as_ref().unwrap();
-        let result = self
-            .structs
-            .iter_mut()
-            .find(|s| unsafe { (*s.name).value } == current_struct);
+        let current_struct_name = self.current_struct.as_ref().unwrap();
+
+        let result = self.structs.get_mut(current_struct_name);
+
         if result.is_none() {
             return Err((
                 Error::NameError(NameError::StructNameNotFound {
-                    name: current_struct.to_string(),
+                    name: current_struct_name.to_string(),
                 }),
                 range.clone(),
             ));
         }
+
         Ok(result.unwrap())
     }
 
     pub fn find_struct(&self, name: &str, range: &Range<usize>) -> Result<&StructCell> {
-        let result = self
-            .structs
-            .iter()
-            .find(|s| unsafe { (*s.name).value } == name);
+        let result = self.structs.get(name);
+
         if result.is_none() {
             return Err((
                 Error::NameError(NameError::StructNameNotFound {
@@ -1730,14 +1751,13 @@ impl Compiler {
                 range.clone(),
             ));
         }
+
         Ok(result.unwrap())
     }
 
     pub fn find_struct_mut(&mut self, name: &str, range: &Range<usize>) -> Result<&mut StructCell> {
-        let result = self
-            .structs
-            .iter_mut()
-            .find(|s| unsafe { (*s.name).value } == name);
+        let result = self.structs.get_mut(name);
+
         if result.is_none() {
             return Err((
                 Error::NameError(NameError::StructNameNotFound {
@@ -1746,6 +1766,7 @@ impl Compiler {
                 range.clone(),
             ));
         }
+
         Ok(result.unwrap())
     }
 }
