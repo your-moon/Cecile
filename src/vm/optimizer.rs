@@ -106,6 +106,14 @@ impl CountedChunk {
         }
     }
 
+    /**
+    Constant folding is the process of recognizing and evaluating constant expressions at compile time rather than computing them at runtime.
+    Example:
+    ```
+    assert_eq!(1+2+3, 6);
+    assert_eq!(5+3+6, 14);
+    ```
+    */
     pub fn constant_folding(&mut self) {
         let mut idx = 0;
         while idx < self.op_codes.len() {
@@ -162,6 +170,15 @@ impl CountedChunk {
         }
     }
 
+    /**
+    * Constant propagation is the process of substituting the values of known constants into expressions at compile time.
+    # Example:
+    ```
+    let a = 1;
+    let b = a + 2; => let b = 3;
+
+    ```
+    */
     pub fn constant_propagation(&mut self) {
         let mut idx = 0;
         while idx < self.op_codes.len() {

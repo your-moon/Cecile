@@ -1,7 +1,8 @@
-class Foo {
-  method0() { return "no args"; }
-  method1(a) { return a; }
-  method2(a, b) { return a + b; }
+type Foo;
+impl Foo {
+  method0() -> String { return "no args"; }
+  method1(a:int) { return a; }
+  method2(a:int, b:int) -> int { return a + b; }
   method3(a, b, c) { return a + b + c; }
   method4(a, b, c, d) { return a + b + c + d; }
   method5(a, b, c, d, e) { return a + b + c + d + e; }

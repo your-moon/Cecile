@@ -1,2 +1,2 @@
 // out: SyntaxError: unexpected ";"
-print;
+println;
