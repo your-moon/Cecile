@@ -20,7 +20,7 @@ impl Test {
 
 let test = Test(1, 2);
 let start = clock();
-println test.fib(35);
+println test.fib(15);
 let end = clock();
 println (end - start);
 

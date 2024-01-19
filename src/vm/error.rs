@@ -95,7 +95,6 @@ impl AsDiagnostic for OverflowError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum NameError {
-
     #[error("struct {name:?} is already declared")]
     StructAlreadyDeclared { name: String },
 

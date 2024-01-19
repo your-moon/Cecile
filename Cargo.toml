@@ -79,4 +79,3 @@ mimalloc = { version = "0.1.27", default-features = false }
 
 [lib]
 doctest = false
-

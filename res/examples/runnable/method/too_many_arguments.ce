@@ -1,5 +1,5 @@
 {
-  var a = 1;
+  let a = 1;
   // out: OverflowError: cannot use more than 256 arguments in a function
   true.method(
      a, // 1

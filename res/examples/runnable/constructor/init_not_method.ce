@@ -3,14 +3,14 @@ type Foo {
 }
 
 impl Foo {
-  fn new(arg) {
-    print "Foo.init(" + arg + ")";
+  fn new(arg: String) {
+    println "Foo.init(" + arg + ")";
     self.field = "init";
   }
 }
 
 fn new() {
-  print "not initializer";
+  println "not initializer";
 }
 
 new(); // out: not initializer

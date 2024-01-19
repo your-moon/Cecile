@@ -8,5 +8,4 @@ impl Foo {
 }
 
 let foo = Foo(); // out: init
-println foo.new(); // out: init
-// out: <object Foo>
+println foo; // out: <instance "Foo">

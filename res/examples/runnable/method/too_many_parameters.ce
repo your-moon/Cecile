@@ -1,7 +1,8 @@
-class Foo {
+type Foo;
+impl Foo {
   // 256 parameters.
   // out: OverflowError: cannot define more than 256 parameters in a function
-  method(
+  fn method(
     a1,
     a2,
     a3,

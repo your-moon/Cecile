@@ -392,9 +392,7 @@ impl Compiler {
             current_struct.methods = super_methods;
             // add super methods to current struct
             current_struct.has_super = has_super;
-
         }
-
 
         if let Some(super_) = &impl_.super_ {
             if super_ == &impl_.name {
