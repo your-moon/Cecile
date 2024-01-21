@@ -1,9 +1,9 @@
-type Test {
+type test {
     x: int,
     y: int
 }
 
-impl Test {
+impl test {
     fn new(x:int, y:int) {
         self.x = x;
         self.y = y;
@@ -18,9 +18,9 @@ impl Test {
     }
 }
 
-let test = Test(1, 2);
+let test = test(1, 2);
 let start = clock();
-println test.fib(15);
+println test.fib(35);
 let end = clock();
 println (end - start);
 
