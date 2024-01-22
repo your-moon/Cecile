@@ -38,6 +38,7 @@ pub mod object;
 pub mod op;
 pub mod optimizer;
 pub mod value;
+pub mod util;
 
 const FRAMES_MAX: usize = 64;
 const STACK_MAX_PER_FRAME: usize = u8::MAX as usize + 1;
@@ -45,7 +46,7 @@ const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
 
 pub struct VM<'a> {
     stack_top: *mut Value,
-    stack: Box<[Value; STACK_MAX]>,
+stack: Box<[Value; STACK_MAX]>,
 
     frames: ArrayVec<CallFrame, FRAMES_MAX>,
     frame: CallFrame,
@@ -127,6 +128,7 @@ impl<'a> VM<'a> {
                 optim.iterate_opcodes();
                 optim.counted_chunk.constant_propagation();
                 optim.counted_chunk.constant_folding();
+                // This will build u8 opcodes
                 let optimized_opcodes = optim.counted_chunk.build_opcode_u8();
 
                 function.chunk.op_codes = optimized_opcodes;
@@ -878,10 +880,7 @@ impl<'a> VM<'a> {
                 }
                 self.pop();
 
-                let time = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs_f64();
+                let time = util::now();
                 let value = Value::from(time);
                 self.push(value);
             }
@@ -1065,6 +1064,7 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
+    // PERF: Optimize later
     fn get_global(&mut self) -> Result<()> {
         let name = unsafe { self.read_value().as_object().string };
         match self.globals.get(&name) {

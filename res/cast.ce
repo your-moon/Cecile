@@ -1,2 +1,20 @@
-let a = to_int("");
-println a;
+type Point {
+    x: int,
+    y: int
+}
+impl Point {
+    fn new(x:int, y:int) {
+        self.x = x;
+        self.y = y;
+    }
+    
+    fn print_point() {
+        print "x=";
+        print self.x;
+        print " y=";
+        println self.y;
+    }
+}
+
+let point = Point(1, 2);
+point.print_point();

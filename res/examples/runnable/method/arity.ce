@@ -1,0 +1,19 @@
+type Foo;
+impl Foo {
+  fn method0() -> String { return "no args"; }
+  fn method1(a:int) -> int { return a; }
+  fn method2(a:int, b:int) -> int { return a + b; }
+  fn method3(a:int, b:int, c:int) -> int { return a + b + c; }
+  fn method4(a:int, b:int, c:int, d:int) -> int { return a + b + c + d; }
+  fn method5(a:int, b:int, c:int, d:int, e:int) -> int { return a + b + c + d + e; }
+  fn method6(a:int, b:int, c:int, d:int, e:int, f:int) -> int { return a + b + c + d + e + f; }
+}
+
+var foo = Foo();
+println foo.method0(); // out: no args
+println foo.method1(1); // out: 1
+println foo.method2(1, 2); // out: 3
+println foo.method3(1, 2, 3); // out: 6
+println foo.method4(1, 2, 3, 4); // out: 10
+println foo.method5(1, 2, 3, 4, 5); // out: 15
+println foo.method6(1, 2, 3, 4, 5, 6); // out: 21

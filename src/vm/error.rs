@@ -95,6 +95,9 @@ impl AsDiagnostic for OverflowError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum NameError {
+    #[error("struct {name:?} is already declared")]
+    StructAlreadyDeclared { name: String },
+
     #[error("unsupported array method: {name:?}")]
     UnsupportedArrayMethod { name: String },
 
@@ -201,13 +204,13 @@ impl AsDiagnostic for ArrayError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum TypeError {
-    #[error("cannot cast into int from {type_}")]
+    #[error("cannot cast into int from {type_:?}")]
     NotNumber { type_: String },
 
     #[error("array type must be {expected:?}, got {actual:?}")]
     ArrayValueTypeMismatch { expected: String, actual: String },
 
-    #[error("array is not indexable type: {type_}")]
+    #[error("array is not indexable type: {type_:?}")]
     NotIndexable { type_: String },
 
     #[error("array index must be int")]
@@ -219,7 +222,7 @@ pub enum TypeError {
     #[error("unsupported operand for string: {op} ")]
     UnSupportedOperandforString { op: String },
 
-    #[error("binary op sides must be same: {lhs} {op} {rhs}")]
+    #[error("binary op sides must be same: {lhs:?} {op:?} {rhs:?}")]
     BinaryOpSidesMustBeSame {
         lhs: String,
         rhs: String,

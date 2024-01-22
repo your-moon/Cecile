@@ -1,2 +1,0 @@
-// out: SyntaxError: unexpected ";"
-print;

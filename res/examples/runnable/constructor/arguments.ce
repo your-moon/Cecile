@@ -1,0 +1,15 @@
+type Foo {
+    a: int,
+    b: int
+}
+impl Foo {
+    fn new(a:int, b: int) {
+    println "init"; // out: init
+    self.a = a;
+    self.b = b;
+  }
+}
+
+let foo = Foo(1, 2);
+println foo.a; // out: 1
+println foo.b; // out: 2

@@ -14,7 +14,7 @@ keywords = [
 license = "MIT"
 repository = "https://github.com/Hollowloki/Cecile"
 rust-version = "1.74"
-version = "0.1.4"
+version = "0.1.6"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -79,4 +79,3 @@ mimalloc = { version = "0.1.27", default-features = false }
 
 [lib]
 doctest = false
-

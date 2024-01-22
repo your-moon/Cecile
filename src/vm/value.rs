@@ -174,7 +174,6 @@ impl<O: Into<Object>> From<O> for Value {
     }
 }
 #[cfg(test)]
-
 mod tests {
 
     use super::*;
