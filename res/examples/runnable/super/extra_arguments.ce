@@ -1,0 +1,16 @@
+type Base;
+type Derived;
+impl Base {
+  fn foo(a: String, b: String) {
+    println "Base.foo(" + a + ", " + b + ")";
+  }
+}
+
+impl Derived < Base {
+  fn foo() {
+    println "Derived.foo()"; // out: Derived.foo()
+    super.foo("a", "b", "c", "d"); // out: TypeError: arity expected 2, got 4 name: "foo"
+  }
+}
+
+Derived().foo();

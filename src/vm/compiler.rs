@@ -4,7 +4,6 @@ use std::{fmt::Display, mem, ops::Range};
 use arrayvec::ArrayVec;
 use hashbrown::HashMap;
 
-use hashbrown::hash_map::DefaultHashBuilder;
 use rustc_hash::FxHasher;
 use termcolor::WriteColor;
 use termcolor::{Color, ColorSpec, StandardStream};
@@ -378,6 +377,14 @@ impl Compiler {
         (impl_, range): (&StatementImpl, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
+        if !self.structs.contains_key(&impl_.name) {
+            return Err((
+                Error::NameError(NameError::StructNotDeclared {
+                    name: impl_.name.to_string(),
+                }),
+                range.clone(),
+            ));
+        }
         self.current_struct = Some(impl_.name.clone());
 
         let has_super = impl_.super_.is_some();

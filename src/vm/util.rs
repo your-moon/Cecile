@@ -24,6 +24,9 @@ pub fn now() -> f64 {
 }
 
 pub const fn unreachable() -> ! {
-    if cfg!(debug_assertions) { unreachable!() } else { unsafe { hint::unreachable_unchecked() } }
+    if cfg!(debug_assertions) {
+        unreachable!()
+    } else {
+        unsafe { hint::unreachable_unchecked() }
+    }
 }
-

@@ -1,0 +1,9 @@
+type Base;
+impl Base {
+  fn foo() {
+    // out: NameError: struct "Base" has no super class
+    super.doesNotExist(1);
+  }
+}
+
+Base().foo();

@@ -1,0 +1,21 @@
+type A;
+type B;
+type C;
+impl A {
+  fn foo() {
+    println "A.foo()";
+  }
+}
+
+impl B < A {}
+
+impl C < B {
+  fn foo() {
+    println "C.foo()";
+    super.foo();
+  }
+}
+
+C().foo();
+// out: C.foo()
+// out: A.foo()

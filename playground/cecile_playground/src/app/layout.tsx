@@ -4,7 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Create Next App",
+  title: "Playground",
   description: "Cecile playground for Next.js",
 };
 
