@@ -1,0 +1,21 @@
+type A;
+type B;
+impl A {
+  fn method(arg: String) {
+    println "A.method(" + arg + ")";
+  }
+}
+
+impl B < A {
+  fn getClosure() -> fn {
+    return super.method;
+  }
+
+  fn method(arg: String) {
+    println "B.method(" + arg + ")";
+  }
+}
+
+
+let closure = B().getClosure();
+closure("arg"); // out: A.method(arg)

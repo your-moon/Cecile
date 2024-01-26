@@ -1,0 +1,18 @@
+type Base;
+type Derived;
+impl Base {
+  fn new(a: String, b: String) {
+    println "Base.init(" + a + ", " + b + ")";
+  }
+}
+
+impl Derived < Base {
+  fn new() {
+    println "Derived.init()";
+    super.new("a", "b");
+  }
+}
+
+Derived();
+// out: Derived.init()
+// out: Base.init(a, b)

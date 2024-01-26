@@ -1,0 +1,11 @@
+type Base;
+type Derived;
+
+impl Derived < Base {
+  fn foo() {
+    // out: NameError: struct "Derived" has no method or field "doesNotExist"
+    super.doesNotExist(1);
+  }
+}
+
+Derived().foo();

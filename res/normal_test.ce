@@ -1,11 +1,3 @@
-type Foo {
-    name: String
+if (1 == 2) {
+  println "Hello";
 }
-impl Foo {
-    fn new(name: String) {
-        self.name = name;
-    }
-}
-
-let foo1 = Foo("init");
-

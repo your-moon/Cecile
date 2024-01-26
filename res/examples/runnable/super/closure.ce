@@ -1,0 +1,19 @@
+type Base;
+type Derived;
+impl Base {
+  fn toString() -> String { return "Base"; }
+}
+
+impl Derived < Base {
+  fn getClosure() -> fn {
+    fn closure() -> String {
+      return super.toString();
+    }
+    return closure;
+  }
+
+  fn toString() -> String { return "Derived"; }
+}
+
+let closure = Derived().getClosure();
+println closure(); // out: Base

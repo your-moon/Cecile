@@ -1,0 +1,18 @@
+type Base;
+type Derived;
+impl Base {
+  fn foo() {
+    println "Base.foo()";
+  }
+}
+
+impl Derived < Base {
+  fn bar() {
+    println "Derived.bar()";
+    super.foo();
+  }
+}
+
+Derived().bar();
+// out: Derived.bar()
+// out: Base.foo()

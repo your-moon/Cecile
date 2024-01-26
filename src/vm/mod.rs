@@ -37,8 +37,8 @@ pub mod obj_array;
 pub mod object;
 pub mod op;
 pub mod optimizer;
-pub mod value;
 pub mod util;
+pub mod value;
 
 const FRAMES_MAX: usize = 64;
 const STACK_MAX_PER_FRAME: usize = u8::MAX as usize + 1;
@@ -46,7 +46,7 @@ const STACK_MAX: usize = FRAMES_MAX * STACK_MAX_PER_FRAME;
 
 pub struct VM<'a> {
     stack_top: *mut Value,
-stack: Box<[Value; STACK_MAX]>,
+    stack: Box<[Value; STACK_MAX]>,
 
     frames: ArrayVec<CallFrame, FRAMES_MAX>,
     frame: CallFrame,

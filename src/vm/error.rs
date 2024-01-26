@@ -98,6 +98,9 @@ pub enum NameError {
     #[error("struct {name:?} is already declared")]
     StructAlreadyDeclared { name: String },
 
+    #[error("struct {name:?} is not declared")]
+    StructNotDeclared { name: String },
+
     #[error("unsupported array method: {name:?}")]
     UnsupportedArrayMethod { name: String },
 
@@ -164,9 +167,9 @@ pub enum SyntaxError {
     InvalidToken,
     #[error(r#""self" used outside class"#)]
     SelfOutsideClass,
-    #[error("unexpected input")]
+    #[error("looks like you forgot to close your string")]
     UnexpectedInput { token: String },
-    #[error("unexpected end of file")]
+    #[error("hey you forgot add semicolon in your line")]
     UnrecognizedEOF { expected: Vec<String> },
     #[error("unexpected {token:?}")]
     UnrecognizedToken {
