@@ -16,4 +16,5 @@ const Output = ({ text }: OutputProps) => (
   />
 );
 
-export { Output, OutputProps };
+export { Output };
+export type { OutputProps };

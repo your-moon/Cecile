@@ -204,10 +204,13 @@ impl Compiler {
     pub fn new(allocator: &mut CeAllocation, debug: bool) -> Self {
         let mut globals = CompilerGlobals::default();
         let name = allocator.alloc("");
+
         let to_int = String::from("to_int");
         let to_int_type = Type::Int;
+
         let clock = String::from("clock");
         let clock_type = Type::Int;
+
         let random_number = String::from("random_number");
         let random_type = Type::Int;
 

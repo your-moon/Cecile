@@ -17,6 +17,8 @@ The Cecile, a little programming language designed for simplicity and flexibilit
 
 Welcome to the Cecile programming language.
 
+This language is part of my journey into learning compiler and interpreted languages. It's inspired by [ajeetdsouza/loxcraft](https://github.com/ajeetdsouza/loxcraft), a great Rust project that implemented the Lox language.
+
 The syntax of Cecile is influenced by traditional programming languages like JavaScript, Go, and Rust, with a strong emphasis on developer experience, readability and ease-of-use.
 
 Cecile is written in Rust. Some of performance matter part is written in Unsafe Rust that makes fast enough to compete with traditional interpreted languages like Javascript, Python.
@@ -27,7 +29,7 @@ Important note: **This project is built for learning purposes**. The code qualit
 
 ## 📕 Features
 
-#### Language features:
+#### Language features
 
 - [x] Interpreted
 - [x] Bytecode compiler
@@ -39,7 +41,7 @@ Important note: **This project is built for learning purposes**. The code qualit
 - [x] Stack tracing
 - [x] Repl
 
-#### Ongoing features:
+#### Ongoing features
 
 - [ ] Online playground
 
