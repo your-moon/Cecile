@@ -22,4 +22,5 @@ const Editor = ({ editorText, setEditorText }: EditorProps) => (
   />
 );
 
-export { Editor, EditorProps };
+export { Editor };
+export type { EditorProps };
