@@ -124,8 +124,6 @@ We recommend installing Rust using [rustup](https://www.rustup.rs/). You can ins
 
 ### 🐙 Install Cecile
 
-We recommend installing Cecile by building from the source code as follows:
-
 ```bash
 # Install 'Cecile'
 $ cargo install Cecile --locked
