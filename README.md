@@ -122,21 +122,17 @@ We recommend installing Rust using [rustup](https://www.rustup.rs/). You can ins
 
   Download the [Windows 64-bit executable](https://win.rustup.rs/x86_64) and follow the on-screen instructions.
 
-### 🐙 Build from Source Code
+### 🐙 Install Cecile
 
 We recommend installing Cecile by building from the source code as follows:
 
 ```bash
-# Download the source code
-git clone https://github.com/Hollowloki/Cecile
-cd Cecile
-
 # Install 'Cecile'
-$ cargo install --path .
+$ cargo install Cecile --locked
 ```
 
 Now to use Cecile language, in your terminal, run:
 
 ```bash
-cecile
+Cecile
 ```
