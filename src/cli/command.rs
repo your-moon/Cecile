@@ -1,4 +1,4 @@
-use crate::allocator::allocation::CeAllocation;
+use crate::allocator::allocation::CeAllocationGc;
 use crate::vm::compiler::Compiler;
 use crate::vm::error::{report_error, ErrorS};
 use anyhow::bail;
@@ -54,10 +54,9 @@ impl Commands {
                 let source = std::fs::read_to_string(file)?;
 
                 let mut color = termcolor::StandardStream::stderr(termcolor::ColorChoice::Always);
-
                 let stdout = &mut io::stdout().lock();
 
-                let mut allocation = CeAllocation::new();
+                let mut allocation = CeAllocationGc::new();
                 let mut compiler = Compiler::new(&mut allocation, *debug);
                 let mut vm = crate::vm::VM::new(&mut allocation, *trace, *optimized);
                 if let Err(e) = vm.run(&source, &mut color, *ast_debug, stdout, &mut compiler) {

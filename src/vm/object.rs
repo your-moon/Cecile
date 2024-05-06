@@ -309,6 +309,8 @@ pub struct StructObject {
     pub name: *mut StringObject,
     pub fields: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
     pub methods: HashMap<*mut StringObject, *mut ClosureObject, BuildHasherDefault<FxHasher>>,
+    pub bound_method_cache:
+        HashMap<*mut StringObject, *mut BoundMethodObject, BuildHasherDefault<FxHasher>>,
 }
 
 impl StructObject {
@@ -321,6 +323,7 @@ impl StructObject {
             name,
             methods: HashMap::default(),
             fields: HashMap::default(),
+            bound_method_cache: HashMap::default(),
         }
     }
 }

@@ -20,7 +20,7 @@ version = "0.1.7"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["optimize", "repl"]
+default = ["optimize", "repl", "pprof"]
 pprof = ["dep:pprof"]
 optimize = []
 repl = [

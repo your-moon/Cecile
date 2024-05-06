@@ -15,7 +15,7 @@ use crate::cc_parser::ast::{
 use crate::vm::built_in::builtin_array_methods_return_type;
 use crate::vm::error::{AttributeError, NameError};
 use crate::{
-    allocator::allocation::CeAllocation,
+    allocator::allocation::CeAllocationGc,
     cc_parser::{
         ast::{
             ExprAssign, ExprCall, ExprInfix, ExprLiteral, ExprPrefix, ExprVar, Expression, Fn,
@@ -201,7 +201,7 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn new(allocator: &mut CeAllocation, debug: bool) -> Self {
+    pub fn new(allocator: &mut CeAllocationGc, debug: bool) -> Self {
         let mut globals = CompilerGlobals::default();
         let name = allocator.alloc("");
 
@@ -245,7 +245,7 @@ impl Compiler {
         &mut self,
         source: &str,
         offset: usize,
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
         stdout: &mut StandardStream,
         ast_debug: bool,
     ) -> Result<*mut ObjectFunction, Vec<ErrorS>> {
@@ -279,7 +279,7 @@ impl Compiler {
     fn compile_statement(
         &mut self,
         (statement, range): &(Statement, Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         match statement {
             Statement::Expression(expr) => {
@@ -331,7 +331,7 @@ impl Compiler {
     fn compile_struct_stmt(
         &mut self,
         (struct_, range): (&StatementStruct, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         if self.structs.contains_key(&struct_.name) {
             let result = Err((
@@ -378,7 +378,7 @@ impl Compiler {
     fn compile_impl_stmt(
         &mut self,
         (impl_, range): (&StatementImpl, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         if !self.structs.contains_key(&impl_.name) {
             return Err((
@@ -443,8 +443,6 @@ impl Compiler {
                     .insert(method.name.clone(), strct_method);
             }
 
-            let current_struct = self.get_current_struct_mut(&range)?;
-
             // For Runtime Emit
             for (method, span) in &methods {
                 let method = method.as_fun().unwrap();
@@ -474,7 +472,7 @@ impl Compiler {
     fn compile_statement_return(
         &mut self,
         (return_, range): (&StatementReturn, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         match self.current_compiler.type_ {
             FunctionType::Script => {
@@ -576,7 +574,7 @@ impl Compiler {
         &mut self,
         (func, range): (&StatementFun, &Range<usize>),
         type_: FunctionType,
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let name = allocator.alloc(&func.name);
         let arity_count = func.params.len() as u8;
@@ -700,7 +698,7 @@ impl Compiler {
     fn compile_for_stmt(
         &mut self,
         (for_, range): (&StatementFor, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         self.begin_scope();
         let mut compiled_type = None;
@@ -749,7 +747,7 @@ impl Compiler {
     fn compile_while_stmt(
         &mut self,
         (while_, range): (&StatementWhile, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let loop_start = unsafe { (*self.current_compiler.function).chunk.op_codes.len() };
         let cond_type = self.compile_expression(&while_.cond, allocator)?;
@@ -789,7 +787,7 @@ impl Compiler {
     fn compile_if_stmt(
         &mut self,
         (if_, range): (&StatementIf, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let cond_type = self.compile_expression(&if_.cond, allocator)?;
         if cond_type != Type::Bool {
@@ -823,7 +821,7 @@ impl Compiler {
     fn compile_block_stmt(
         &mut self,
         (block, range): (&StatementBlock, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         self.begin_scope();
         for statement in &block.statements {
@@ -836,7 +834,7 @@ impl Compiler {
     fn print_ln_stmt(
         &mut self,
         (print, range): (&StatementPrintLn, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let expr_type = self.compile_expression(&print.value, allocator)?;
         self.emit_u8(op::PRINT_LN, range);
@@ -846,7 +844,7 @@ impl Compiler {
     fn print_stmt(
         &mut self,
         (print, range): (&StatementPrint, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let expr_type = self.compile_expression(&print.value, allocator)?;
         self.emit_u8(op::PRINT, range);
@@ -856,7 +854,7 @@ impl Compiler {
     fn compile_expression(
         &mut self,
         (expr, range): &(Expression, Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let expr_type = match expr {
             Expression::Assign(assign) => self.compile_assign((assign, range), allocator),
@@ -949,7 +947,7 @@ impl Compiler {
     fn compile_array_access_assign(
         &mut self,
         (arr_access_assign, range): (&ExprArrayAccessAssign, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let array_type = self.compile_expression(&arr_access_assign.array, allocator)?;
         self.compile_expression(&arr_access_assign.index, allocator)?;
@@ -961,7 +959,7 @@ impl Compiler {
     fn compile_array_access(
         &mut self,
         (arr_access, range): (&ExprArrayAccess, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let array_type = self.compile_expression(&arr_access.array, allocator)?;
         let index_type = self.compile_expression(&arr_access.index, allocator)?;
@@ -979,7 +977,7 @@ impl Compiler {
     fn compile_array(
         &mut self,
         (arr, range): (&ExprArray, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let mut array_type = Type::Array(Box::new(Type::UnInitialized));
         for expr in &arr.elements {
@@ -1005,7 +1003,7 @@ impl Compiler {
     fn compile_super(
         &mut self,
         (super_, range): (&ExprSuper, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let current_struct = self.get_current_struct_mut(&range)?;
         let current_struct_name = unsafe { (*current_struct.name.clone()).value.to_string() };
@@ -1037,7 +1035,7 @@ impl Compiler {
     fn compile_set(
         &mut self,
         (set, range): (&Box<ExprSet>, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let value_type = self.compile_expression(&set.value, allocator)?;
         let object_type = self.compile_expression(&set.object, allocator)?;
@@ -1080,7 +1078,7 @@ impl Compiler {
     fn compile_get(
         &mut self,
         (get, range): (&Box<ExprGet>, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let get_type = self.compile_expression(&get.object, allocator)?;
         let field_type = match get_type {
@@ -1145,7 +1143,7 @@ impl Compiler {
     fn compile_call(
         &mut self,
         (call, range): (&Box<ExprCall>, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let arg_count = call.args.len();
         if arg_count > u8::MAX as usize {
@@ -1195,7 +1193,7 @@ impl Compiler {
     fn compile_assign(
         &mut self,
         (assign, range): (&Box<ExprAssign>, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let rhs_type = self.compile_expression(&assign.rhs, allocator)?;
 
@@ -1253,7 +1251,7 @@ impl Compiler {
     fn compile_var_stmt(
         &mut self,
         (var, range): (&StatementVar, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         // Variable declaration left hand side expression, if it's not have expression variable
         // type is UnInitialized
@@ -1351,7 +1349,7 @@ impl Compiler {
         Ok(value_type)
     }
 
-    fn get_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<Type> {
+    fn get_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocationGc) -> Result<Type> {
         if name == "self" && self.current_struct.is_none() {
             return Err((SyntaxError::SelfOutsideClass.into(), span.clone()));
         }
@@ -1384,7 +1382,7 @@ impl Compiler {
         }
     }
 
-    fn set_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<Type> {
+    fn set_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocationGc) -> Result<Type> {
         if let Some((local_idx, local_type)) =
             self.current_compiler.resolve_local(name, false, span)?
         {
@@ -1417,7 +1415,7 @@ impl Compiler {
     fn compile_expression_var(
         &mut self,
         (prefix, range): (&ExprVar, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let name = &prefix.name;
         self.get_variable(name, &range, allocator)
@@ -1436,7 +1434,7 @@ impl Compiler {
     fn compile_prefix(
         &mut self,
         prefix: (&Box<ExprPrefix>, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let (prefix, range) = prefix;
         let rt_type = self.compile_expression(&(prefix.rt), allocator)?;
@@ -1451,7 +1449,7 @@ impl Compiler {
     fn compile_infix(
         &mut self,
         (infix, range): (&Box<ExprInfix>, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         let lhs_type = self.compile_expression(&(infix.lhs), allocator)?;
         let rhs_type = self.compile_expression(&(infix.rhs), allocator)?;
@@ -1568,7 +1566,7 @@ impl Compiler {
     fn compile_literal(
         &mut self,
         (literal, range): (&ExprLiteral, &Range<usize>),
-        allocator: &mut CeAllocation,
+        allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         match literal {
             ExprLiteral::Number(value) => {

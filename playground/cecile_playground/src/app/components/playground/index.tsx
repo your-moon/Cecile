@@ -24,13 +24,7 @@ type CecileOutMessage =
   | CecileOutMessageExitFailure
   | CecileOutMessageExitSuccess;
 
-interface PlaygroundProps {
-  className?: string;
-}
-
-const Playground: React.FC = ({
-  className: playgroundClassName,
-}: PlaygroundProps) => {
+const Playground: React.FC = () => {
   const [editorText, setEditorText] = React.useState<string>("");
   const [outputText, setOutputText] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -88,7 +82,7 @@ const Playground: React.FC = ({
   const resizeHandler = () => window.dispatchEvent(new Event("resize"));
 
   return (
-    <div className={playgroundClassName}>
+    <div className="h-1/2">
       <Split
         gutterAlign="center"
         className="flex h-full"

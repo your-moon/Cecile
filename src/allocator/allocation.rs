@@ -9,13 +9,13 @@ use hashbrown::HashMap;
 use rustc_hash::FxHasher;
 
 #[derive(Debug)]
-pub struct CeAllocation {
+pub struct CeAllocationGc {
     pub strings: HashMap<String, *mut StringObject, BuildHasherDefault<FxHasher>>,
     pub objects: Vec<Object>,
     pub gray_objects: Vec<Object>,
 }
 
-impl CeAllocation {
+impl CeAllocationGc {
     pub fn new() -> Self {
         Self {
             strings: HashMap::with_hasher(BuildHasherDefault::<FxHasher>::default()),
@@ -138,7 +138,7 @@ impl CeAllocation {
     }
 }
 
-impl Drop for CeAllocation {
+impl Drop for CeAllocationGc {
     fn drop(&mut self) {
         for object in &self.objects {
             object.free();
@@ -150,11 +150,11 @@ impl Drop for CeAllocation {
 }
 
 pub trait GcMark {
-    fn mark(self, allocator: &mut CeAllocation);
+    fn mark(self, allocator: &mut CeAllocationGc);
 }
 
 impl<T: Into<Object>> GcMark for T {
-    fn mark(self, allocator: &mut CeAllocation) {
+    fn mark(self, allocator: &mut CeAllocationGc) {
         let object = self.into();
         if !unsafe { (*object.main).is_marked } {
             // println!("mark {}: {object}", object.type_());
@@ -168,7 +168,7 @@ impl<T: Into<Object>> GcMark for T {
 }
 
 impl GcMark for Value {
-    fn mark(self, allocator: &mut CeAllocation) {
+    fn mark(self, allocator: &mut CeAllocationGc) {
         if self.is_object() {
             self.as_object().mark(allocator);
         }
@@ -176,14 +176,14 @@ impl GcMark for Value {
 }
 
 pub trait CeAlloc<T> {
-    fn alloc(self, allocation: &mut CeAllocation) -> T;
+    fn alloc(self, allocation: &mut CeAllocationGc) -> T;
 }
 
 impl<T> CeAlloc<*mut T> for T
 where
     *mut T: Into<Object>,
 {
-    fn alloc(self, allocation: &mut CeAllocation) -> *mut T {
+    fn alloc(self, allocation: &mut CeAllocationGc) -> *mut T {
         let object_ptr = Box::into_raw(Box::new(self));
         let object = object_ptr.into();
 
@@ -196,7 +196,7 @@ impl<S> CeAlloc<*mut StringObject> for S
 where
     S: AsRef<str> + Into<String>,
 {
-    fn alloc(self, allocation: &mut CeAllocation) -> *mut StringObject {
+    fn alloc(self, allocation: &mut CeAllocationGc) -> *mut StringObject {
         match allocation.strings.raw_entry_mut().from_key(self.as_ref()) {
             RawEntryMut::Occupied(entry) => *entry.get(),
             RawEntryMut::Vacant(entry) => {
