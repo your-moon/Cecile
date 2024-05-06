@@ -9,7 +9,7 @@ use crate::cc_parser::ast::Type;
 use crate::vm::optimizer::Optimizer;
 use crate::vm::value::Value;
 use crate::{
-    allocator::allocation::{CeAlloc, CeAllocation},
+    allocator::allocation::{CeAlloc, CeAllocationGc},
     vm::object::StringObject,
 };
 use rustc_hash::FxHasher;
@@ -51,7 +51,7 @@ pub struct VM<'a> {
     frames: ArrayVec<CallFrame, FRAMES_MAX>,
     frame: CallFrame,
 
-    allocator: &'a mut CeAllocation,
+    allocator: &'a mut CeAllocationGc,
     next_gc: usize,
 
     globals: HashMap<*mut StringObject, Value, BuildHasherDefault<FxHasher>>,
@@ -66,7 +66,7 @@ pub struct VM<'a> {
 }
 
 impl<'a> VM<'a> {
-    pub fn new(allocator: &mut CeAllocation, trace: bool, optimized_debug: bool) -> VM {
+    pub fn new(allocator: &mut CeAllocationGc, trace: bool, optimized_debug: bool) -> VM {
         let natives = allocator.alloc_natives();
 
         let mut globals = HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
@@ -573,7 +573,26 @@ impl<'a> VM<'a> {
                 let method = unsafe { (*(*instance).struct_).methods.get(&name) };
                 match method {
                     Some(&method) => {
-                        let bound_method = self.alloc(BoundMethodObject::new(instance, method));
+                        //NOTE:
+                        // each time we call a method we create a new bound method object
+                        // if bound_method is already created then we can reuse it
+                        let bound_method =
+                            unsafe { (*(*instance).struct_).bound_method_cache.get(&name) };
+
+                        let bound_method = match bound_method {
+                            Some(bound_method) => *bound_method,
+                            None => {
+                                let bound_method =
+                                    self.alloc(BoundMethodObject::new(instance, method));
+                                unsafe {
+                                    (*(*instance).struct_)
+                                        .bound_method_cache
+                                        .insert(name, bound_method)
+                                };
+                                bound_method
+                            }
+                        };
+
                         self.pop();
                         self.push(bound_method.into());
                     }
