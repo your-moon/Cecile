@@ -1,4 +1,5 @@
 use std::hash::BuildHasherDefault;
+use std::io::Write;
 use std::{fmt::Display, mem, ops::Range};
 
 use arrayvec::ArrayVec;
@@ -241,6 +242,11 @@ impl Compiler {
         }
     }
 
+    pub fn write_to_file(&self, path: &str) {
+        //TODO: Seperate compiling and runtime
+        unimplemented!("Write chunk to file");
+    }
+
     pub fn compile_script(
         &mut self,
         source: &str,
@@ -267,6 +273,8 @@ impl Compiler {
             unsafe { (*self.current_compiler.function).chunk.debug("script") };
         }
         let _ = stdout.set_color(ColorSpec::new().set_fg(Some(Color::Cyan)));
+
+        self.write_to_file("inst.co");
 
         if self.debug {
             println!("|--------------Virtual Machine--------------|");
