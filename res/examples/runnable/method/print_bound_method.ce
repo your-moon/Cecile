@@ -1,5 +1,6 @@
-class Foo {
-  method() { }
+type Foo;
+impl Foo {
+  fn method() { }
 }
-var foo = Foo();
-print foo.method; // out: <bound method method>
+let foo = Foo();
+println foo.method; // out: <bound method method>

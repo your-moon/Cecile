@@ -33,6 +33,7 @@ use super::built_in::builtin_array_methods_contains;
 use super::compiler_globals::CompilerGlobals;
 use super::error::OverflowError;
 use super::object::StringObject;
+use super::value;
 use super::{
     error::{Error, ErrorS, Result, SyntaxError},
     object::ObjectFunction,
@@ -242,6 +243,11 @@ impl Compiler {
         }
     }
 
+    pub fn write_to_file(&self, path: &str) {
+        //TODO: Seperate compiling and runtime
+        unimplemented!("Write chunk to file");
+    }
+
     pub fn compile_script(
         &mut self,
         source: &str,
@@ -268,6 +274,8 @@ impl Compiler {
             unsafe { (*self.current_compiler.function).chunk.debug("script") };
         }
         let _ = stdout.set_color(ColorSpec::new().set_fg(Some(Color::Cyan)));
+
+        self.write_to_file("inst.co");
 
         if self.debug {
             println!("|--------------Virtual Machine--------------|");
@@ -397,7 +405,7 @@ impl Compiler {
             HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
         if has_super {
             if self.current_struct.is_none() {
-                return Err((SyntaxError::SuperOutsideImpl.into(), range.clone()));
+                return Err((SyntaxError::SuperOutsideImpl.into(), range.clone()))
             }
 
             let super_name = impl_.super_.clone().unwrap();
@@ -480,64 +488,89 @@ impl Compiler {
         allocator: &mut CeAllocationGc,
     ) -> Result<Type> {
         match self.current_compiler.type_ {
-            FunctionType::Script => Err((
-                Error::SyntaxError(SyntaxError::ReturnOutsideFunction),
-                range.clone(),
-            )),
+            FunctionType::Script => {
+                Err((
+                    Error::SyntaxError(SyntaxError::ReturnOutsideFunction),
+                    range.clone(),
+                ))
+            }
             FunctionType::Function | FunctionType::Method => {
+                // This is compiling function's return type
+                // Example: fn some() -> String {}
+                // In this case String is return type
                 let func_return_type = unsafe { &(*self.current_compiler.function).return_type };
 
-                match (&return_.value, func_return_type) {
-                    (None, None) => {
-                        self.emit_u8(op::NIL, range);
-                        self.emit_u8(op::RETURN, range);
-                        Ok(Type::Fn(Fn {
-                            return_type: Box::new(Some(Type::Nil)),
-                        }))
-                    }
-                    (None, Some(expected)) => Err((
-                        Error::TypeError(TypeError::ReturnTypeMismatch {
-                            expected: expected.to_string(),
-                            actual: Type::Nil.to_string(),
-                        }),
-                        range.clone(),
-                    )),
-                    (Some(value), expected_type) => {
-                        let actual_type = self.compile_expression(value, allocator)?;
-
-                        match expected_type {
-                            Some(expected) if actual_type.is_both_fn(expected) => {
-                                self.emit_u8(op::RETURN, range);
-                                Ok(actual_type)
+                if return_.value.is_none() {
+                        match func_return_type {
+                            Some(fn_return_type) => {
+                                let result = Err((
+                                    Error::TypeError(TypeError::ReturnTypeMismatch {
+                                        expected: fn_return_type.to_string(),
+                                        actual: Type::Nil.to_string(),
+                                    }),
+                                    range.clone(),
+                                ));
+                                return result;
                             }
-                            Some(expected) if &actual_type != expected => Err((
-                                Error::TypeError(TypeError::ReturnTypeMismatch {
-                                    expected: expected.to_string(),
-                                    actual: actual_type.to_string(),
-                                }),
-                                range.clone(),
-                            )),
-                            None if actual_type != Type::Nil => Err((
-                                Error::TypeError(TypeError::ReturnTypeMismatch {
-                                    expected: "None".to_string(),
-                                    actual: actual_type.to_string(),
-                                }),
-                                range.clone(),
-                            )),
-                            _ => {
+                            // both return_stmt_type and fn_return_type is nil
+                            None => {
+                                self.emit_u8(op::NIL, range);
                                 self.emit_u8(op::RETURN, range);
-                                Ok(actual_type)
                             }
                         }
-                    }
+                        return Ok(Type::Fn(Fn {
+                            return_type: Box::new(Some(Type::Nil)),
+                        }));
                 }
+
+                // We have to check function's return's right side statemets equal to the
+                // function's return type
+                // Example fn some() -> String() {
+                //      return "Hi";
+                // }
+                // This is the case that some() function returning the String typed "Hi" that
+                // matches the function's returning type
+                let value  = return_.value.clone().unwrap();
+                        let return_stmt_type = self.compile_expression(&value, allocator)?;
+                        match func_return_type {
+                            Some(fn_return_type) => {
+                                //if function that return function else check return type and
+                                //function's return type
+                                if return_stmt_type.is_both_fn(fn_return_type) {
+                                    self.emit_u8(op::RETURN, range);
+                                    return Ok(return_stmt_type);
+                                } else if &return_stmt_type != fn_return_type {
+                                    let result = Err((
+                                        Error::TypeError(TypeError::ReturnTypeMismatch {
+                                            expected: fn_return_type.to_string(),
+                                            actual: return_stmt_type.to_string(),
+                                        }),
+                                        range.clone(),
+                                    ));
+                                    return result;
+                                }
+                                self.emit_u8(op::RETURN, range);
+                                Ok(return_stmt_type)
+                            }
+                            None => {
+                                if return_stmt_type != Type::Nil {
+                                    let result = Err((
+                                        Error::TypeError(TypeError::FunctionMustNotReturnValue),
+                                        range.clone(),
+                                    ));
+                                    return result;
+                                }
+                                self.emit_u8(op::RETURN, range);
+                                Ok(return_stmt_type)
+                            }
+                        }
             }
             FunctionType::Initializer => match &return_.value {
                 Some(value) => {
                     let return_type = self.compile_expression(value, allocator)?;
                     if return_type != Type::Nil {
                         let result = Err((
-                            Error::SyntaxError(SyntaxError::InitializerMustNotReturnValue),
+                            Error::TypeError(TypeError::InitializerMustNotReturnValue),
                             range.clone(),
                         ));
                         return result;
@@ -994,7 +1027,7 @@ impl Compiler {
     ) -> Result<Type> {
         let current_struct = self.get_current_struct_mut(range);
         if current_struct.is_err() {
-            return Err((SyntaxError::SuperOutsideImpl.into(), range.clone()));
+            return Err((SyntaxError::SuperOutsideImpl.into(), range.clone()))
         }
         // Unwrapping that already handled the error
         let current_struct = current_struct.unwrap();
@@ -1455,15 +1488,20 @@ impl Compiler {
             (Type::Int, Type::Int) | (Type::Bool, Type::Bool) => {
                 self.emit_binary_operand(&infix.op, range, lhs_type)
             }
-            (Type::String, Type::String) => self.emit_concat_operand(&infix.op, range),
-            _ => Err((
-                Error::TypeError(TypeError::BinaryOpSidesMustBeSame {
-                    lhs: lhs_type.to_string(),
-                    rhs: rhs_type.to_string(),
-                    op: infix.op.to_string(),
-                }),
-                range.clone(),
-            )),
+            (Type::String, Type::String) => {
+                self.emit_concat_operand(&infix.op, range)
+            }
+            _ => {
+                Err((
+                    Error::TypeError(TypeError::BinaryOpSidesMustBeSame {
+                        lhs: lhs_type.to_string(),
+                        rhs: rhs_type.to_string(),
+                        op: infix.op.to_string(),
+                    }),
+                    range.clone(),
+                ))
+
+            }
         }
     }
 
@@ -1473,10 +1511,12 @@ impl Compiler {
                 self.emit_u8(op::CONCAT, range);
                 Ok(Type::String)
             }
-            _ => Err((
-                Error::TypeError(TypeError::UnSupportedOperandforString { op: op.to_string() }),
-                range.clone(),
-            )),
+            _ => {
+                Err((
+                    Error::TypeError(TypeError::UnSupportedOperandforString { op: op.to_string() }),
+                    range.clone(),
+                ))
+            }
         }
     }
 

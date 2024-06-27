@@ -5,5 +5,5 @@ impl Foo {
   }
 }
 
-// out: SyntaxError: init() should not return a value
+// out: SyntaxError: initializer must not return a value
 Foo();

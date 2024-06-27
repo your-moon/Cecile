@@ -1,2 +1,2 @@
-// out: SyntaxError: unexpected input
+// out: SyntaxError: looks like you forgot to close your string
 "this string has no close quote

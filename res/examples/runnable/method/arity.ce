@@ -9,7 +9,7 @@ impl Foo {
   fn method6(a:int, b:int, c:int, d:int, e:int, f:int) -> int { return a + b + c + d + e + f; }
 }
 
-var foo = Foo();
+let foo = Foo();
 println foo.method0(); // out: no args
 println foo.method1(1); // out: 1
 println foo.method2(1, 2); // out: 3

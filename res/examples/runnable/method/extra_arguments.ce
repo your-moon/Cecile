@@ -1,7 +1,12 @@
-class Foo {
-  method(a, b) {
-    print a;
-    print b;
+type Foo {
+  a: int,
+  b: int
+}
+
+impl Foo {
+  fn method(a: int, b: int) {
+    println a;
+    println b;
   }
 }
 

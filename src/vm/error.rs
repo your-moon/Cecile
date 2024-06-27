@@ -69,7 +69,7 @@ impl_from_error!(
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum OverflowError {
-    #[error("cannot define more than 256 local variables in a function")]
+    #[error("cannot define more than 256 parameters in a function")]
     TooManyLocals,
     #[error("jump body is too large")]
     StackOverflow,
@@ -157,6 +157,8 @@ impl AsDiagnostic for IoError {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum SyntaxError {
+    #[error("initializer must not return a value")]
+    InitializerMustNotReturnValue,
     #[error("param must have type: {name:?}")]
     ParamMustHaveType { name: String },
     #[error(r#""return" used outside function"#)]
@@ -171,7 +173,7 @@ pub enum SyntaxError {
     SuperOutsideImpl,
     #[error("looks like you forgot to close your string")]
     UnexpectedInput { token: String },
-    #[error("hey you forgot add semicolon in your line")]
+    #[error("unexpected end of file")]
     UnrecognizedEOF { expected: Vec<String> },
     #[error("unexpected {token:?}")]
     UnrecognizedToken {

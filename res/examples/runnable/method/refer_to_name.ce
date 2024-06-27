@@ -1,6 +1,7 @@
-class Foo {
-  method() {
-    print method; // out: NameError: name "method" is not defined
+type Foo;
+impl Foo {
+  fn method() {
+    println method; // out: NameError: identifier "method" is not defined
   }
 }
 

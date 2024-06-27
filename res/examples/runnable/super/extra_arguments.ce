@@ -9,7 +9,7 @@ impl Base {
 impl Derived < Base {
   fn foo() {
     println "Derived.foo()"; // out: Derived.foo()
-    super.foo("a", "b", "c", "d"); // out: TypeError: arity expected 2, got 4 name: "foo"
+    super.foo("a", "b", "c", "d"); // out: TypeError: foo() takes 2 arguments but 4 were given
   }
 }
 

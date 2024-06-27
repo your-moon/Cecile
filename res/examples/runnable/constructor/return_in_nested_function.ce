@@ -8,4 +8,4 @@ impl Foo {
   }
 }
 
-println Foo(); // out: <object Foo>
+println Foo(); // out: <instance "Foo">

@@ -1,3 +1,3 @@
 type Foo;
 
-let foo = Foo(1, 2, 3); // out: TypeError: arity expected 0, got 3 name: "Foo"
+let foo = Foo(1, 2, 3); // out: TypeError: Foo() takes 0 arguments but 3 were given

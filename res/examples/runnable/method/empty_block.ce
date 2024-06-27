@@ -1,5 +1,6 @@
-class Foo {
-  bar() {}
+type Foo;
+impl Foo {
+  fn bar() {}
 }
 
-print Foo().bar(); // out: nil
+println Foo().bar(); // out: nil

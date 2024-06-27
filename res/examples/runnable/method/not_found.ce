@@ -1,4 +1,4 @@
-class Foo {}
+type Foo;
 
-// out: AttributeError: "Foo" object has no attribute "unknown"
+// out: NameError: struct "Foo" has no method or field "unknown"
 Foo().unknown();
