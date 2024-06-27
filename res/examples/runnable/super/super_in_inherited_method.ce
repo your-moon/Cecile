@@ -1,22 +1,28 @@
-class A {
-  say() {
-    print "A";
+type A;
+
+impl A {
+  fn say() {
+      println "A";
   }
 }
 
-class B < A {
-  test() {
+type B;
+
+impl B < A {
+  fn test() {
     super.say();
   }
 
-  say() {
-    print "B";
+  fn say() {
+    println "B";
   }
 }
 
-class C < B {
-  say() {
-    print "C";
+type C;
+
+impl C < B {
+  fn say() {
+    println "C";
   }
 }
 

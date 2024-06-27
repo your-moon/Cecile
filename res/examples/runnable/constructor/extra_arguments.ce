@@ -10,4 +10,4 @@ impl Foo {
   }
 }
 
-let foo = Foo(1, 2, 3, 4); // out: TypeError: init() takes 2 arguments but 4 were given
+let foo = Foo(1, 2, 3, 4); // out: TypeError: new() takes 2 arguments but 4 were given

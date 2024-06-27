@@ -284,7 +284,7 @@ impl Compiler {
         match statement {
             Statement::Expression(expr) => {
                 let type_ = self.compile_expression(&expr.expr, allocator)?;
-                self.emit_u8(op::POP, &range);
+                self.emit_u8(op::POP, range);
                 Ok(type_)
             }
             Statement::Print(print) => self.print_stmt((print, range), allocator),
@@ -305,15 +305,15 @@ impl Compiler {
                             return_type: Box::new(func.return_type.clone()),
                         }),
                     );
-                    self.emit_u8(op::DEFINE_GLOBAL, &range);
-                    self.emit_constant(name, &range)?;
+                    self.emit_u8(op::DEFINE_GLOBAL, range);
+                    self.emit_constant(name, range)?;
                 } else {
                     self.declare_local(
                         &func.name,
                         &Type::Fn(Fn {
                             return_type: Box::new(func.return_type.clone()),
                         }),
-                        &range,
+                        range,
                     )?
                 }
                 Ok(func_type)
@@ -345,13 +345,13 @@ impl Compiler {
         let name = allocator.alloc(&struct_.name);
         let fields = struct_.fields.clone();
 
-        self.emit_u8(op::STRUCT, &range);
-        self.emit_constant(name.into(), &range)?;
+        self.emit_u8(op::STRUCT, range);
+        self.emit_constant(name.into(), range)?;
 
         for field in &fields {
             let name = allocator.alloc(&field.name).into();
-            self.emit_u8(op::FIELD, &range);
-            self.emit_constant(name, &range)?;
+            self.emit_u8(op::FIELD, range);
+            self.emit_constant(name, range)?;
         }
 
         if self.is_global() {
@@ -360,7 +360,7 @@ impl Compiler {
             self.emit_u8(op::DEFINE_GLOBAL, range);
             self.emit_constant(name.into(), range)?;
         } else {
-            self.declare_local(&struct_.name, &Type::Struct(struct_.name.clone()), &range)?;
+            self.declare_local(&struct_.name, &Type::Struct(struct_.name.clone()), range)?;
         }
         self.structs.insert(
             struct_.name.clone(),
@@ -395,10 +395,14 @@ impl Compiler {
         let mut super_methods =
             HashMap::with_capacity_and_hasher(256, BuildHasherDefault::default());
         if has_super {
+            if self.current_struct.is_none() {
+                return Err((SyntaxError::SuperOutsideImpl.into(), range.clone()))
+            }
+
             let super_name = impl_.super_.clone().unwrap();
-            let super_struct = self.find_struct_mut(&super_name, &range)?;
-            super_methods = super_struct.methods.clone();
-            let current_struct = self.get_current_struct_mut(&range)?;
+            let super_struct = self.find_struct_mut(&super_name, range)?;
+            super_methods.clone_from(&super_struct.methods);
+            let current_struct = self.get_current_struct_mut(range)?;
             current_struct.methods = super_methods;
             // add super methods to current struct
             current_struct.has_super = has_super;
@@ -419,7 +423,7 @@ impl Compiler {
             self.declare_local("super", &Type::Struct(super_.clone()), &(0..0))?;
             self.define_local();
 
-            self.get_variable(&super_, range, allocator)?;
+            self.get_variable(super_, range, allocator)?;
             self.get_variable(&impl_.name, range, allocator)?;
             self.emit_u8(op::INHERIT, range);
         }
@@ -427,7 +431,7 @@ impl Compiler {
         let methods = impl_.methods.clone();
 
         if !impl_.methods.is_empty() {
-            self.get_variable(&impl_.name, &range, allocator)?;
+            self.get_variable(&impl_.name, range, allocator)?;
             // for CompileTime info
             for (method, _) in &methods {
                 let method = method.as_fun().unwrap();
@@ -437,13 +441,11 @@ impl Compiler {
                         return_type: Box::new(method.return_type.clone()),
                     }),
                 };
-                let current_struct = self.get_current_struct_mut(&range)?;
+                let current_struct = self.get_current_struct_mut(range)?;
                 current_struct
                     .methods
                     .insert(method.name.clone(), strct_method);
             }
-
-            let current_struct = self.get_current_struct_mut(&range)?;
 
             // For Runtime Emit
             for (method, span) in &methods {
@@ -453,13 +455,13 @@ impl Compiler {
                 } else {
                     FunctionType::Method
                 };
-                self.compile_statement_fun((&method, &range), type_, allocator)?;
+                self.compile_statement_fun((&method, range), type_, allocator)?;
 
                 let name = allocator.alloc(&method.name).into();
                 self.emit_u8(op::METHOD, span);
                 self.emit_constant(name, span)?;
             }
-            self.emit_u8(op::POP, &range);
+            self.emit_u8(op::POP, range);
         }
 
         if has_super {
@@ -478,11 +480,10 @@ impl Compiler {
     ) -> Result<Type> {
         match self.current_compiler.type_ {
             FunctionType::Script => {
-                let result = Err((
+                Err((
                     Error::SyntaxError(SyntaxError::ReturnOutsideFunction),
                     range.clone(),
-                ));
-                return result;
+                ))
             }
             FunctionType::Function | FunctionType::Method => {
                 let func_return_type = unsafe { &(*self.current_compiler.function).return_type };
@@ -494,7 +495,7 @@ impl Compiler {
                                 //if function that return function else check return type and
                                 //function's return type
                                 if return_stmt_type.is_both_fn(fn_return_type) {
-                                    self.emit_u8(op::RETURN, &range);
+                                    self.emit_u8(op::RETURN, range);
                                     return Ok(return_stmt_type);
                                 } else if &return_stmt_type != fn_return_type {
                                     let result = Err((
@@ -506,8 +507,8 @@ impl Compiler {
                                     ));
                                     return result;
                                 }
-                                self.emit_u8(op::RETURN, &range);
-                                return Ok(return_stmt_type);
+                                self.emit_u8(op::RETURN, range);
+                                Ok(return_stmt_type)
                             }
                             None => {
                                 if return_stmt_type != Type::Nil {
@@ -517,8 +518,8 @@ impl Compiler {
                                     ));
                                     return result;
                                 }
-                                self.emit_u8(op::RETURN, &range);
-                                return Ok(return_stmt_type);
+                                self.emit_u8(op::RETURN, range);
+                                Ok(return_stmt_type)
                             }
                         }
                     }
@@ -537,13 +538,13 @@ impl Compiler {
                             }
                             // both return_stmt_type and fn_return_type is nil
                             None => {
-                                self.emit_u8(op::NIL, &range);
-                                self.emit_u8(op::RETURN, &range);
+                                self.emit_u8(op::NIL, range);
+                                self.emit_u8(op::RETURN, range);
                             }
                         }
-                        return Ok(Type::Fn(Fn {
+                        Ok(Type::Fn(Fn {
                             return_type: Box::new(Some(Type::Nil)),
-                        }));
+                        }))
                     }
                 }
             }
@@ -557,16 +558,16 @@ impl Compiler {
                         ));
                         return result;
                     }
-                    self.emit_u8(op::GET_LOCAL, &range);
-                    self.emit_u8(0, &range);
-                    self.emit_u8(op::RETURN, &range);
-                    return Ok(return_type);
+                    self.emit_u8(op::GET_LOCAL, range);
+                    self.emit_u8(0, range);
+                    self.emit_u8(op::RETURN, range);
+                    Ok(return_type)
                 }
                 None => {
-                    self.emit_u8(op::GET_LOCAL, &range);
-                    self.emit_u8(0, &range);
-                    self.emit_u8(op::RETURN, &range);
-                    return Ok(Type::UnInitialized);
+                    self.emit_u8(op::GET_LOCAL, range);
+                    self.emit_u8(0, range);
+                    self.emit_u8(op::RETURN, range);
+                    Ok(Type::UnInitialized)
                 }
             },
         }
@@ -609,19 +610,19 @@ impl Compiler {
                 &Type::Fn(Fn {
                     return_type: Box::new(func.return_type.clone()),
                 }),
-                &range,
+                range,
             )?,
             FunctionType::Initializer | FunctionType::Method => {
-                let current_struct = self.get_current_struct_mut(&range)?;
+                let current_struct = self.get_current_struct_mut(range)?;
                 let current_struct_name = unsafe { (*current_struct.name).value.to_string() };
-                self.declare_local("self", &Type::Struct(current_struct_name), &range)?;
+                self.declare_local("self", &Type::Struct(current_struct_name), range)?;
             }
         }
 
         for (param_string, param_type) in &func.params {
             match param_type {
                 Some(t) => {
-                    self.declare_local(param_string, t, &range)?;
+                    self.declare_local(param_string, t, range)?;
                 }
                 None => {
                     if param_string == "self" {
@@ -640,16 +641,16 @@ impl Compiler {
         }
 
         for statement in &func.body.statements {
-            self.compile_statement(&statement, allocator)?;
+            self.compile_statement(statement, allocator)?;
         }
 
         if type_ == FunctionType::Initializer {
-            self.emit_u8(op::GET_LOCAL, &range);
-            self.emit_u8(0, &range);
-            self.emit_u8(op::RETURN, &range);
+            self.emit_u8(op::GET_LOCAL, range);
+            self.emit_u8(0, range);
+            self.emit_u8(op::RETURN, range);
         } else if !self.is_have_return_current_compiler() && type_ != FunctionType::Initializer {
-            self.emit_u8(op::NIL, &range);
-            self.emit_u8(op::RETURN, &range);
+            self.emit_u8(op::NIL, range);
+            self.emit_u8(op::RETURN, range);
         }
 
         let (function, upvalues) = self.end_cell();
@@ -658,18 +659,18 @@ impl Compiler {
             unsafe { (*function).chunk.debug((*name).value) };
         }
         let function = function.into();
-        self.emit_u8(op::CLOSURE, &range);
-        self.emit_constant(function, &range)?;
+        self.emit_u8(op::CLOSURE, range);
+        self.emit_constant(function, range)?;
         for upvalue in &upvalues {
-            self.emit_u8(upvalue.is_local.into(), &range);
-            self.emit_u8(upvalue.index, &range);
+            self.emit_u8(upvalue.is_local.into(), range);
+            self.emit_u8(upvalue.index, range);
         }
 
         let return_type = match &func.return_type {
             Some(t) => t.clone(),
             None => Type::Nil,
         };
-        return Ok(return_type);
+        Ok(return_type)
     }
 
     fn is_have_return_current_compiler(&self) -> bool {
@@ -705,7 +706,7 @@ impl Compiler {
         self.begin_scope();
         let mut compiled_type = None;
         if let Some(init) = &for_.init {
-            let compile_init = self.compile_statement(&init, allocator)?;
+            let compile_init = self.compile_statement(init, allocator)?;
             compiled_type = Some(compile_init);
         }
 
@@ -720,26 +721,26 @@ impl Compiler {
                 ));
                 return result;
             }
-            just_to_end = Some(self.emit_jump(op::JUMP_IF_FALSE, &range));
-            self.emit_u8(op::POP, &range);
+            just_to_end = Some(self.emit_jump(op::JUMP_IF_FALSE, range));
+            self.emit_u8(op::POP, range);
         }
 
         self.compile_statement(&for_.body, allocator)?;
         if let Some(increment) = &for_.update {
             self.compile_expression(increment, allocator)?;
-            self.emit_u8(op::POP, &range);
+            self.emit_u8(op::POP, range);
         }
-        self.emit_loop(loop_start, &range)?;
+        self.emit_loop(loop_start, range)?;
 
         if let Some(exit_jump) = just_to_end {
-            self.patch_jump(exit_jump, &range)?;
-            self.emit_u8(op::POP, &range);
+            self.patch_jump(exit_jump, range)?;
+            self.emit_u8(op::POP, range);
         }
         self.end_scope(range.clone());
         if let Some(compiled_type) = compiled_type {
             return Ok(compiled_type);
         }
-        return Ok(Type::UnInitialized);
+        Ok(Type::UnInitialized)
     }
 
     fn start_loop(&self) -> usize {
@@ -760,13 +761,13 @@ impl Compiler {
             ));
             return result;
         }
-        let exit_jump = self.emit_jump(op::JUMP_IF_FALSE, &range);
-        self.emit_u8(op::POP, &range);
+        let exit_jump = self.emit_jump(op::JUMP_IF_FALSE, range);
+        self.emit_u8(op::POP, range);
         self.compile_statement(&while_.body, allocator)?;
-        self.emit_loop(loop_start, &range)?;
-        self.patch_jump(exit_jump, &range)?;
-        self.emit_u8(op::POP, &range);
-        return Ok(Type::UnInitialized);
+        self.emit_loop(loop_start, range)?;
+        self.patch_jump(exit_jump, range)?;
+        self.emit_u8(op::POP, range);
+        Ok(Type::UnInitialized)
     }
 
     fn emit_loop(&mut self, start_idx: usize, span: &Span) -> Result<()> {
@@ -800,24 +801,24 @@ impl Compiler {
             return result;
         }
         // If the condition is false, go to ELSE.
-        let jump_to_else = self.emit_jump(op::JUMP_IF_FALSE, &range);
+        let jump_to_else = self.emit_jump(op::JUMP_IF_FALSE, range);
         // Discard the condition.
-        self.emit_u8(op::POP, &range);
+        self.emit_u8(op::POP, range);
         // Evaluate the if branch.
         self.compile_statement(&if_.then_branch, allocator)?;
         // Go to END.
-        let jump_to_end = self.emit_jump(op::JUMP, &range);
+        let jump_to_end = self.emit_jump(op::JUMP, range);
 
         // ELSE:
-        self.patch_jump(jump_to_else, &range)?;
-        self.emit_u8(op::POP, &range); // Discard the condition.
+        self.patch_jump(jump_to_else, range)?;
+        self.emit_u8(op::POP, range); // Discard the condition.
         if let Some(else_branch) = &if_.else_branch {
             self.compile_statement(else_branch, allocator)?;
         }
 
         // END:
-        self.patch_jump(jump_to_end, &range)?;
-        return Ok(Type::UnInitialized);
+        self.patch_jump(jump_to_end, range)?;
+        Ok(Type::UnInitialized)
     }
 
     fn compile_block_stmt(
@@ -827,10 +828,10 @@ impl Compiler {
     ) -> Result<Type> {
         self.begin_scope();
         for statement in &block.statements {
-            self.compile_statement(&statement, allocator)?;
+            self.compile_statement(statement, allocator)?;
         }
         self.end_scope(range.clone());
-        return Ok(Type::UnInitialized);
+        Ok(Type::UnInitialized)
     }
 
     fn print_ln_stmt(
@@ -840,7 +841,7 @@ impl Compiler {
     ) -> Result<Type> {
         let expr_type = self.compile_expression(&print.value, allocator)?;
         self.emit_u8(op::PRINT_LN, range);
-        return Ok(expr_type);
+        Ok(expr_type)
     }
 
     fn print_stmt(
@@ -913,7 +914,7 @@ impl Compiler {
         let field = struct_
             .fields
             .iter()
-            .find(|f| (*f.name) == field_name.to_string());
+            .find(|f| *f.name == field_name.to_string());
         let strct_type = match field {
             Some(field) => field.type_.clone(),
             None => {
@@ -927,7 +928,7 @@ impl Compiler {
                 return result;
             }
         };
-        return Ok(strct_type);
+        Ok(strct_type)
     }
 
     fn find_struct_type_of_field_or_method(
@@ -936,14 +937,14 @@ impl Compiler {
         check_field: String,
         range: &Span,
     ) -> Result<Type> {
-        let found_struct = self.find_struct(&struct_name, &range)?;
-        let field = self.get_field_type(found_struct, check_field.as_str(), &range);
-        if !field.is_ok() {
-            let method = self.get_method_type(found_struct, check_field.clone(), &range)?;
+        let found_struct = self.find_struct(&struct_name, range)?;
+        let field = self.get_field_type(found_struct, check_field.as_str(), range);
+        if field.is_err() {
+            let method = self.get_method_type(found_struct, check_field.clone(), range)?;
             return Ok(method);
         }
 
-        return Ok(field.unwrap());
+        Ok(field.unwrap())
     }
 
     fn compile_array_access_assign(
@@ -954,7 +955,7 @@ impl Compiler {
         let array_type = self.compile_expression(&arr_access_assign.array, allocator)?;
         self.compile_expression(&arr_access_assign.index, allocator)?;
         self.compile_expression(&arr_access_assign.value, allocator)?;
-        self.emit_u8(op::ARRAY_ELEM_ASSIGN, &range);
+        self.emit_u8(op::ARRAY_ELEM_ASSIGN, range);
         Ok(array_type)
     }
 
@@ -972,7 +973,7 @@ impl Compiler {
             ));
             return result;
         }
-        self.emit_u8(op::BINARY_GETELEM, &range);
+        self.emit_u8(op::BINARY_GETELEM, range);
         Ok(array_type.get_array_type().unwrap())
     }
 
@@ -983,7 +984,7 @@ impl Compiler {
     ) -> Result<Type> {
         let mut array_type = Type::Array(Box::new(Type::UnInitialized));
         for expr in &arr.elements {
-            let expr_type = self.compile_expression(&expr, allocator)?;
+            let expr_type = self.compile_expression(expr, allocator)?;
             if array_type == Type::Array(Box::new(Type::UnInitialized)) {
                 array_type = Type::Array(Box::new(expr_type));
             } else if array_type.get_array_type().unwrap() != expr_type {
@@ -997,9 +998,9 @@ impl Compiler {
                 return result;
             }
         }
-        self.emit_u8(op::BUILD_ARRAY, &range);
-        self.emit_u8(arr.elements.len() as u8, &range);
-        return Ok(array_type);
+        self.emit_u8(op::BUILD_ARRAY, range);
+        self.emit_u8(arr.elements.len() as u8, range);
+        Ok(array_type)
     }
 
     fn compile_super(
@@ -1007,8 +1008,14 @@ impl Compiler {
         (super_, range): (&ExprSuper, &Range<usize>),
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
-        let current_struct = self.get_current_struct_mut(&range)?;
-        let current_struct_name = unsafe { (*current_struct.name.clone()).value.to_string() };
+        let current_struct = self.get_current_struct_mut(range);
+        if current_struct.is_err() {
+            return Err((SyntaxError::SuperOutsideImpl.into(), range.clone()))
+        }
+        // Unwrapping that already handled the error
+        let current_struct = current_struct.unwrap();
+
+        let current_struct_name = unsafe { (*current_struct.name).value.to_string() };
         if !current_struct.has_super {
             let result = Err((
                 Error::NameError(NameError::StructHasNoSuper {
@@ -1029,8 +1036,8 @@ impl Compiler {
         self.get_variable("self", range, allocator)?;
         self.get_variable("super", range, allocator)?;
 
-        self.emit_u8(op::GET_SUPER, &range);
-        self.emit_constant(name.into(), &range)?;
+        self.emit_u8(op::GET_SUPER, range);
+        self.emit_constant(name.into(), range)?;
         Ok(super_type)
     }
 
@@ -1072,8 +1079,8 @@ impl Compiler {
             return result;
         }
         let name = allocator.alloc(&set.name);
-        self.emit_u8(op::SET_FIELD, &range);
-        self.emit_constant(name.into(), &range)?;
+        self.emit_u8(op::SET_FIELD, range);
+        self.emit_constant(name.into(), range)?;
         Ok(field_type)
     }
 
@@ -1088,7 +1095,7 @@ impl Compiler {
                 self.find_struct_type_of_field_or_method(name, get.name.clone(), range)?
             }
             Type::Array(type_) => {
-                if let Some(_) = builtin_array_methods_contains(&get.name) {
+                if builtin_array_methods_contains(&get.name).is_some() {
                     let method_type = builtin_array_methods_return_type(&get.name, *type_.clone());
                     if method_type.is_none() {
                         let result = Err((
@@ -1100,8 +1107,8 @@ impl Compiler {
                         return result;
                     }
                     let name = allocator.alloc(&get.name);
-                    self.emit_u8(op::GET_ARRAY_METHOD, &range);
-                    self.emit_constant(name.into(), &range)?;
+                    self.emit_u8(op::GET_ARRAY_METHOD, range);
+                    self.emit_constant(name.into(), range)?;
 
                     return Ok(Type::Fn(Fn {
                         return_type: Box::new(Some(method_type.unwrap())),
@@ -1128,9 +1135,9 @@ impl Compiler {
         };
 
         let name = allocator.alloc(&get.name);
-        self.emit_u8(op::GET_FIELD, &range);
-        self.emit_constant(name.into(), &range)?;
-        return Ok(field_type);
+        self.emit_u8(op::GET_FIELD, range);
+        self.emit_constant(name.into(), range)?;
+        Ok(field_type)
     }
 
     /// [UnStable]
@@ -1158,17 +1165,16 @@ impl Compiler {
         let callee_type = if callee_type.is_fn() {
             let mut callee_type = callee_type.as_fn().unwrap();
             let callee_type = callee_type.return_type.as_mut().clone();
-            let callee_type = match callee_type {
+            match callee_type {
                 Some(type_) => type_,
                 None => Type::Nil,
-            };
-            callee_type
+            }
         } else {
             callee_type
         };
 
         for arg in &call.args {
-            self.compile_expression(&arg, allocator)?;
+            self.compile_expression(arg, allocator)?;
         }
 
         let ops = unsafe { &mut (*self.current_compiler.function).chunk.op_codes };
@@ -1176,9 +1182,9 @@ impl Compiler {
         match ops.len().checked_sub(2) {
             Some(idx) if ops[idx] == op::GET_FIELD => ops[idx] = op::INVOKE,
             Some(idx) if ops[idx] == op::GET_SUPER => ops[idx] = op::SUPER_INVOKE,
-            Some(_) | None => self.emit_u8(op::CALL, &range),
+            Some(_) | None => self.emit_u8(op::CALL, range),
         }
-        self.emit_u8(arg_count as u8, &range);
+        self.emit_u8(arg_count as u8, range);
         Ok(callee_type)
     }
 
@@ -1204,13 +1210,13 @@ impl Compiler {
                 self.globals.get(&assign.lhs.name).cloned()
             } else if let Some((_, type_)) = self
                 .current_compiler
-                .resolve_local(&assign.lhs.name, false, &range)
+                .resolve_local(&assign.lhs.name, false, range)
                 .unwrap()
             {
                 Some(type_)
             } else if let Some((_, type_)) = self
                 .current_compiler
-                .resolve_upvalue(&assign.lhs.name, &range)
+                .resolve_upvalue(&assign.lhs.name, range)
                 .unwrap()
             {
                 Some(type_)
@@ -1247,7 +1253,7 @@ impl Compiler {
             }
         }
 
-        return self.set_variable(&assign.lhs.name, range, allocator);
+        self.set_variable(&assign.lhs.name, range, allocator)
     }
 
     fn compile_var_stmt(
@@ -1266,7 +1272,7 @@ impl Compiler {
             })?;
 
         if value_type == Type::UnInitialized {
-            self.emit_u8(op::NIL, &range);
+            self.emit_u8(op::NIL, range);
         }
 
         //Check if variable type is declared
@@ -1277,23 +1283,23 @@ impl Compiler {
                     if self.is_global() {
                         let string = allocator.alloc(name);
                         self.globals.insert(name.clone(), type_.clone());
-                        self.emit_u8(op::DEFINE_GLOBAL, &range);
-                        self.emit_constant(string.into(), &range)?;
+                        self.emit_u8(op::DEFINE_GLOBAL, range);
+                        self.emit_constant(string.into(), range)?;
                     } else {
-                        self.declare_local(name, &value_type, &range)?;
+                        self.declare_local(name, &value_type, range)?;
                         self.define_local();
                     }
                 }
                 Type::Struct(strct) => {
-                    self.find_struct_mut(strct, &range)?;
+                    self.find_struct_mut(strct, range)?;
                     let name = &var.var.name;
                     if self.is_global() {
                         let string = allocator.alloc(name);
                         self.globals.insert(name.clone(), type_.clone());
-                        self.emit_u8(op::DEFINE_GLOBAL, &range);
-                        self.emit_constant(string.into(), &range)?;
+                        self.emit_u8(op::DEFINE_GLOBAL, range);
+                        self.emit_constant(string.into(), range)?;
                     } else {
-                        self.declare_local(name, &value_type, &range)?;
+                        self.declare_local(name, &value_type, range)?;
                         self.define_local();
                     }
                 }
@@ -1308,23 +1314,23 @@ impl Compiler {
                             if self.is_global() {
                                 let string = allocator.alloc(name);
                                 self.globals.insert(name.clone(), type_.clone());
-                                self.emit_u8(op::DEFINE_GLOBAL, &range);
-                                self.emit_constant(string.into(), &range)?;
+                                self.emit_u8(op::DEFINE_GLOBAL, range);
+                                self.emit_constant(string.into(), range)?;
                             } else {
-                                self.declare_local(name, &value_type, &range)?;
+                                self.declare_local(name, &value_type, range)?;
                                 self.define_local();
                             }
                         }
                         Type::Struct(strct) => {
-                            self.find_struct_mut(strct, &range)?;
+                            self.find_struct_mut(strct, range)?;
                             let name = &var.var.name;
                             if self.is_global() {
                                 let string = allocator.alloc(name);
                                 self.globals.insert(name.clone(), type_.clone());
-                                self.emit_u8(op::DEFINE_GLOBAL, &range);
-                                self.emit_constant(string.into(), &range)?;
+                                self.emit_u8(op::DEFINE_GLOBAL, range);
+                                self.emit_constant(string.into(), range)?;
                             } else {
-                                self.declare_local(name, &value_type, &range)?;
+                                self.declare_local(name, &value_type, range)?;
                                 self.define_local();
                             }
                         }
@@ -1339,11 +1345,11 @@ impl Compiler {
                 //If variable type is not declared, left hand side expression type will be variable type
                 if self.is_global() {
                     self.globals.insert(name.clone(), value_type.clone());
-                    self.emit_u8(op::DEFINE_GLOBAL, &range);
-                    self.emit_constant(string.into(), &range)?;
+                    self.emit_u8(op::DEFINE_GLOBAL, range);
+                    self.emit_constant(string.into(), range)?;
                 } else {
                     //If variable type is not declared, left hand side expression type will be variable type
-                    self.declare_local(name, &value_type, &range)?;
+                    self.declare_local(name, &value_type, range)?;
                     self.define_local();
                 }
             }
@@ -1353,14 +1359,19 @@ impl Compiler {
 
     fn get_variable(&mut self, name: &str, span: &Span, gc: &mut CeAllocation) -> Result<Type> {
         if name == "self" && self.current_struct.is_none() {
-            return Err((SyntaxError::SelfOutsideClass.into(), span.clone()));
+            return Err((SyntaxError::SelfOutsideImpl.into(), span.clone()));
         }
+
+        if name == "super" && self.current_struct.is_none() {
+            return Err((SyntaxError::SuperOutsideImpl.into(), span.clone()));
+        }
+
         if let Some((local_idx, local_type)) =
             self.current_compiler.resolve_local(name, false, span)?
         {
             self.emit_u8(op::GET_LOCAL, span);
             self.emit_u8(local_idx, span);
-            return Ok(local_type);
+            Ok(local_type)
         } else if let Some((upvalue_idx, upvalue_type)) =
             self.current_compiler.resolve_upvalue(name, span)?
         {
@@ -1371,7 +1382,7 @@ impl Compiler {
             let allocated_name = gc.alloc(name);
             self.emit_u8(op::GET_GLOBAL, span);
             self.emit_constant(allocated_name.into(), span)?;
-            let type_ = self.globals.get(&name.to_string());
+            let type_ = self.globals.get(name);
 
             let expr_var_type = match type_ {
                 Some(type_) => Ok(type_.clone()),
@@ -1390,7 +1401,7 @@ impl Compiler {
         {
             self.emit_u8(op::SET_LOCAL, span);
             self.emit_u8(local_idx, span);
-            return Ok(local_type);
+            Ok(local_type)
         } else if let Some((upvalue_idx, upvalue_type)) =
             self.current_compiler.resolve_upvalue(name, span)?
         {
@@ -1401,7 +1412,7 @@ impl Compiler {
             let allocated_name = gc.alloc(name);
             self.emit_u8(op::SET_GLOBAL, span);
             self.emit_constant(allocated_name.into(), span)?;
-            let type_ = self.globals.get(&name.to_string());
+            let type_ = self.globals.get(name);
 
             let expr_var_type = match type_ {
                 Some(type_) => Ok(type_.clone()),
@@ -1420,7 +1431,7 @@ impl Compiler {
         allocator: &mut CeAllocation,
     ) -> Result<Type> {
         let name = &prefix.name;
-        self.get_variable(name, &range, allocator)
+        self.get_variable(name, range, allocator)
     }
 
     /// [Stable]
@@ -1441,8 +1452,8 @@ impl Compiler {
         let (prefix, range) = prefix;
         let rt_type = self.compile_expression(&(prefix.rt), allocator)?;
         match prefix.op {
-            OpPrefix::Negate => self.emit_u8(op::NEG, &range),
-            OpPrefix::Not => self.emit_u8(op::NOT, &range),
+            OpPrefix::Negate => self.emit_u8(op::NEG, range),
+            OpPrefix::Not => self.emit_u8(op::NOT, range),
         }
         Ok(rt_type)
     }
@@ -1458,21 +1469,21 @@ impl Compiler {
 
         match (&lhs_type, &rhs_type) {
             (Type::Int, Type::Int) | (Type::Bool, Type::Bool) => {
-                return self.emit_binary_operand(&infix.op, &range, lhs_type)
+                self.emit_binary_operand(&infix.op, range, lhs_type)
             }
             (Type::String, Type::String) => {
-                return self.emit_concat_operand(&infix.op, &range);
+                self.emit_concat_operand(&infix.op, range)
             }
             _ => {
-                let result = Err((
+                Err((
                     Error::TypeError(TypeError::BinaryOpSidesMustBeSame {
                         lhs: lhs_type.to_string(),
                         rhs: rhs_type.to_string(),
                         op: infix.op.to_string(),
                     }),
                     range.clone(),
-                ));
-                return result;
+                ))
+
             }
         }
     }
@@ -1480,15 +1491,14 @@ impl Compiler {
     fn emit_concat_operand(&mut self, op: &OpInfix, range: &Range<usize>) -> Result<Type> {
         match op {
             OpInfix::Add => {
-                self.emit_u8(op::CONCAT, &range);
-                return Ok(Type::String);
+                self.emit_u8(op::CONCAT, range);
+                Ok(Type::String)
             }
             _ => {
-                let result = Err((
+                Err((
                     Error::TypeError(TypeError::UnSupportedOperandforString { op: op.to_string() }),
                     range.clone(),
-                ));
-                return result;
+                ))
             }
         }
     }
@@ -1501,56 +1511,56 @@ impl Compiler {
     ) -> Result<Type> {
         match op {
             OpInfix::Modulo => {
-                self.emit_u8(op::MODULO, &range);
-                return Ok(return_type);
+                self.emit_u8(op::MODULO, range);
+                Ok(return_type)
             }
             OpInfix::Add => {
-                self.emit_u8(op::ADD, &range);
-                return Ok(return_type);
+                self.emit_u8(op::ADD, range);
+                Ok(return_type)
             }
             OpInfix::Sub => {
-                self.emit_u8(op::SUB, &range);
-                return Ok(return_type);
+                self.emit_u8(op::SUB, range);
+                Ok(return_type)
             }
             OpInfix::Mul => {
-                self.emit_u8(op::MUL, &range);
-                return Ok(return_type);
+                self.emit_u8(op::MUL, range);
+                Ok(return_type)
             }
             OpInfix::Div => {
-                self.emit_u8(op::DIV, &range);
-                return Ok(return_type);
+                self.emit_u8(op::DIV, range);
+                Ok(return_type)
             }
             OpInfix::Equal => {
-                self.emit_u8(op::EQUAL, &range);
-                return Ok(Type::Bool);
+                self.emit_u8(op::EQUAL, range);
+                Ok(Type::Bool)
             }
             OpInfix::NotEqual => {
-                self.emit_u8(op::NOT_EQUAL, &range);
-                return Ok(Type::Bool);
+                self.emit_u8(op::NOT_EQUAL, range);
+                Ok(Type::Bool)
             }
             OpInfix::Greater => {
-                self.emit_u8(op::GREATER_THAN, &range);
-                return Ok(Type::Bool);
+                self.emit_u8(op::GREATER_THAN, range);
+                Ok(Type::Bool)
             }
             OpInfix::GreaterEqual => {
-                self.emit_u8(op::GREATER_THAN_EQUAL, &range);
-                return Ok(Type::Bool);
+                self.emit_u8(op::GREATER_THAN_EQUAL, range);
+                Ok(Type::Bool)
             }
             OpInfix::Less => {
-                self.emit_u8(op::LESS_THAN, &range);
-                return Ok(Type::Bool);
+                self.emit_u8(op::LESS_THAN, range);
+                Ok(Type::Bool)
             }
             OpInfix::LessEqual => {
-                self.emit_u8(op::LESS_THAN_EQUAL, &range);
-                return Ok(Type::Bool);
+                self.emit_u8(op::LESS_THAN_EQUAL, range);
+                Ok(Type::Bool)
             }
             OpInfix::LogicOr => {
-                self.emit_u8(op::OR, &range);
-                return Ok(Type::Bool);
+                self.emit_u8(op::OR, range);
+                Ok(Type::Bool)
             }
             OpInfix::LogicAnd => {
-                self.emit_u8(op::AND, &range);
-                return Ok(Type::Bool);
+                self.emit_u8(op::AND, range);
+                Ok(Type::Bool)
             }
         }
     }
@@ -1587,13 +1597,13 @@ impl Compiler {
             }
             ExprLiteral::Bool(value) => {
                 match value {
-                    true => self.emit_u8(op::TRUE, &range),
-                    false => self.emit_u8(op::FALSE, &range),
+                    true => self.emit_u8(op::TRUE, range),
+                    false => self.emit_u8(op::FALSE, range),
                 };
                 Ok(Type::Bool)
             }
             ExprLiteral::Nil => {
-                self.emit_u8(op::NIL, &range);
+                self.emit_u8(op::NIL, range);
                 Ok(Type::Nil)
             }
         }
@@ -1626,10 +1636,7 @@ impl Compiler {
     }
 
     fn declare_local(&mut self, name: &str, type_: &Type, span: &Span) -> Result<()> {
-        let is_initialized = match type_ {
-            Type::UnInitialized => false,
-            _ => true,
-        };
+        let is_initialized = !matches!(type_, Type::UnInitialized);
         for local in self.current_compiler.locals.iter().rev() {
             if local.depth != self.current_compiler.scope_depth {
                 break;

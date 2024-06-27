@@ -267,6 +267,7 @@ impl<'a> VM<'a> {
         }
         Ok(())
     }
+
     fn close_upvalues(&mut self, last: *mut Value) {
         for idx in (0..self.open_upvalues.len()).rev() {
             let upvalue = *unsafe { self.open_upvalues.get_unchecked(idx) };

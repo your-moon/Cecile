@@ -1,8 +1,11 @@
-class A {}
+type A;
 
-class B < A {
-  method() {
-    // out: SyntaxError: unexpected ";"
-    super;
+impl A {}
+
+type B;
+impl B < A {
+  fn method() {
+      super;
+      // out: SyntaxError: unexpected ";"
   }
 }
