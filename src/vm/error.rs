@@ -165,8 +165,10 @@ pub enum SyntaxError {
     ExtraToken { token: String },
     #[error("invalid input")]
     InvalidToken,
-    #[error(r#""self" used outside class"#)]
-    SelfOutsideClass,
+    #[error(r#""self" used outside impl"#)]
+    SelfOutsideImpl,
+    #[error(r#""super" used outside impl"#)]
+    SuperOutsideImpl,
     #[error("looks like you forgot to close your string")]
     UnexpectedInput { token: String },
     #[error("hey you forgot add semicolon in your line")]
@@ -235,7 +237,7 @@ pub enum TypeError {
     #[error("cannot set expected type {expected:?}, got {actual:?}")]
     SetTypeMisMatch { expected: String, actual: String },
 
-    #[error("arity expected {expected:?}, got {actual:?} name: {name:?}")]
+    #[error("{name}() takes {expected:?} arguments but {actual:?} were given")]
     ArityMisMatch {
         expected: usize,
         actual: usize,

@@ -1,9 +1,13 @@
-class A {
-  method() {}
+type A;
+impl A {
+  fn method() {
+
+  }
 }
 
-class B < A {
-  method() {
+type B;
+impl B < A {
+  fn method() {
     // out: SyntaxError: unexpected ")"
     (super).method();
   }

@@ -1,4 +1,4 @@
-// out: SyntaxError: "super" used outside class
+// out: SyntaxError: "super" used outside impl
 super.bar();
-fun foo() {
+fn foo() {
 }

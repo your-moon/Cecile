@@ -1,22 +1,25 @@
-class Base {
-  method() {
-    print "Base.method()";
+type Base;
+impl Base {
+  fn method() {
+    println "Base.method()";
   }
 }
 
-class Derived < Base {
-  method() {
+type Derived;
+impl Derived < Base {
+  fn method() {
     super.method();
   }
 }
 
-class OtherBase {
-  method() {
-    print "OtherBase.method()";
+type OtherBase;
+impl OtherBase {
+  fn method() {
+    println "OtherBase.method()";
   }
 }
 
-var derived = Derived();
+let derived = Derived();
 derived.method(); // out: Base.method()
-Base = OtherBase;
+Base().method = OtherBase().method;
 derived.method(); // out: Base.method()

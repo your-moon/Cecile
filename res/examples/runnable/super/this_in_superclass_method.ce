@@ -1,16 +1,25 @@
-class Base {
-  init(a) {
-    this.a = a;
+type Base {
+  a: String
+}
+
+impl Base {
+  fn new(a: String) {
+    self.a = a;
   }
 }
 
-class Derived < Base {
-  init(a, b) {
-    super.init(a);
-    this.b = b;
+type Derived {
+  a: String,
+  b: String
+}
+
+impl Derived < Base {
+  fn new(a: String, b: String) {
+    super.new(a);
+    self.b = b;
   }
 }
 
-var derived = Derived("a", "b");
-print derived.a; // out: a
-print derived.b; // out: b
+let derived = Derived("a", "b");
+println derived.a; // out: a
+println derived.b; // out: b
