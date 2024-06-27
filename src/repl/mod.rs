@@ -10,7 +10,7 @@ use reedline::{
 use std::borrow::Cow;
 
 use crate::{
-    allocator::allocation::CeAllocation,
+    allocator::allocation::CeAllocationGc,
     vm::{compiler::Compiler, error::report_errors, VM},
 };
 
@@ -18,7 +18,7 @@ pub fn run(trace: bool, debug: bool, optimized: bool) -> Result<()> {
     let mut color = termcolor::StandardStream::stderr(termcolor::ColorChoice::Always);
     let mut editor = editor().context("could not start REPL")?;
 
-    let mut allocator = CeAllocation::new();
+    let mut allocator = CeAllocationGc::new();
     let mut compiler = Compiler::new(&mut allocator, debug);
     let mut vm = VM::new(&mut allocator, trace, optimized);
 

@@ -3,7 +3,7 @@ use std::{fs, str};
 
 use pretty_assertions::assert_eq;
 use test_generator::test_resources;
-use Cecile::allocator::allocation::CeAllocation;
+use Cecile::allocator::allocation::CeAllocationGc;
 use Cecile::vm::compiler::Compiler;
 use Cecile::vm::VM;
 
@@ -29,7 +29,7 @@ fn lox(path: &str) {
     }
 
     let mut color = termcolor::StandardStream::stderr(termcolor::ColorChoice::Always);
-    let mut allocation = CeAllocation::new();
+    let mut allocation = CeAllocationGc::new();
     let mut compiler = Compiler::new(&mut allocation, false);
     let mut got_output = Vec::new();
     let mut vm = Cecile::vm::VM::new(&mut allocation, false, false);
