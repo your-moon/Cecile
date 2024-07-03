@@ -5,10 +5,10 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <NextUIProvider className="h-full">
-      <NextThemesProvider attribute="class" defaultTheme="light">
+    <NextUIProvider className="w-full h-full">
+      <main className="light text-foreground bg-background w-full h-full">
         {children}
-      </NextThemesProvider>
+      </main>
     </NextUIProvider>
   );
 }

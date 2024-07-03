@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
-import { Button } from "@nextui-org/react";
+import { Button, Select, SelectItem } from "@nextui-org/react";
 
 import Split from "react-split";
 import { Output } from "../output";
@@ -82,10 +82,16 @@ const Playground: React.FC = () => {
   const resizeHandler = () => window.dispatchEvent(new Event("resize"));
 
   return (
-    <div className="h-1/2">
+    <div className=" p-10 bg-[#D3BEBE]">
+      <div className="min-h-12 min-w-40 bg-white my-5 p-2 flex flex-row items-center rounded-xl gap-2">
+        <div>Examples</div>
+        <Select fullWidth={true} radius="lg" size="sm" className="max-w-56">
+          <SelectItem key={1}></SelectItem>
+        </Select>
+      </div>
       <Split
         gutterAlign="center"
-        className="flex h-full"
+        className="flex min-h-36"
         sizes={[50, 50]}
         cursor="col-resize"
         direction="horizontal"
@@ -95,7 +101,7 @@ const Playground: React.FC = () => {
         <Editor editorText={editorText} setEditorText={setEditorText} />
         <Output text={outputText} />
       </Split>
-      <Button onClick={startCecile} color="success" isLoading={isLoading}>
+      <Button className="mt-5" onClick={startCecile} isLoading={isLoading}>
         Start
       </Button>
     </div>
