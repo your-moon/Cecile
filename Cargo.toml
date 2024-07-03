@@ -58,7 +58,7 @@ nu-ansi-term = { version = "0.47.0", optional = true }
 
 rand = { version = "0.6.5", features = ["wasm-bindgen"] }
 
-pprof = { version = "0.13.0", features = [
+pprof = { version = "0.12.1", features = [
     "cpp",
     "flamegraph",
     "prost-codec",

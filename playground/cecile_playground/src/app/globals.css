@@ -26,6 +26,18 @@
 /*     rgb(var(--background-start-rgb)); */
 /* } */
 
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#__next {
+  height: 100%;
+}
+
 .gutter {
   background-color: #e8e8e8;
   background-repeat: no-repeat;

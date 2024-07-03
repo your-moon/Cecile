@@ -109,14 +109,8 @@ impl<'a> VM<'a> {
         self.source.push_str(source);
         self.source.push('\n');
 
-        #[cfg(feature = "pprof")]
-        let guard = pprof::ProfilerGuardBuilder::default()
-            .blocklist(&["libc", "libgcc", "pthread", "vdso"])
-            .build()
-            .expect("could not start pprof");
-
         let function =
-            compiler.compile_script(source, offset, &mut self.allocator, color, ast_debug)?;
+            compiler.compile_script(source, offset, self.allocator, color, ast_debug)?;
 
         for function in &compiler.functions {
             let function = unsafe { &mut (**function) };
@@ -136,7 +130,7 @@ impl<'a> VM<'a> {
                 function.chunk.spans = optim.counted_chunk.spans;
             }
             if self.optimized_debug {
-                function.chunk.debug(&function_name);
+                function.chunk.debug(function_name);
             }
         }
 
@@ -144,6 +138,13 @@ impl<'a> VM<'a> {
 
         #[cfg(feature = "pprof")]
         {
+            println!("PPROF is feature is set");
+            let guard = pprof::ProfilerGuardBuilder::default()
+                .frequency(1000)
+                .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+                .build()
+                .expect("could not start pprof");
+
             let report = guard
                 .report()
                 .build()
@@ -576,22 +577,23 @@ impl<'a> VM<'a> {
                         //NOTE:
                         // each time we call a method we create a new bound method object
                         // if bound_method is already created then we can reuse it
-                        let bound_method =
-                            unsafe { (*(*instance).struct_).bound_method_cache.get(&name) };
+                        // let bound_method =
+                        //     unsafe { (*(*instance).struct_).bound_method_cache.get(&name) };
 
-                        let bound_method = match bound_method {
-                            Some(bound_method) => *bound_method,
-                            None => {
-                                let bound_method =
-                                    self.alloc(BoundMethodObject::new(instance, method));
-                                unsafe {
-                                    (*(*instance).struct_)
-                                        .bound_method_cache
-                                        .insert(name, bound_method)
-                                };
-                                bound_method
-                            }
-                        };
+                        // let bound_method = match bound_method {
+                        //     Some(bound_method) => *bound_method,
+                        //     None => {
+                        //         let bound_method =
+                        //             self.alloc(BoundMethodObject::new(instance, method));
+                        //         unsafe {
+                        //             (*(*instance).struct_)
+                        //                 .bound_method_cache
+                        //                 .insert(name, bound_method)
+                        //         };
+                        //         bound_method
+                        //     }
+                        // };
+                        let bound_method = self.alloc(BoundMethodObject::new(instance, method));
 
                         self.pop();
                         self.push(bound_method.into());

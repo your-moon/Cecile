@@ -27,7 +27,7 @@ pub fn greet() {
 pub fn run_cecile(source: &str) {
     let mut color = termcolor::StandardStream::stderr(termcolor::ColorChoice::Always);
     let output = &mut Output::new();
-                let mut allocation = Cecile::allocator::allocation::CeAllocation::new();
+                let mut allocation = Cecile::allocator::allocation::CeAllocationGc::new();
                 let mut compiler = Compiler::new(&mut allocation, false);
                 let mut vm = Cecile::vm::VM::new(&mut allocation, false, false);
     match vm.run(source,&mut color,false, output, &mut compiler) {
