@@ -3,8 +3,8 @@ import React, { memo, useEffect } from "react";
 import { Button, Card, Select, SelectItem } from "@nextui-org/react";
 
 import Split from "react-split";
-import { Output } from "../output";
-import { Editor } from "../editor";
+import Output from "../output";
+import Editor from "../editor";
 import { examples } from "../examples/examples";
 
 type CecileOutMessageOutput = {

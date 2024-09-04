@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 
 interface OutputProps {
   text: string;
@@ -10,7 +10,7 @@ interface OutputProps {
 const Output = ({ text }: OutputProps) => (
   <pre
     style={{
-      maxHeight: 500,
+      maxHeight: 600,
     }}
     className=" font-monospace text-base ms-1 bg-white overflow-auto "
     // eslint-disable-next-line react/no-danger
@@ -19,5 +19,5 @@ const Output = ({ text }: OutputProps) => (
   />
 );
 
-export { Output };
+export default memo(Output);
 export type { OutputProps };
