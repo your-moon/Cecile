@@ -9,7 +9,10 @@ interface OutputProps {
  */
 const Output = ({ text }: OutputProps) => (
   <pre
-    className="font-monospace text-base ms-1 bg-white overflow-auto "
+    style={{
+      maxHeight: 500,
+    }}
+    className=" font-monospace text-base ms-1 bg-white overflow-auto "
     // eslint-disable-next-line react/no-danger
     dangerouslySetInnerHTML={{ __html: text }}
     id="output"

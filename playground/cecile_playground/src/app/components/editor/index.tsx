@@ -13,10 +13,11 @@ interface EditorProps {
 const Editor = ({ editorText, setEditorText }: EditorProps) => (
   <AceEditor
     style={{
-      minHeight: "300px",
-      maxHeight: "400px",
+      minHeight: "500px",
+      maxHeight: "600px",
     }}
     className="font-monospace fs-6"
+    fontSize={16}
     theme="tomorrow"
     focus
     mode="typescript"
