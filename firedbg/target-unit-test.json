@@ -1,0 +1,34 @@
+{
+  "binaries": [],
+  "examples": [],
+  "integration_tests": [],
+  "unit_tests": [
+    {
+      "package_name": "Cecile",
+      "test_cases": [
+        "cc_lexer::tests::test_comment",
+        "cc_lexer::tests::test_lexer",
+        "cc_parser::tests::block_statement",
+        "cc_parser::tests::div_expression",
+        "cc_parser::tests::for_statement_declaration",
+        "cc_parser::tests::if_statement_declaration",
+        "cc_parser::tests::if_statement_declaration_2",
+        "cc_parser::tests::mul_expression",
+        "cc_parser::tests::negate_expression",
+        "cc_parser::tests::print_statement",
+        "cc_parser::tests::return_statement",
+        "cc_parser::tests::variable_declaration",
+        "cc_parser::tests::variable_declaration_int",
+        "cc_parser::tests::while_statement_declaration",
+        "vm::object::tests::test_function_object_to_value",
+        "vm::object::tests::test_string_object_to_value",
+        "vm::value::tests::convert_to_and_from_values",
+        "vm::value::tests::test_qnan",
+        "vm::value::tests::test_value_is_bool",
+        "vm::value::tests::test_value_is_nil",
+        "vm::value::tests::test_value_is_number",
+        "vm::value::tests::test_value_type"
+      ]
+    }
+  ]
+}
