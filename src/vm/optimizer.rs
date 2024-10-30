@@ -126,14 +126,14 @@ impl CountedChunk {
             Opcode::Add | Opcode::Sub => {
                 let left = if let Opcode::Constant(left) = &self.op_codes[idx - 2] {
                     let const_idx = *left;
-                    self.constants[const_idx as usize].clone()
+                    self.constants[const_idx as usize]
                 } else {
                     return idx + 1;
                 };
 
                 let right = if let Opcode::Constant(right) = &self.op_codes[idx - 1] {
                     let const_idx = *right;
-                    self.constants[const_idx as usize].clone()
+                    self.constants[const_idx as usize]
                 } else {
                     return idx + 1;
                 };
@@ -199,7 +199,7 @@ impl CountedChunk {
                         let global_value = self.constants[index as usize];
                         let global_name = unsafe { (*global_value.as_object().string).value };
                         if let Some(constant_idx) =
-                            self.prop_constants.get(&global_name.to_string())
+                            self.prop_constants.get(global_name)
                         {
                             let constant = self.constants[*constant_idx as usize];
                             let result = constant.as_number() + right_constant.as_number();
@@ -222,10 +222,10 @@ impl CountedChunk {
                             self.spans.drain(idx - 1..=idx);
                             return idx - 2;
                         }
-                        return idx + 1;
+                        idx + 1
                     }
-                    _ => return idx + 1,
-                };
+                    _ => idx + 1,
+                }
             }
             Opcode::DefineGlobal { index } => {
                 if let Opcode::Constant(constant_idx) = &self.op_codes[idx - 1] {
@@ -233,7 +233,6 @@ impl CountedChunk {
                     let global_name = unsafe { (*constant.as_object().string).value };
                     self.prop_constants
                         .insert(global_name.to_string(), *constant_idx);
-                } else {
                 }
                 idx + 1
             }
