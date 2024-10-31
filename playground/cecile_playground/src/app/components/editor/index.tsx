@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import AceEditor from "react-ace";
 
 import "ace-builds/src-noconflict/mode-typescript";
@@ -12,15 +12,19 @@ interface EditorProps {
 
 const Editor = ({ editorText, setEditorText }: EditorProps) => (
   <AceEditor
+    style={{
+      minHeight: "600px",
+      maxHeight: "700px",
+    }}
     className="font-monospace fs-6"
+    fontSize={16}
     theme="tomorrow"
     focus
     mode="typescript"
-    height="100%"
     onChange={setEditorText}
     value={editorText}
   />
 );
 
-export { Editor };
+export default memo(Editor);
 export type { EditorProps };

@@ -63,7 +63,7 @@ Important note: **This project is built for learning purposes**. The code qualit
 let number: int = 1;
 let string: String = "string";
 
-// Ofcource you don't need to write type everytime you declare variable
+// (Type Inferring) Ofcource you don't need to write type everytime you declare variable
 let number = 2;
 let string = "hello cecile";
 

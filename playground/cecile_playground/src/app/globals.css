@@ -26,17 +26,27 @@
 /*     rgb(var(--background-start-rgb)); */
 /* } */
 
+html,
+body {
+    height: 100%;
+    width: 100%;
+}
+
+#__next {
+    height: 100%;
+}
+
 .gutter {
-  background-color: #e8e8e8;
-  background-repeat: no-repeat;
-  background-position: 50%;
+    background-color: #e8e8e8;
+    background-repeat: no-repeat;
+    background-position: 50%;
 }
 
 .gutter:active {
-  background-color: #7e7e7e;
+    background-color: #7e7e7e;
 }
 
 .gutter.gutter-horizontal {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==");
-  cursor: col-resize;
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==");
+    cursor: col-resize;
 }
